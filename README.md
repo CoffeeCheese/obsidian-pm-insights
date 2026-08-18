@@ -59,7 +59,7 @@ To keep the snapshot honest:
 - Obsidian `1.7.2` or later.
 - The [Project Manager](https://github.com/stepankropachev/obsidian-pm) plugin and at least one Project Manager project.
 
-PM Insights is still an early preview and is not yet listed in Obsidian's community plugin directory.
+Install [PM Insights from the Obsidian Community directory](https://community.obsidian.md/plugins/project-manager-insights), or open **Settings → Community plugins → Browse**, search for **PM Insights**, then select **Install** and **Enable**.
 
 To use it, open **PM Insights** from the ribbon or run **PM Insights: Open workload insights** from the command palette. Choose projects from the picker, select an assignee, and use **Settings → PM Insights** whenever you want to change the language or configure member aliases.
 

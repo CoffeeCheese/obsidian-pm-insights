@@ -59,7 +59,7 @@ PM Insights 将 [Project Manager](https://github.com/stepankropachev/obsidian-pm
 - Obsidian `1.7.2` 或更高版本。
 - 已安装 [Project Manager](https://github.com/stepankropachev/obsidian-pm) 插件，并至少创建了一个 Project Manager 项目。
 
-PM Insights 目前仍是早期预览版本，尚未发布到 Obsidian 社区插件目录。
+你可以从 [Obsidian 官方社区目录安装 PM Insights](https://community.obsidian.md/plugins/project-manager-insights)，也可以前往 **设置 → 第三方插件 → 浏览**，搜索 **PM Insights** 后点击 **安装**并**启用**。
 
 点击侧边栏中的 **PM Insights** 图标，或在命令面板运行 **PM Insights: 打开工作量洞察** 即可开始使用。在项目选择器中勾选项目并选择成员；需要切换语言或配置成员别名时，前往 **设置 → PM Insights**。
 
