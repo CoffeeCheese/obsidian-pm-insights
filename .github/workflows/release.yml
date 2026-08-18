@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "*.*.*"
 
 permissions:
   contents: write
@@ -20,9 +20,8 @@ jobs:
       - run: npm ci
       - run: npm run check
       - name: Verify tag matches manifest
-        run: test "v$(node -p \"require('./manifest.json').version\")" = "$GITHUB_REF_NAME"
+        run: test "$(node -p \"require('./manifest.json').version\")" = "$GITHUB_REF_NAME"
       - name: Publish release assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css --generate-notes
-
