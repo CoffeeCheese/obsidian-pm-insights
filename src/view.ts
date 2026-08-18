@@ -407,7 +407,14 @@ export class InsightsView extends ItemView {
     }
 
     const projectIcons = new Map(projects.map((project) => [project.id, project.icon]));
-    const table = detail.createDiv("pmi-task-table");
+    const table = detail.createDiv({
+      cls: "pmi-task-table",
+      attr: {
+        role: "region",
+        tabindex: "0",
+        "aria-label": t.tasks
+      }
+    });
     const columns = table.createDiv("pmi-task-columns");
     columns.createSpan({ text: t.tasks });
     columns.createSpan({ text: t.project });

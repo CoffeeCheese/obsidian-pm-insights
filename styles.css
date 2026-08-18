@@ -1,8 +1,12 @@
-.workspace-leaf-content[data-type="project-manager-insights-view"] .view-content {
-  padding: 0;
+.workspace-leaf-content[data-type="project-manager-insights-view"] .view-content.pmi-root {
+  box-sizing: border-box;
+  padding: var(--pmi-page-space-block) var(--pmi-page-gutter);
 }
 
 .pmi-view {
+  --pmi-content-max: 1320px;
+  --pmi-page-gutter: clamp(24px, 4.5vw, 72px);
+  --pmi-page-space-block: clamp(24px, 3vw, 44px);
   --pmi-edge: color-mix(in srgb, var(--text-muted) 26%, transparent);
   --pmi-edge-strong: color-mix(in srgb, var(--text-muted) 48%, transparent);
   --pmi-surface: color-mix(in srgb, var(--background-primary) 94%, var(--interactive-accent) 6%);
@@ -15,7 +19,6 @@
 
 .pmi-root {
   min-height: 100%;
-  padding: clamp(20px, 3vw, 42px);
   overflow: auto;
   background:
     linear-gradient(var(--pmi-edge) 1px, transparent 1px) 0 0 / 100% 32px,
@@ -27,7 +30,6 @@
   align-items: end;
   justify-content: space-between;
   gap: 24px;
-  max-width: 1440px;
   margin: 0 auto 24px;
   padding-block-end: 18px;
   border-block-end: 1px solid var(--pmi-edge-strong);
@@ -76,9 +78,11 @@
   height: 15px;
 }
 
+.pmi-header,
 .pmi-controls,
 .pmi-dashboard {
-  max-width: 1440px;
+  width: 100%;
+  max-width: var(--pmi-content-max);
   margin-inline: auto;
 }
 
@@ -450,7 +454,10 @@
 }
 
 .pmi-task-table {
-  overflow: hidden;
+  --pmi-task-grid-min-width: 798px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
   border: 1px solid var(--pmi-edge);
   border-radius: var(--radius-s);
 }
@@ -458,9 +465,12 @@
 .pmi-task-columns,
 .pmi-task-row {
   display: grid;
-  grid-template-columns: minmax(240px, 1.7fr) minmax(130px, 0.85fr) minmax(90px, 0.55fr) 66px 66px 74px;
+  grid-template-columns: minmax(260px, 1fr) 160px 100px 66px 66px 74px;
   align-items: center;
+  justify-content: start;
   gap: 10px;
+  width: 100%;
+  min-width: var(--pmi-task-grid-min-width);
 }
 
 .pmi-task-columns {
@@ -479,7 +489,6 @@
 }
 
 .pmi-task-row {
-  width: 100%;
   height: auto;
   padding: 9px 11px;
   border: 0;
@@ -496,6 +505,33 @@
 }
 
 .pmi-task-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.pmi-task-columns > :first-child,
+.pmi-task-row > :first-child {
+  position: sticky;
+  inset-inline-start: 11px;
+  z-index: 2;
+  align-self: stretch;
+  box-shadow:
+    1px 0 0 var(--pmi-edge-strong),
+    12px 0 16px -16px var(--text-muted);
+}
+
+.pmi-task-columns > :first-child {
+  display: flex;
+  align-items: center;
+  background: var(--pmi-surface);
+}
+
+.pmi-task-row > :first-child {
+  display: grid;
+  align-content: center;
+  background: var(--background-primary);
+}
+
+.pmi-task-row:hover > :first-child {
   background: var(--background-modifier-hover);
 }
 
@@ -601,6 +637,11 @@
   outline-offset: 2px;
 }
 
+.pmi-task-table:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
 .pm-view-switcher > .pmi-open-insights-btn {
   position: relative;
   margin-inline-start: 7px;
@@ -631,8 +672,9 @@
 }
 
 @media (max-width: 620px) {
-  .pmi-root {
-    padding: 16px;
+  .pmi-view {
+    --pmi-page-gutter: clamp(16px, 4vw, 24px);
+    --pmi-page-space-block: 16px;
   }
 
   .pmi-header {
@@ -672,19 +714,6 @@
     border-block-start: 1px solid var(--pmi-edge);
   }
 
-  .pmi-task-columns {
-    display: none;
-  }
-
-  .pmi-task-row {
-    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
-  }
-
-  .pmi-task-project,
-  .pmi-task-status {
-    display: none;
-  }
-
   .pmi-task-filters {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -695,4 +724,3 @@
     scroll-behavior: auto;
   }
 }
-
