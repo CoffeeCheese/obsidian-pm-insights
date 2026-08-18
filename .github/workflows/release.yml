@@ -20,7 +20,9 @@ jobs:
       - run: npm ci
       - run: npm run check
       - name: Verify tag matches manifest
-        run: test "$(node -p \"require('./manifest.json').version\")" = "$GITHUB_REF_NAME"
+        run: |
+          manifest_version="$(node -p 'require("./manifest.json").version')"
+          test "$manifest_version" = "$GITHUB_REF_NAME"
       - name: Publish release assets
         env:
           GH_TOKEN: ${{ github.token }}
