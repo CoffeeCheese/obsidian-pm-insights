@@ -1,6 +1,6 @@
 <div align="center">
   <p><code>PROJECT MANAGER · WORKLOAD COMPANION</code></p>
-  <h1>✦ PM Insights ✦</h1>
+  <h1>✦ Project Manager Insights ✦</h1>
   <p><strong>A tiny workload observatory inside your Obsidian vault.</strong></p>
   <p>Pick your projects, meet the hours behind the team, and follow every signal back to a task.</p>
   <p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
@@ -59,7 +59,7 @@ To keep the snapshot honest:
 - Obsidian `1.7.2` or later.
 - The [Project Manager](https://github.com/stepankropachev/obsidian-pm) plugin and at least one Project Manager project.
 
-Install [PM Insights from the Obsidian Community directory](https://community.obsidian.md/plugins/project-manager-insights), or open **Settings → Community plugins → Browse**, search for **PM Insights**, then select **Install** and **Enable**.
+Install [Project Manager Insights from the Obsidian Community directory](https://community.obsidian.md/plugins/project-manager-insights), or open **Settings → Community plugins → Browse**, search for **Project Manager Insights**, then select **Install** and **Enable**.
 
 To use it, open **PM Insights** from the ribbon or run **PM Insights: Open workload insights** from the command palette. Choose projects from the picker, select an assignee, and use **Settings → PM Insights** whenever you want to change the language or configure member aliases.
 
