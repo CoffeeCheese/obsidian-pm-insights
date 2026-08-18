@@ -1,7 +1,7 @@
 import type { InsightSettings } from "./model";
 
 const en = {
-  viewName: "Project Manager Insights",
+  viewName: "PM Insights",
   commandOpen: "Open workload insights",
   commandRefresh: "Refresh workload insights",
   toolbarTooltip: "Open assignee insights",
@@ -43,7 +43,7 @@ const en = {
   noMembers: "No assignees match this search.",
   noTasks: "No tasks match the current filters.",
   openTask: "Open task",
-  settingsHeading: "Project Manager Insights",
+  settingsHeading: "PM Insights",
   language: "Language",
   languageDesc: "Use Obsidian's language or choose a language for this plugin.",
   automatic: "Automatic",
@@ -61,7 +61,7 @@ const en = {
 };
 
 const zh: typeof en = {
-  viewName: "Project Manager 洞察",
+  viewName: "PM 洞察",
   commandOpen: "打开工作量洞察",
   commandRefresh: "刷新工作量洞察",
   toolbarTooltip: "打开成员统计",
@@ -103,7 +103,7 @@ const zh: typeof en = {
   noMembers: "没有匹配的成员。",
   noTasks: "没有符合当前筛选条件的任务。",
   openTask: "打开任务",
-  settingsHeading: "Project Manager 洞察",
+  settingsHeading: "PM 洞察",
   language: "语言",
   languageDesc: "跟随 Obsidian，或单独指定插件界面语言。",
   automatic: "自动",
@@ -127,4 +127,3 @@ export function translations(settings: InsightSettings): Translations {
   const locale = settings.locale === "auto" ? detected : settings.locale;
   return locale.startsWith("zh") ? zh : en;
 }
-

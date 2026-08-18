@@ -1,6 +1,6 @@
 {
   "id": "project-manager-insights",
-  "name": "Project Manager Insights",
+  "name": "PM Insights",
   "version": "0.1.0",
   "minAppVersion": "1.7.2",
   "description": "Read-only assignee workload insights across Project Manager projects.",
@@ -8,4 +8,3 @@
   "authorUrl": "https://github.com/CoffeeCheese",
   "isDesktopOnly": false
 }
-

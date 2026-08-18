@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-project-manager-insights",
+  "name": "obsidian-pm-insights",
   "version": "0.1.0",
   "private": true,
   "description": "Read-only assignee workload insights for the Obsidian Project Manager plugin.",
@@ -29,4 +29,3 @@
     "vitest": "latest"
   }
 }
-

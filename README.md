@@ -1,6 +1,6 @@
-# Project Manager Insights
+# PM Insights
 
-Project Manager Insights is a read-only workload view for the Obsidian
+PM Insights is a read-only workload view for the Obsidian
 [Project Manager](https://github.com/stepankropachev/obsidian-pm)
 plugin. It combines multiple Project Manager projects and summarizes planned,
 logged, remaining, and overrun hours by assignee.
