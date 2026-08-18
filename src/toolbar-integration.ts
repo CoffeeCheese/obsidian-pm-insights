@@ -26,7 +26,7 @@ export class ProjectManagerToolbarIntegration {
   stop(): void {
     this.observer?.disconnect();
     this.observer = null;
-    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    if (this.frame !== null) window.cancelAnimationFrame(this.frame);
     this.frame = null;
     document.querySelectorAll(".pmi-open-insights-btn").forEach((element) => element.remove());
   }
@@ -40,34 +40,36 @@ export class ProjectManagerToolbarIntegration {
       const projectPath = this.projectPathFor(switcher);
       if (!projectPath) continue;
 
-      const button = document.createElement("button");
-      button.className = "clickable-icon pm-view-btn pmi-open-insights-btn";
-      button.type = "button";
-      button.setAttribute("aria-label", this.host.tooltip());
-      button.setAttribute("data-tooltip-position", "top");
+      const button = switcher.createEl("button", {
+        cls: "clickable-icon pm-view-btn pmi-open-insights-btn",
+        attr: {
+          type: "button",
+          "aria-label": this.host.tooltip(),
+          "data-tooltip-position": "top"
+        }
+      });
       setIcon(button, "chart-no-axes-combined");
       button.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
         void this.host.openProjectInsights(projectPath);
       });
-      switcher.appendChild(button);
     }
   }
 
   private scheduleSync(): void {
     if (this.frame !== null) return;
-    this.frame = requestAnimationFrame(() => {
+    this.frame = window.requestAnimationFrame(() => {
       this.frame = null;
       this.sync();
     });
   }
 
   private affectsProjectToolbar(record: MutationRecord): boolean {
-    if (record.target instanceof Element && record.target.closest(".pm-view-switcher")) return true;
+    if (record.target.instanceOf(Element) && record.target.closest(".pm-view-switcher")) return true;
     return [...record.addedNodes].some(
       (node) =>
-        node instanceof Element &&
+        node.instanceOf(Element) &&
         (node.matches(".pm-view-switcher, .workspace-leaf-content.pm-view") ||
           Boolean(node.querySelector(".pm-view-switcher")))
     );

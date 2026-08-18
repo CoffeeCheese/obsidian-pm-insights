@@ -1,8 +1,9 @@
 import esbuild from "esbuild";
+import { builtinModules } from "node:module";
 import process from "node:process";
-import builtins from "builtin-modules";
 
 const production = process.argv[2] === "production";
+const builtins = [...builtinModules, ...builtinModules.map((module) => `node:${module}`)];
 
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
@@ -22,4 +23,3 @@ if (production) {
 } else {
   await context.watch();
 }
-

@@ -36,7 +36,7 @@ function stringList(value: unknown): string[] {
 
 function loggedHours(value: unknown): number {
   if (!Array.isArray(value)) return 0;
-  return value.reduce((total, entry) => {
+  return (value as unknown[]).reduce<number>((total, entry) => {
     if (!entry || typeof entry !== "object") return total;
     return total + number((entry as { hours?: unknown }).hours);
   }, 0);
@@ -128,4 +128,3 @@ export class ProjectManagerAdapter {
     return defaults;
   }
 }
-

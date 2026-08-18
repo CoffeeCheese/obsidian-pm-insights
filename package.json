@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pm-insights",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Read-only assignee workload insights for the Obsidian Project Manager plugin.",
   "main": "main.js",
@@ -8,7 +8,8 @@
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
-    "check": "tsc --noEmit && npm test && npm run build",
+    "check": "tsc --noEmit && npm run lint && npm test && npm run build",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "keywords": [
@@ -21,8 +22,10 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "latest",
-    "builtin-modules": "latest",
+    "@typescript-eslint/parser": "^8.67.0",
     "esbuild": "latest",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.4.1",
     "obsidian": "latest",
     "tslib": "latest",
     "typescript": "latest",

@@ -10,15 +10,18 @@ export interface SettingsHost {
 }
 
 export class InsightsSettingTab extends PluginSettingTab {
-  constructor(app: App, private readonly host: SettingsHost & Plugin) {
-    super(app, host);
+  private readonly host: SettingsHost;
+
+  constructor(app: App, plugin: SettingsHost & Plugin) {
+    super(app, plugin);
+    this.host = plugin;
   }
 
   display(): void {
     const { containerEl } = this;
     const t = translations(this.host.settings);
     containerEl.empty();
-    containerEl.createEl("h2", { text: t.settingsHeading });
+    new Setting(containerEl).setName(t.settingsHeading).setHeading();
 
     new Setting(containerEl)
       .setName(t.language)
@@ -37,8 +40,7 @@ export class InsightsSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: t.aliases });
-    containerEl.createEl("p", { cls: "setting-item-description", text: t.aliasesDesc });
+    new Setting(containerEl).setName(t.aliases).setDesc(t.aliasesDesc).setHeading();
 
     for (const [index, alias] of this.host.settings.aliases.entries()) {
       this.renderAlias(alias, index);

@@ -140,36 +140,42 @@ export class InsightsView extends ItemView {
         checkbox.checked = this.host.settings.selectedProjectIds.includes(project.id);
         row.createSpan({ cls: "pmi-project-icon", text: project.icon });
         row.createSpan({ text: project.title });
-        checkbox.addEventListener("change", async () => {
-          const selected = new Set(this.host.settings.selectedProjectIds);
-          checkbox.checked ? selected.add(project.id) : selected.delete(project.id);
-          this.host.settings.selectedProjectIds = [...selected];
-          this.selectedMemberKey = null;
-          await this.host.saveSettings();
-          this.updateProjectSummary(t);
-          this.renderDashboard(snapshot, t);
+        checkbox.addEventListener("change", () => {
+          void (async () => {
+            const selected = new Set(this.host.settings.selectedProjectIds);
+            checkbox.checked ? selected.add(project.id) : selected.delete(project.id);
+            this.host.settings.selectedProjectIds = [...selected];
+            this.selectedMemberKey = null;
+            await this.host.saveSettings();
+            this.updateProjectSummary(t);
+            this.renderDashboard(snapshot, t);
+          })();
         });
       }
     };
 
     projectSearch.addEventListener("input", renderProjects);
-    selectAll.addEventListener("click", async (event) => {
-      event.preventDefault();
-      this.host.settings.selectedProjectIds = snapshot.projects.map((project) => project.id);
-      this.selectedMemberKey = null;
-      await this.host.saveSettings();
-      this.updateProjectSummary(t);
-      renderProjects();
-      this.renderDashboard(snapshot, t);
+    selectAll.addEventListener("click", (event) => {
+      void (async () => {
+        event.preventDefault();
+        this.host.settings.selectedProjectIds = snapshot.projects.map((project) => project.id);
+        this.selectedMemberKey = null;
+        await this.host.saveSettings();
+        this.updateProjectSummary(t);
+        renderProjects();
+        this.renderDashboard(snapshot, t);
+      })();
     });
-    clear.addEventListener("click", async (event) => {
-      event.preventDefault();
-      this.host.settings.selectedProjectIds = [];
-      this.selectedMemberKey = null;
-      await this.host.saveSettings();
-      this.updateProjectSummary(t);
-      renderProjects();
-      this.renderDashboard(snapshot, t);
+    clear.addEventListener("click", (event) => {
+      void (async () => {
+        event.preventDefault();
+        this.host.settings.selectedProjectIds = [];
+        this.selectedMemberKey = null;
+        await this.host.saveSettings();
+        this.updateProjectSummary(t);
+        renderProjects();
+        this.renderDashboard(snapshot, t);
+      })();
     });
     renderProjects();
 
@@ -177,10 +183,12 @@ export class InsightsView extends ItemView {
     const archivedCheckbox = archived.createEl("input", { type: "checkbox" });
     archivedCheckbox.checked = this.host.settings.includeArchived;
     archived.createSpan({ text: t.includeArchived });
-    archivedCheckbox.addEventListener("change", async () => {
-      this.host.settings.includeArchived = archivedCheckbox.checked;
-      await this.host.saveSettings();
-      this.renderDashboard(snapshot, t);
+    archivedCheckbox.addEventListener("change", () => {
+      void (async () => {
+        this.host.settings.includeArchived = archivedCheckbox.checked;
+        await this.host.saveSettings();
+        this.renderDashboard(snapshot, t);
+      })();
     });
 
     const refresh = controls.createEl("button", {
