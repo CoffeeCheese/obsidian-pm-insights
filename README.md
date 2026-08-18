@@ -4,9 +4,17 @@
   <p><strong>A tiny workload observatory for busy Obsidian vaults.</strong></p>
   <p>See the team picture, follow the interesting bits, and leave every note exactly where it was.</p>
   <p>
-    <a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>Install from Community Plugins</strong></a>
+    <a href="https://community.obsidian.md/plugins/project-manager-insights"><img alt="Obsidian Community Plugin" src="https://img.shields.io/badge/Obsidian-Community%20Plugin-7C3AED?style=for-the-badge&amp;logo=obsidian&amp;logoColor=white"></a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=for-the-badge&amp;label=Release&amp;color=007ACC&amp;logo=github"></a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=for-the-badge&amp;color=2EA44F&amp;logo=github"></a>
+    <img alt="Vault data is read only" src="https://img.shields.io/badge/Vault%20Data-Read%20Only-2F7D8C?style=for-the-badge&amp;logo=markdown&amp;logoColor=white">
+  </p>
+  <p>
+    <a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>Install from Obsidian</strong></a>
     ·
-    <a href="#-take-a-30-second-tour">Take a tiny tour</a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases">Releases</a>
+    ·
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/issues">Report an issue</a>
   </p>
   <p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 </div>

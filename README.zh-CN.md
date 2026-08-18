@@ -4,9 +4,17 @@
   <p><strong>藏在 Obsidian Vault 里的小小工作量观测站。</strong></p>
   <p>看看团队全景，顺着线索找到任务，同时让每篇笔记安静待在原处。</p>
   <p>
-    <a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>从社区插件市场安装</strong></a>
+    <a href="https://community.obsidian.md/plugins/project-manager-insights"><img alt="Obsidian 社区插件" src="https://img.shields.io/badge/Obsidian-Community%20Plugin-7C3AED?style=for-the-badge&amp;logo=obsidian&amp;logoColor=white"></a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img alt="最新版本" src="https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=for-the-badge&amp;label=Release&amp;color=007ACC&amp;logo=github"></a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img alt="累计下载量" src="https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=for-the-badge&amp;color=2EA44F&amp;logo=github"></a>
+    <img alt="Vault 数据只读" src="https://img.shields.io/badge/Vault%20Data-Read%20Only-2F7D8C?style=for-the-badge&amp;logo=markdown&amp;logoColor=white">
+  </p>
+  <p>
+    <a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>从 Obsidian 安装</strong></a>
     ·
-    <a href="#-用-30-秒逛一圈">用 30 秒逛一圈</a>
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases">版本发布</a>
+    ·
+    <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/issues">反馈问题</a>
   </p>
   <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
 </div>
