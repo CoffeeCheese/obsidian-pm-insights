@@ -1,3 +1,19 @@
+.pmi-detached-project-host {
+  position: fixed;
+  top: 0;
+  left: -12000px;
+  width: 1400px;
+  height: 900px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pmi-detached-project-container {
+  width: 1400px;
+  height: 900px;
+}
+
 .workspace-leaf-content[data-type="project-manager-insights-view"] .view-content.pmi-root {
   box-sizing: border-box;
   padding: var(--pmi-page-space-block) var(--pmi-page-gutter);

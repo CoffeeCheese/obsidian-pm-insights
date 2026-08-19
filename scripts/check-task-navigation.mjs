@@ -48,11 +48,27 @@ const evaluation = `(async () => {
   hostileTheme.remove();
 
   const originalProjectLeaves = new Set(app.workspace.getLeavesOfType("pm-project"));
+  const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
   const originalModals = new Set(document.querySelectorAll(".modal-container"));
+  let taskSawTemporaryProjectTab = false;
+  const inspectTaskLeaves = () => {
+    if (app.workspace.getLeavesOfType("pm-project").some((leaf) => !originalProjectLeaves.has(leaf))) {
+      taskSawTemporaryProjectTab = true;
+    }
+  };
+  const layoutRef = app.workspace.on("layout-change", inspectTaskLeaves);
+  const activeLeafRef = app.workspace.on("active-leaf-change", inspectTaskLeaves);
+  const leafPoll = window.setInterval(inspectTaskLeaves, 5);
   taskButton.click();
   const taskModal = await waitFor(() =>
     [...document.querySelectorAll(".modal-container")].find((modal) => !originalModals.has(modal))
   );
+  const taskUsedDetachedHost = [...document.querySelectorAll(".pmi-detached-project-host")].some(
+    (host) => !originalDetachedHosts.has(host)
+  );
+  window.clearInterval(leafPoll);
+  app.workspace.offref(layoutRef);
+  app.workspace.offref(activeLeafRef);
   await waitFor(() => app.workspace.getLeavesOfType("pm-project").every((leaf) => originalProjectLeaves.has(leaf)));
 
   const taskStayedOnInsights = app.workspace.getLeaf(false) === insightsLeaf;
@@ -62,7 +78,15 @@ const evaluation = `(async () => {
   const taskId = taskButton.dataset.taskId ?? "";
   taskModal?.querySelector(".modal-header-button")?.click();
   await waitFor(() => !taskModal?.isConnected);
+  await waitFor(() =>
+    [...document.querySelectorAll(".pmi-detached-project-host")].every((host) =>
+      originalDetachedHosts.has(host)
+    )
+  );
   const taskModalClosed = !taskModal?.isConnected;
+  const taskDetachedHostCleaned = [...document.querySelectorAll(".pmi-detached-project-host")].every(
+    (host) => originalDetachedHosts.has(host)
+  );
 
   const projectPath = projectButton.dataset.projectPath ?? "";
   projectButton.click();
@@ -95,6 +119,9 @@ const evaluation = `(async () => {
     taskModalOpened: Boolean(taskModal),
     taskModalClosed,
     taskStayedOnInsights,
+    taskSawTemporaryProjectTab,
+    taskUsedDetachedHost,
+    taskDetachedHostCleaned,
     taskLeftNoProjectTab,
     projectOpenedNewTab,
     projectInitialized
@@ -128,6 +155,9 @@ if (
   !report.taskModalOpened ||
   !report.taskModalClosed ||
   !report.taskStayedOnInsights ||
+  report.taskSawTemporaryProjectTab ||
+  !report.taskUsedDetachedHost ||
+  !report.taskDetachedHostCleaned ||
   !report.taskLeftNoProjectTab ||
   !report.projectOpenedNewTab ||
   !report.projectInitialized

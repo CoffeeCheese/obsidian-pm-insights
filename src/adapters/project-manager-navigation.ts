@@ -1,4 +1,4 @@
-import type { App, WorkspaceLeaf } from "obsidian";
+import { Events, type App } from "obsidian";
 
 const PROJECT_MANAGER_ID = "project-manager";
 const PROJECT_VIEW_TYPE = "pm-project";
@@ -46,6 +46,41 @@ interface ProjectManagerProjectView {
   filter?: { showArchived?: boolean };
   project?: { tasks?: ProjectTask[] };
   subview?: ProjectTableView;
+  load?(): void;
+  unload?(): void;
+  onOpen?(): Promise<void> | void;
+  onClose?(): Promise<void> | void;
+  setState?(state: { filePath: string }, result: Record<string, never>): Promise<void> | void;
+}
+
+interface ProjectViewRegistry {
+  getViewCreatorByType?(type: string):
+    | ((leaf: DetachedProjectLeaf) => ProjectManagerProjectView)
+    | null;
+}
+
+class DetachedProjectLeaf extends Events {
+  readonly containerEl: HTMLElement;
+  readonly history = { backHistory: [], forwardHistory: [] };
+  private readonly rootEl: HTMLElement;
+
+  constructor(readonly app: App) {
+    super();
+    this.rootEl = createDiv("pmi-detached-project-host");
+    this.rootEl.setAttribute("aria-hidden", "true");
+    this.rootEl.append(createDiv());
+
+    this.containerEl = createDiv("pmi-detached-project-container");
+    this.containerEl.append(createDiv(), createDiv());
+    this.rootEl.append(this.containerEl);
+    document.body.append(this.rootEl);
+  }
+
+  updateHeader(): void {}
+
+  destroy(): void {
+    this.rootEl.remove();
+  }
 }
 
 type NavigationFailureCode =
@@ -84,8 +119,8 @@ export class ProjectManagerNavigator {
     if (this.openingTask) return;
     this.openingTask = true;
 
-    const originalLeaf = this.app.workspace.getLeaf(false);
-    let temporaryLeaf: WorkspaceLeaf | null = null;
+    let detachedLeaf: DetachedProjectLeaf | null = null;
+    let projectView: ProjectManagerProjectView | null = null;
 
     try {
       const plugin = this.plugin();
@@ -94,20 +129,12 @@ export class ProjectManagerNavigator {
       }
 
       const existingModals = new Set(document.querySelectorAll(".modal-container"));
-      temporaryLeaf = this.app.workspace.getLeaf("tab");
-      await temporaryLeaf.setViewState({
-        type: PROJECT_VIEW_TYPE,
-        state: { filePath: target.projectPath },
-        active: false
-      });
-
-      const projectView = temporaryLeaf.view as unknown as ProjectManagerProjectView;
+      ({ leaf: detachedLeaf, view: projectView } = await this.createDetachedProjectView(
+        target.projectPath
+      ));
       const taskButton = await this.findTaskButton(projectView, target.taskId);
       if (!taskButton) throw new ProjectManagerNavigationError("task-not-found");
 
-      // The Project Manager view only exists to expose its native editor. Put
-      // Insights back underneath the app-level modal before invoking it.
-      this.restoreLeaf(originalLeaf);
       taskButton.click();
       const modal = await this.waitFor(() =>
         [...document.querySelectorAll<HTMLElement>(".modal-container")].find(
@@ -115,10 +142,50 @@ export class ProjectManagerNavigator {
         )
       );
       if (!modal) throw new ProjectManagerNavigationError("task-editor-unavailable");
+      await this.waitForRemoval(modal);
     } finally {
-      temporaryLeaf?.detach();
-      this.restoreLeaf(originalLeaf);
-      this.openingTask = false;
+      try {
+        if (detachedLeaf) await this.disposeDetachedProjectView(detachedLeaf, projectView);
+      } finally {
+        this.openingTask = false;
+      }
+    }
+  }
+
+  private async createDetachedProjectView(
+    projectPath: string
+  ): Promise<{ leaf: DetachedProjectLeaf; view: ProjectManagerProjectView }> {
+    const registry = (this.app as App & { viewRegistry?: ProjectViewRegistry }).viewRegistry;
+    const createView = registry?.getViewCreatorByType?.(PROJECT_VIEW_TYPE);
+    if (!createView) throw new ProjectManagerNavigationError("task-editor-unavailable");
+
+    const leaf = new DetachedProjectLeaf(this.app);
+    let view: ProjectManagerProjectView | null = null;
+    try {
+      view = createView(leaf);
+      if (!view.setState) throw new ProjectManagerNavigationError("task-editor-unavailable");
+      view.load?.();
+      await view.onOpen?.();
+      await view.setState({ filePath: projectPath }, {});
+      return { leaf, view };
+    } catch (error) {
+      await this.disposeDetachedProjectView(leaf, view).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private async disposeDetachedProjectView(
+    leaf: DetachedProjectLeaf,
+    view: ProjectManagerProjectView | null
+  ): Promise<void> {
+    try {
+      await view?.onClose?.();
+    } finally {
+      try {
+        view?.unload?.();
+      } finally {
+        leaf.destroy();
+      }
     }
   }
 
@@ -176,11 +243,6 @@ export class ProjectManagerNavigator {
     return undefined;
   }
 
-  private restoreLeaf(leaf: WorkspaceLeaf | null): void {
-    if (!leaf) return;
-    this.app.workspace.setActiveLeaf(leaf, { focus: false });
-  }
-
   private async waitFor<T>(
     read: () => T | null | undefined | false,
     timeout = RENDER_TIMEOUT_MS
@@ -192,5 +254,17 @@ export class ProjectManagerNavigator {
       await new Promise<void>((resolve) => window.setTimeout(resolve, POLL_INTERVAL_MS));
     }
     return null;
+  }
+
+  private async waitForRemoval(element: HTMLElement): Promise<void> {
+    if (!element.isConnected) return;
+    await new Promise<void>((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (element.isConnected) return;
+        observer.disconnect();
+        resolve();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
   }
 }
