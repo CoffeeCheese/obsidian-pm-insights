@@ -41,6 +41,31 @@ const evaluation = `(async () => {
   const statusOptionsMatchRows = JSON.stringify(statusOptions.map(({ label }) => label).sort()) ===
     JSON.stringify(initialStatuses);
 
+  const countIntrudingColumnResizers = (menu) => {
+    menu.open = true;
+    const panel = menu.querySelector(".pmi-task-filter-panel");
+    if (!(panel instanceof HTMLElement)) return -1;
+    const panelRect = panel.getBoundingClientRect();
+    const count = [...document.querySelectorAll(".pmi-task-column-resizer")]
+      .filter((resizer) => {
+        const rect = resizer.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        if (
+          x < panelRect.left ||
+          x > panelRect.right ||
+          y < panelRect.top ||
+          y > panelRect.bottom
+        ) return false;
+        const topElement = document.elementFromPoint(x, y);
+        return topElement === resizer || resizer.contains(topElement);
+      }).length;
+    menu.open = false;
+    return count;
+  };
+  const projectIntrudingColumnResizers = countIntrudingColumnResizers(projectMenu);
+  const statusIntrudingColumnResizers = countIntrudingColumnResizers(statusMenu);
+
   const statusClear = statusMenu.querySelector(".pmi-task-filter-actions button:last-child");
   statusClear?.click();
   const clearedStatusRows = document.querySelectorAll(".pmi-task-row").length;
@@ -92,6 +117,8 @@ const evaluation = `(async () => {
     setup: true,
     projectOptionsMatchRows,
     statusOptionsMatchRows,
+    projectIntrudingColumnResizers,
+    statusIntrudingColumnResizers,
     projectOptionCount: projectOptions.length,
     statusOptionCount: statusOptions.length,
     clearedStatusRows,
@@ -120,6 +147,8 @@ if (
   !report.setup ||
   !report.projectOptionsMatchRows ||
   !report.statusOptionsMatchRows ||
+  report.projectIntrudingColumnResizers !== 0 ||
+  report.statusIntrudingColumnResizers !== 0 ||
   report.projectOptionCount < 1 ||
   report.statusOptionCount < 1 ||
   report.clearedStatusRows !== 0 ||
@@ -134,6 +163,6 @@ if (
   process.exitCode = 1;
 } else {
   console.log(
-    `Task filters use ${report.projectOptionCount} current projects and ${report.statusOptionCount} current statuses; multi-select and dismissal passed.`
+    `Task filters use ${report.projectOptionCount} current projects and ${report.statusOptionCount} current statuses; both panels stay above column resizers, and multi-select and dismissal passed.`
   );
 }

@@ -639,7 +639,8 @@
 
 .pmi-task-filter-bar {
   position: relative;
-  z-index: 3;
+  /* Keep open filter panels above the table's column-resize handles (z-index: 4). */
+  z-index: 5;
   display: grid;
   grid-template:
     "search project status reset" auto
