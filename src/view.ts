@@ -21,6 +21,11 @@ export interface InsightsViewHost {
 
 type TaskFilter = "all" | "open" | "completed";
 
+const TASK_COLUMN_MIN_WIDTHS = [180, 120, 80, 64, 64, 72] as const;
+const TASK_COLUMN_GAP = 10;
+const TASK_TABLE_INLINE_PADDING = 22;
+const TASK_COLUMN_KEYBOARD_STEP = 12;
+
 export class InsightsView extends ItemView {
   private selectedMemberKey: string | null = null;
   private memberQuery = "";
@@ -28,6 +33,7 @@ export class InsightsView extends ItemView {
   private taskFilter: TaskFilter = "all";
   private dashboardEl: HTMLElement | null = null;
   private projectSummaryEl: HTMLElement | null = null;
+  private taskColumnWidths: number[] | null = null;
   private renderVersion = 0;
 
   constructor(leaf: WorkspaceLeaf, private readonly host: InsightsViewHost) {
@@ -423,13 +429,18 @@ export class InsightsView extends ItemView {
         "aria-label": t.tasks
       }
     });
+    if (this.taskColumnWidths) this.applyTaskColumnWidths(table, this.taskColumnWidths);
+
     const columns = table.createDiv("pmi-task-columns");
-    columns.createSpan({ text: t.tasks });
-    columns.createSpan({ text: t.project });
-    columns.createSpan({ text: t.status });
-    columns.createSpan({ text: t.planned });
-    columns.createSpan({ text: t.logged });
-    columns.createSpan({ text: t.remaining });
+    const columnLabels = [t.tasks, t.project, t.status, t.planned, t.logged, t.remaining];
+    const columnHeaders = columnLabels.map((label) => {
+      const header = columns.createDiv({ cls: "pmi-task-column", attr: { role: "columnheader" } });
+      header.createSpan({ text: label });
+      return header;
+    });
+    columnHeaders.forEach((header, index) => {
+      this.addTaskColumnResizer(table, columns, header, index, columnLabels[index] ?? "", t);
+    });
 
     for (const task of tasks) {
       const row = table.createEl("button", {
@@ -451,6 +462,106 @@ export class InsightsView extends ItemView {
       row.createSpan({ cls: "pmi-task-hours pmi-task-remaining", text: t.hours(task.remaining) });
       row.addEventListener("click", (event) => void this.host.openTask(task.path, event));
     }
+  }
+
+  private addTaskColumnResizer(
+    table: HTMLElement,
+    columns: HTMLElement,
+    header: HTMLElement,
+    index: number,
+    label: string,
+    t: Translations
+  ): void {
+    const minimumWidth = TASK_COLUMN_MIN_WIDTHS[index] ?? 64;
+    const resizer = header.createDiv({
+      cls: "pmi-task-column-resizer",
+      attr: {
+        role: "separator",
+        tabindex: "0",
+        "aria-label": t.resizeColumn(label),
+        "aria-orientation": "vertical",
+        "aria-valuemin": String(minimumWidth),
+        title: t.resizeColumnHint(label)
+      }
+    });
+
+    const currentWidths = (): number[] =>
+      Array.from(columns.children, (column) => Math.round(column.getBoundingClientRect().width));
+
+    const resize = (width: number): void => {
+      const widths = this.taskColumnWidths ?? currentWidths();
+      widths[index] = Math.max(minimumWidth, Math.round(width));
+      this.taskColumnWidths = widths;
+      this.applyTaskColumnWidths(table, widths);
+      resizer.setAttribute("aria-valuenow", String(widths[index]));
+    };
+
+    resizer.setAttribute(
+      "aria-valuenow",
+      String(this.taskColumnWidths?.[index] ?? Math.round(header.getBoundingClientRect().width))
+    );
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const widths = currentWidths();
+      this.taskColumnWidths = widths;
+      this.applyTaskColumnWidths(table, widths);
+      const startX = event.clientX;
+      const startWidth = widths[index] ?? minimumWidth;
+      resizer.setPointerCapture(event.pointerId);
+      resizer.addClass("is-resizing");
+      table.addClass("is-resizing-columns");
+
+      const onPointerMove = (moveEvent: PointerEvent): void => {
+        resize(startWidth + moveEvent.clientX - startX);
+      };
+      const onPointerEnd = (endEvent: PointerEvent): void => {
+        if (resizer.hasPointerCapture(endEvent.pointerId)) {
+          resizer.releasePointerCapture(endEvent.pointerId);
+        }
+        resizer.removeClass("is-resizing");
+        table.removeClass("is-resizing-columns");
+        resizer.removeEventListener("pointermove", onPointerMove);
+        resizer.removeEventListener("pointerup", onPointerEnd);
+        resizer.removeEventListener("pointercancel", onPointerEnd);
+      };
+      resizer.addEventListener("pointermove", onPointerMove);
+      resizer.addEventListener("pointerup", onPointerEnd);
+      resizer.addEventListener("pointercancel", onPointerEnd);
+    });
+
+    resizer.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const widths = this.taskColumnWidths ?? currentWidths();
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      const step = event.shiftKey ? TASK_COLUMN_KEYBOARD_STEP * 4 : TASK_COLUMN_KEYBOARD_STEP;
+      resize((widths[index] ?? minimumWidth) + direction * step);
+    });
+
+    resizer.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.taskColumnWidths = null;
+      table.style.removeProperty("--pmi-task-grid-columns");
+      table.style.removeProperty("--pmi-task-grid-min-width");
+      const headers = columns.querySelectorAll<HTMLElement>(".pmi-task-column-resizer");
+      headers.forEach((handle) => {
+        const column = handle.parentElement;
+        if (column) handle.setAttribute("aria-valuenow", String(Math.round(column.getBoundingClientRect().width)));
+      });
+    });
+  }
+
+  private applyTaskColumnWidths(table: HTMLElement, widths: readonly number[]): void {
+    const gridWidth =
+      widths.reduce((total, width) => total + width, 0) +
+      TASK_COLUMN_GAP * (widths.length - 1) +
+      TASK_TABLE_INLINE_PADDING;
+    table.style.setProperty("--pmi-task-grid-columns", widths.map((width) => `${width}px`).join(" "));
+    table.style.setProperty("--pmi-task-grid-min-width", `${gridWidth}px`);
   }
 
   private renderEmpty(

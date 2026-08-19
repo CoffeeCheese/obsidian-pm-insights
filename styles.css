@@ -455,6 +455,8 @@
 
 .pmi-task-table {
   --pmi-task-grid-min-width: 798px;
+  --pmi-task-grid-columns: minmax(260px, 1fr) 160px 100px 66px 66px 74px;
+  --pmi-task-header-clearance: 12px;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
@@ -465,7 +467,7 @@
 .pmi-task-columns,
 .pmi-task-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 160px 100px 66px 66px 74px;
+  grid-template-columns: var(--pmi-task-grid-columns);
   align-items: center;
   justify-content: start;
   gap: 10px;
@@ -484,8 +486,63 @@
   text-transform: uppercase;
 }
 
-.pmi-task-columns span:nth-last-child(-n + 3) {
-  text-align: end;
+.pmi-task-column {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-start;
+  padding-inline-end: var(--pmi-task-header-clearance);
+}
+
+.pmi-task-column,
+.pmi-task-row > * {
+  text-align: start;
+}
+
+.pmi-task-column > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-task-column-resizer {
+  position: absolute;
+  z-index: 4;
+  inset-block: -7px;
+  inset-inline-end: -6px;
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.pmi-task-column-resizer::after {
+  content: "";
+  position: absolute;
+  inset-block: 5px;
+  inset-inline-start: 5px;
+  width: 1px;
+  background: var(--pmi-edge-strong);
+  transition: background-color 120ms ease, width 120ms ease;
+}
+
+.pmi-task-column-resizer:hover::after,
+.pmi-task-column-resizer:focus-visible::after,
+.pmi-task-column-resizer.is-resizing::after {
+  width: 2px;
+  background: var(--interactive-accent);
+}
+
+.pmi-task-column-resizer:focus-visible {
+  outline: 0;
+}
+
+.pmi-task-table.is-resizing-columns,
+.pmi-task-table.is-resizing-columns * {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .pmi-task-row {
@@ -520,8 +577,6 @@
 }
 
 .pmi-task-columns > :first-child {
-  display: flex;
-  align-items: center;
   background: var(--pmi-surface);
 }
 
@@ -582,7 +637,7 @@
 .pmi-task-hours {
   font-family: var(--font-monospace);
   font-size: var(--font-ui-smaller);
-  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
 .pmi-task-remaining {

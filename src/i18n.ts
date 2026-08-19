@@ -30,6 +30,9 @@ const en = {
   memberSearch: "Find an assignee…",
   tasks: "Tasks",
   taskSearch: "Find a task…",
+  resizeColumn: (column: string) => `Resize ${column} column`,
+  resizeColumnHint: (column: string) =>
+    `Drag to resize the ${column} column. Use the arrow keys for precise adjustment. Double-click to reset all columns.`,
   allStatuses: "All tasks",
   openStatuses: "Open",
   completedStatuses: "Completed",
@@ -90,6 +93,9 @@ const zh: typeof en = {
   memberSearch: "查找成员…",
   tasks: "任务",
   taskSearch: "查找任务…",
+  resizeColumn: (column: string) => `调整“${column}”列宽`,
+  resizeColumnHint: (column: string) =>
+    `拖拽可调整“${column}”列宽，也可用方向键精细调整；双击恢复所有列的默认宽度。`,
   allStatuses: "全部任务",
   openStatuses: "未完成",
   completedStatuses: "已完成",
