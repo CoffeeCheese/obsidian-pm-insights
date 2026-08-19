@@ -14,12 +14,21 @@ const evaluation = `(async () => {
   }
 
   const ledger = document.querySelector(".pmi-member-ratios");
+  const header = document.querySelector(".pmi-detail-header");
+  const identity = document.querySelector(".pmi-detail-identity");
   const filterBar = document.querySelector(".pmi-task-filter-bar");
-  if (!(ledger instanceof HTMLElement) || !(filterBar instanceof HTMLElement)) {
+  if (
+    !(ledger instanceof HTMLElement) ||
+    !(header instanceof HTMLElement) ||
+    !(identity instanceof HTMLElement) ||
+    !(filterBar instanceof HTMLElement)
+  ) {
     return JSON.stringify({ setup: false });
   }
 
   const ledgerRect = ledger.getBoundingClientRect();
+  const headerRect = header.getBoundingClientRect();
+  const identityRect = identity.getBoundingClientRect();
   const filterRect = filterBar.getBoundingClientRect();
   const groups = [...ledger.querySelectorAll(".pmi-ratio-group")];
   const metrics = [...ledger.querySelectorAll(".pmi-ratio-metric")].map((metric) => {
@@ -27,9 +36,11 @@ const evaluation = `(async () => {
     return {
       label: metric.querySelector(".pmi-ratio-name")?.textContent?.trim() ?? "",
       percentage: metric.querySelector("strong")?.textContent?.trim() ?? "",
-      sample: metric.querySelector(".pmi-ratio-sample")?.textContent?.trim() ?? "",
       title: metric.getAttribute("title") ?? "",
       ariaLabel: metric.getAttribute("aria-label") ?? "",
+      labelFits:
+        metric.querySelector(".pmi-ratio-name")?.scrollWidth <=
+        metric.querySelector(".pmi-ratio-name")?.clientWidth,
       contained: rect.left >= ledgerRect.left - 1 && rect.right <= ledgerRect.right + 1
     };
   });
@@ -40,6 +51,11 @@ const evaluation = `(async () => {
     metricCount: metrics.length,
     metrics,
     compactHeight: Math.round(ledgerRect.height * 100) / 100,
+    insideHeader:
+      ledger.parentElement === header &&
+      ledgerRect.top >= headerRect.top - 1 &&
+      ledgerRect.bottom <= headerRect.bottom + 1,
+    placedBesideIdentity: ledgerRect.left >= identityRect.right,
     doesNotOverlapFilters: ledgerRect.bottom <= filterRect.top
   });
 })()`;
@@ -58,9 +74,9 @@ const invalidMetrics = report.metrics?.filter(
   (metric) =>
     !metric.label ||
     !metric.percentage ||
-    !metric.sample ||
     !metric.title ||
-    !metric.ariaLabel ||
+    !metric.ariaLabel.includes("/") ||
+    !metric.labelFits ||
     !metric.contained
 );
 if (
@@ -68,13 +84,15 @@ if (
   report.groupCount !== 3 ||
   report.metricCount !== 6 ||
   invalidMetrics?.length > 0 ||
-  report.compactHeight > 160 ||
+  report.compactHeight > 72 ||
+  !report.insideHeader ||
+  !report.placedBesideIdentity ||
   !report.doesNotOverlapFilters
 ) {
   console.error(`Member ratio ledger failed: ${JSON.stringify({ ...report, invalidMetrics })}`);
   process.exitCode = 1;
 } else {
   console.log(
-    `Member ratio ledger rendered 3 compact groups and 6 accessible metrics in ${report.compactHeight}px.`
+    `Member ratio strip rendered beside the identity with 3 groups and 6 accessible metrics in ${report.compactHeight}px.`
   );
 }

@@ -392,15 +392,16 @@ export class InsightsView extends ItemView {
     t: Translations
   ): void {
     const header = root.createDiv("pmi-pane-header pmi-detail-header");
-    header.createEl("h2", { text: member?.name ?? t.tasks });
-    header.createSpan({ text: member ? t.taskCount(member.tasks.length) : "0" });
+    const identity = header.createDiv("pmi-detail-identity");
+    identity.createEl("h2", { text: member?.name ?? t.tasks });
+    identity.createSpan({ text: member ? t.taskCount(member.tasks.length) : "0" });
 
     if (!member) {
       root.createDiv({ cls: "pmi-list-empty", text: t.noTasks });
       return;
     }
 
-    this.renderMemberRatios(root, member, t);
+    this.renderMemberRatios(header, member, t);
 
     const projectOptions = [...new Map(member.tasks.map((task) => [task.projectId, task.projectTitle]))]
       .map(([value, label]) => ({
@@ -592,9 +593,7 @@ export class InsightsView extends ItemView {
             "aria-label": `${item.label}: ${percentage}; ${sample}. ${item.hint}`
           }
         });
-        const copy = metric.createDiv("pmi-ratio-copy");
-        copy.createSpan({ cls: "pmi-ratio-name", text: item.label });
-        copy.createSpan({ cls: "pmi-ratio-sample", text: sample });
+        metric.createSpan({ cls: "pmi-ratio-name", text: item.label });
         metric.createEl("strong", { text: percentage });
       }
     }
