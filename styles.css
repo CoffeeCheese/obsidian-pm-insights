@@ -366,6 +366,11 @@
   background: var(--background-primary);
 }
 
+.pmi-detail {
+  container-name: pmi-detail;
+  container-type: inline-size;
+}
+
 .pmi-pane-header {
   display: flex;
   align-items: center;
@@ -393,8 +398,8 @@
 
 .pmi-detail-header {
   display: grid;
-  grid-template-columns: minmax(178px, 0.52fr) minmax(560px, 1.48fr);
-  gap: 18px;
+  grid-template-columns: minmax(164px, 0.52fr) minmax(0, 1.48fr);
+  gap: clamp(10px, 1.5cqi, 16px);
   min-height: 58px;
   align-items: center;
   margin-block-end: 12px;
@@ -565,7 +570,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: auto 1fr;
   align-items: center;
-  padding-inline: 14px;
+  padding-inline: clamp(6px, 1cqi, 10px);
   border-inline-start: 1px solid var(--pmi-edge);
 }
 
@@ -636,7 +641,7 @@
 }
 
 .pmi-ratio-metric + .pmi-ratio-metric {
-  margin-inline-start: 11px;
+  margin-inline-start: clamp(4px, 0.75cqi, 8px);
 }
 
 .pmi-ratio-metric strong {
@@ -1221,9 +1226,20 @@
   .pmi-member-list {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   }
+}
 
+@container pmi-detail (max-width: 620px) {
   .pmi-detail-header {
-    grid-template-columns: minmax(170px, 0.42fr) minmax(520px, 1.58fr);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pmi-member-ratios {
+    min-height: 48px;
+  }
+
+  .pmi-ratio-group {
+    padding-inline: 8px;
   }
 }
 
@@ -1259,22 +1275,6 @@
 
   .pmi-team-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pmi-detail-header {
-    display: block;
-  }
-
-  .pmi-detail-identity {
-    margin-block-end: 10px;
-  }
-
-  .pmi-member-ratios {
-    min-height: 48px;
-  }
-
-  .pmi-ratio-group {
-    padding-inline: 8px;
   }
 
   .pmi-metric:nth-child(3) {

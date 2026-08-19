@@ -9,25 +9,40 @@ const openResult = spawnSync(
 if (openResult.error) throw openResult.error;
 
 const evaluation = `(async () => {
+  const leftSplit = app.workspace.leftSplit;
+  const leftSidebarWasCollapsed = Boolean(leftSplit?.collapsed);
+  if (leftSidebarWasCollapsed) {
+    leftSplit.expand();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
   for (let attempt = 0; attempt < 30 && !document.querySelector(".pmi-member-ratios"); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   const ledger = document.querySelector(".pmi-member-ratios");
   const header = document.querySelector(".pmi-detail-header");
+  const detail = document.querySelector(".pmi-detail");
   const identity = document.querySelector(".pmi-detail-identity");
+  const identityName = identity?.querySelector("h2");
   const filterBar = document.querySelector(".pmi-task-filter-bar");
+  const masterDetail = detail?.parentElement;
   if (
     !(ledger instanceof HTMLElement) ||
     !(header instanceof HTMLElement) ||
+    !(detail instanceof HTMLElement) ||
     !(identity instanceof HTMLElement) ||
-    !(filterBar instanceof HTMLElement)
+    !(identityName instanceof HTMLElement) ||
+    !(filterBar instanceof HTMLElement) ||
+    !(masterDetail instanceof HTMLElement)
   ) {
+    if (leftSidebarWasCollapsed) leftSplit.collapse();
     return JSON.stringify({ setup: false });
   }
 
   const ledgerRect = ledger.getBoundingClientRect();
   const headerRect = header.getBoundingClientRect();
+  const detailRect = detail.getBoundingClientRect();
   const identityRect = identity.getBoundingClientRect();
   const filterRect = filterBar.getBoundingClientRect();
   const groups = [...ledger.querySelectorAll(".pmi-ratio-group")];
@@ -45,8 +60,28 @@ const evaluation = `(async () => {
     };
   });
 
-  return JSON.stringify({
+  const originalGridTemplate = masterDetail.style.gridTemplateColumns;
+  masterDetail.style.gridTemplateColumns = "minmax(290px, 1fr) 580px";
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const narrowLedgerRect = ledger.getBoundingClientRect();
+  const narrowDetailRect = detail.getBoundingClientRect();
+  const narrowIdentityRect = identity.getBoundingClientRect();
+  const narrowState = {
+    stacked: narrowLedgerRect.top >= narrowIdentityRect.bottom - 1,
+    containedByDetail:
+      narrowLedgerRect.left >= narrowDetailRect.left - 1 &&
+      narrowLedgerRect.right <= narrowDetailRect.right + 1,
+    headerHasNoHorizontalOverflow: header.scrollWidth <= header.clientWidth + 1,
+    labelsFit: [...ledger.querySelectorAll(".pmi-ratio-name")].every(
+      (label) => label.scrollWidth <= label.clientWidth
+    )
+  };
+  masterDetail.style.gridTemplateColumns = originalGridTemplate;
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const report = {
     setup: true,
+    leftSidebarExpanded: !leftSplit.collapsed,
     groupCount: groups.length,
     metricCount: metrics.length,
     metrics,
@@ -55,9 +90,18 @@ const evaluation = `(async () => {
       ledger.parentElement === header &&
       ledgerRect.top >= headerRect.top - 1 &&
       ledgerRect.bottom <= headerRect.bottom + 1,
-    placedBesideIdentity: ledgerRect.left >= identityRect.right,
+    containedByDetail:
+      ledgerRect.left >= detailRect.left - 1 && ledgerRect.right <= detailRect.right + 1,
+    headerHasNoHorizontalOverflow: header.scrollWidth <= header.clientWidth + 1,
+    detailHasNoHorizontalOverflow: detail.scrollWidth <= detail.clientWidth + 1,
+    identityNameFits: identityName.scrollWidth <= identityName.clientWidth + 1,
+    narrowState,
+    placedAfterIdentity:
+      ledgerRect.top >= identityRect.bottom - 1 || ledgerRect.left >= identityRect.right,
     doesNotOverlapFilters: ledgerRect.bottom <= filterRect.top
-  });
+  };
+  if (leftSidebarWasCollapsed) leftSplit.collapse();
+  return JSON.stringify(report);
 })()`;
 
 const result = spawnSync("obsidian", [`vault=${vault}`, "eval", `code=${evaluation}`], {
@@ -85,8 +129,17 @@ if (
   report.metricCount !== 6 ||
   invalidMetrics?.length > 0 ||
   report.compactHeight > 72 ||
+  !report.leftSidebarExpanded ||
   !report.insideHeader ||
-  !report.placedBesideIdentity ||
+  !report.containedByDetail ||
+  !report.headerHasNoHorizontalOverflow ||
+  !report.detailHasNoHorizontalOverflow ||
+  !report.identityNameFits ||
+  !report.narrowState?.stacked ||
+  !report.narrowState?.containedByDetail ||
+  !report.narrowState?.headerHasNoHorizontalOverflow ||
+  !report.narrowState?.labelsFit ||
+  !report.placedAfterIdentity ||
   !report.doesNotOverlapFilters
 ) {
   console.error(`Member ratio ledger failed: ${JSON.stringify({ ...report, invalidMetrics })}`);
