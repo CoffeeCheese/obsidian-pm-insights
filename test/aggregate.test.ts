@@ -125,4 +125,46 @@ describe("aggregateInsights", () => {
     expect(snapshot.members.find((member) => member.name === "Alice")?.personal.planned).toBe(2);
     expect(snapshot.members.find((member) => member.name === "Alice")?.shared.taskCount).toBe(0);
   });
+
+  it("builds a six-metric member ratio profile from eligible task data", () => {
+    const snapshot = aggregateInsights(
+      projects,
+      [
+        task({ id: "accurate-done", estimate: 10, logged: 9, completed: true }),
+        task({ id: "overrun-done", estimate: 5, logged: 7, completed: true }),
+        task({ id: "active", estimate: 5, logged: 2 }),
+        task({ id: "unestimated" }),
+        task({
+          id: "cancelled",
+          status: "cancelled",
+          estimate: 100,
+          logged: 100,
+          completed: true
+        })
+      ],
+      options
+    );
+
+    expect(snapshot.members[0]?.ratios).toEqual({
+      taskClosure: { numerator: 2, denominator: 4, percentage: 50 },
+      plannedClosure: { numerator: 15, denominator: 20, percentage: 75 },
+      timeConsumption: { numerator: 18, denominator: 20, percentage: 90 },
+      overrunTasks: { numerator: 1, denominator: 3, percentage: 33.33 },
+      estimateAccuracy: { numerator: 1, denominator: 2, percentage: 50 },
+      estimateCoverage: { numerator: 3, denominator: 4, percentage: 75 }
+    });
+  });
+
+  it("leaves ratios without a valid sample unavailable instead of reporting zero", () => {
+    const snapshot = aggregateInsights(projects, [task({ id: "unestimated" })], options);
+
+    expect(snapshot.members[0]?.ratios).toMatchObject({
+      taskClosure: { numerator: 0, denominator: 1, percentage: 0 },
+      plannedClosure: { numerator: 0, denominator: 0, percentage: null },
+      timeConsumption: { numerator: 0, denominator: 0, percentage: null },
+      overrunTasks: { numerator: 0, denominator: 0, percentage: null },
+      estimateAccuracy: { numerator: 0, denominator: 0, percentage: null },
+      estimateCoverage: { numerator: 0, denominator: 1, percentage: 0 }
+    });
+  });
 });

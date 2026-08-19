@@ -5,6 +5,7 @@ import type {
   InsightSettings,
   MemberInsight,
   ProjectRecord,
+  RatioMetric,
   TaskInsight,
   WorkMetrics
 } from "./model";
@@ -399,6 +400,8 @@ export class InsightsView extends ItemView {
       return;
     }
 
+    this.renderMemberRatios(root, member, t);
+
     const projectOptions = [...new Map(member.tasks.map((task) => [task.projectId, task.projectTitle]))]
       .map(([value, label]) => ({
         value,
@@ -488,6 +491,113 @@ export class InsightsView extends ItemView {
       this.renderTaskDetail(root, member, projects, t);
     });
     renderRows();
+  }
+
+  private renderMemberRatios(
+    root: HTMLElement,
+    member: MemberInsight,
+    t: Translations
+  ): void {
+    const ledger = root.createDiv({
+      cls: "pmi-member-ratios",
+      attr: { role: "region", "aria-label": t.memberRatios }
+    });
+    const groups: Array<{
+      kind: string;
+      icon: string;
+      label: string;
+      metrics: Array<{
+        label: string;
+        hint: string;
+        metric: RatioMetric;
+        sample: (numerator: number, denominator: number) => string;
+        warning?: boolean;
+      }>;
+    }> = [
+      {
+        kind: "delivery",
+        icon: "circle-check-big",
+        label: t.deliveryRatios,
+        metrics: [
+          {
+            label: t.taskClosureRate,
+            hint: t.taskClosureRateHint,
+            metric: member.ratios.taskClosure,
+            sample: t.ratioTasks
+          },
+          {
+            label: t.plannedClosureRate,
+            hint: t.plannedClosureRateHint,
+            metric: member.ratios.plannedClosure,
+            sample: t.ratioHours
+          }
+        ]
+      },
+      {
+        kind: "time",
+        icon: "timer",
+        label: t.timeRatios,
+        metrics: [
+          {
+            label: t.timeConsumptionRate,
+            hint: t.timeConsumptionRateHint,
+            metric: member.ratios.timeConsumption,
+            sample: t.ratioHours
+          },
+          {
+            label: t.overrunTaskRate,
+            hint: t.overrunTaskRateHint,
+            metric: member.ratios.overrunTasks,
+            sample: t.ratioTasks,
+            warning: member.ratios.overrunTasks.numerator > 0
+          }
+        ]
+      },
+      {
+        kind: "data",
+        icon: "scan-search",
+        label: t.dataRatios,
+        metrics: [
+          {
+            label: t.estimateAccuracyRate,
+            hint: t.estimateAccuracyRateHint,
+            metric: member.ratios.estimateAccuracy,
+            sample: t.ratioTasks
+          },
+          {
+            label: t.estimateCoverageRate,
+            hint: t.estimateCoverageRateHint,
+            metric: member.ratios.estimateCoverage,
+            sample: t.ratioTasks
+          }
+        ]
+      }
+    ];
+
+    for (const group of groups) {
+      const row = ledger.createDiv(`pmi-ratio-group pmi-ratio-group--${group.kind}`);
+      const heading = row.createDiv("pmi-ratio-group-label");
+      setIcon(heading.createSpan(), group.icon);
+      heading.createSpan({ text: group.label });
+      for (const item of group.metrics) {
+        const percentage =
+          item.metric.percentage === null
+            ? t.ratioUnavailable
+            : t.percentage(item.metric.percentage);
+        const sample = item.sample(item.metric.numerator, item.metric.denominator);
+        const metric = row.createDiv({
+          cls: `pmi-ratio-metric${item.warning ? " is-warning" : ""}`,
+          attr: {
+            title: item.hint,
+            "aria-label": `${item.label}: ${percentage}; ${sample}. ${item.hint}`
+          }
+        });
+        const copy = metric.createDiv("pmi-ratio-copy");
+        copy.createSpan({ cls: "pmi-ratio-name", text: item.label });
+        copy.createSpan({ cls: "pmi-ratio-sample", text: sample });
+        metric.createEl("strong", { text: percentage });
+      }
+    }
   }
 
   private normalizeTaskFilter(

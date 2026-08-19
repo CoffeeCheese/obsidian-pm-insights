@@ -4,7 +4,9 @@ import type {
   InsightSnapshot,
   MemberAlias,
   MemberInsight,
+  MemberRatios,
   ProjectRecord,
+  RatioMetric,
   TaskInsight,
   TaskRecord,
   WorkMetrics
@@ -43,6 +45,50 @@ function finalizeMetrics(metrics: WorkMetrics): WorkMetrics {
     logged: round(metrics.logged),
     remaining: round(metrics.remaining),
     overrun: round(metrics.overrun)
+  };
+}
+
+function ratio(numerator: number, denominator: number): RatioMetric {
+  return {
+    numerator: round(numerator),
+    denominator: round(denominator),
+    percentage: denominator > 0 ? round((numerator / denominator) * 100) : null
+  };
+}
+
+function isCancelled(task: TaskInsight): boolean {
+  const status = task.status.trim().toLocaleLowerCase();
+  return status === "cancelled" || status === "canceled";
+}
+
+function memberRatios(tasks: TaskInsight[]): MemberRatios {
+  const eligible = tasks.filter((task) => !isCancelled(task));
+  const completed = eligible.filter((task) => task.completed);
+  const estimated = eligible.filter((task) => !task.unestimated);
+  const startedEstimated = estimated.filter((task) => task.logged > 0);
+  const completedEstimated = startedEstimated.filter((task) => task.completed);
+  const totalPlanned = estimated.reduce((total, task) => total + task.estimate, 0);
+  const completedPlanned = estimated
+    .filter((task) => task.completed)
+    .reduce((total, task) => total + task.estimate, 0);
+  const estimatedLogged = estimated.reduce((total, task) => total + task.logged, 0);
+
+  return {
+    taskClosure: ratio(completed.length, eligible.length),
+    plannedClosure: ratio(completedPlanned, totalPlanned),
+    timeConsumption: ratio(estimatedLogged, totalPlanned),
+    overrunTasks: ratio(
+      startedEstimated.filter((task) => task.logged > task.estimate).length,
+      startedEstimated.length
+    ),
+    estimateAccuracy: ratio(
+      completedEstimated.filter((task) => {
+        const consumption = task.logged / task.estimate;
+        return consumption >= 0.8 && consumption <= 1.2;
+      }).length,
+      completedEstimated.length
+    ),
+    estimateCoverage: ratio(estimated.length, eligible.length)
   };
 }
 
@@ -110,6 +156,7 @@ export function aggregateInsights(
         kind: unassigned ? "unassigned" : "member",
         personal: emptyMetrics(),
         shared: emptyMetrics(),
+        ratios: memberRatios([]),
         tasks: []
       };
       members.set(key, member);
@@ -145,15 +192,19 @@ export function aggregateInsights(
   }
 
   const finalizedMembers = [...members.values()]
-    .map((member) => ({
-      ...member,
-      personal: finalizeMetrics(member.personal),
-      shared: finalizeMetrics(member.shared),
-      tasks: member.tasks.sort(
+    .map((member) => {
+      const tasks = member.tasks.sort(
         (left, right) =>
           right.remaining - left.remaining || left.projectTitle.localeCompare(right.projectTitle)
-      )
-    }))
+      );
+      return {
+        ...member,
+        personal: finalizeMetrics(member.personal),
+        shared: finalizeMetrics(member.shared),
+        ratios: memberRatios(tasks),
+        tasks
+      };
+    })
     .sort((left, right) => {
       if (left.kind !== right.kind) return left.kind === "unassigned" ? 1 : -1;
       const leftRemaining = left.personal.remaining + left.shared.remaining;

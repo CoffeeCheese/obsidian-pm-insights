@@ -48,6 +48,21 @@ export interface WorkMetrics {
   unestimatedCount: number;
 }
 
+export interface RatioMetric {
+  numerator: number;
+  denominator: number;
+  percentage: number | null;
+}
+
+export interface MemberRatios {
+  taskClosure: RatioMetric;
+  plannedClosure: RatioMetric;
+  timeConsumption: RatioMetric;
+  overrunTasks: RatioMetric;
+  estimateAccuracy: RatioMetric;
+  estimateCoverage: RatioMetric;
+}
+
 export type AssignmentKind = "personal" | "shared" | "unassigned";
 
 export interface TaskInsight extends TaskRecord {
@@ -65,6 +80,7 @@ export interface MemberInsight {
   kind: "member" | "unassigned";
   personal: WorkMetrics;
   shared: WorkMetrics;
+  ratios: MemberRatios;
   tasks: TaskInsight[];
 }
 
