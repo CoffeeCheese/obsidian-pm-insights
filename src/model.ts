@@ -9,10 +9,13 @@ export interface TimeLogRecord {
   hours: number;
 }
 
+export type TaskHierarchy = "root" | "subtask" | "unknown";
+
 export interface TaskRecord {
   id: string;
   projectId: string;
   parentId: string | null;
+  hierarchy: TaskHierarchy;
   title: string;
   path: string;
   status: string;
@@ -85,4 +88,3 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   selectedProjectIds: [],
   includeArchived: false
 };
-

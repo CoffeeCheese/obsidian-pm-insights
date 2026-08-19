@@ -87,10 +87,13 @@ export function aggregateInsights(
   const parentIds = new Set(
     selected.map((task) => task.parentId).filter((id): id is string => Boolean(id))
   );
-  const excludedParents = selected.filter((task) => parentIds.has(task.id));
+  const excludedParents = selected.filter(
+    (task) => task.hierarchy === "root" || parentIds.has(task.id)
+  );
+  const excludedParentIds = new Set(excludedParents.map((task) => task.id));
   const resolver = new IdentityResolver(options.aliases);
   const included = selected.filter(
-    (task) => !parentIds.has(task.id) && (options.includeArchived || !task.archived)
+    (task) => !excludedParentIds.has(task.id) && (options.includeArchived || !task.archived)
   );
 
   const members = new Map<string, MemberInsight>();
@@ -172,4 +175,3 @@ export function aggregateInsights(
     }
   };
 }
-

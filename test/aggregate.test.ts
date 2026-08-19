@@ -13,6 +13,7 @@ function task(overrides: Partial<TaskRecord> & Pick<TaskRecord, "id">): TaskReco
     id,
     projectId: "p1",
     parentId: null,
+    hierarchy: "subtask",
     title: overrides.id,
     path: `Tasks/${overrides.id}.md`,
     status: "todo",
@@ -58,7 +59,7 @@ describe("aggregateInsights", () => {
     const snapshot = aggregateInsights(
       projects,
       [
-        task({ id: "parent", estimate: 10, logged: 1 }),
+        task({ id: "parent", hierarchy: "unknown", estimate: 10, logged: 1 }),
         task({ id: "child-a", parentId: "parent", estimate: 4, logged: 2 }),
         task({ id: "child-b", parentId: "parent", estimate: 6, logged: 1 })
       ],
@@ -67,6 +68,22 @@ describe("aggregateInsights", () => {
 
     expect(snapshot.team).toMatchObject({ planned: 10, logged: 3, remaining: 7 });
     expect(snapshot.quality).toMatchObject({ excludedParentCount: 1, excludedParentHours: 11 });
+  });
+
+  it("excludes explicit root tasks even when they do not have subtasks", () => {
+    const snapshot = aggregateInsights(
+      projects,
+      [
+        task({ id: "root-without-subtasks", hierarchy: "root", assignees: ["Alice"] }),
+        task({ id: "leaf", hierarchy: "subtask", assignees: ["Bob"], estimate: 3 })
+      ],
+      options
+    );
+
+    expect(snapshot.members.find((member) => member.name === "Alice")).toBeUndefined();
+    expect(snapshot.members.find((member) => member.name === "Bob")?.tasks).toHaveLength(1);
+    expect(snapshot.team.taskCount).toBe(1);
+    expect(snapshot.quality.excludedParentCount).toBe(1);
   });
 
   it("does not call unestimated logged work an overrun", () => {

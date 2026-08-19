@@ -63,7 +63,7 @@ The task column stays put on narrow screens while the remaining fields scroll. T
 To keep the snapshot honest:
 
 - A shared task contributes once to the team total and appears in every assignee's **Shared** rail.
-- A task with subtasks is excluded from totals, so parent and child estimates are not counted twice.
+- Root tasks explicitly marked as `type: task` are excluded even when they have no subtasks; when type metadata is missing, parent tasks are still inferred from `parentId` relationships to avoid double counting.
 - Completed tasks—and archived tasks when included—keep their planned and logged hours but add no remaining hours.
 - Unassigned and unestimated tasks stay visible instead of quietly vanishing.
 - Member aliases can gather different spellings under one canonical name without changing source notes.

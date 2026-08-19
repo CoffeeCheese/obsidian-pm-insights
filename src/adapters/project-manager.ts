@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import type { ProjectRecord, TaskRecord } from "../model";
+import type { ProjectRecord, TaskHierarchy, TaskRecord } from "../model";
 
 interface ProjectManagerStatus {
   id?: unknown;
@@ -44,6 +44,14 @@ function loggedHours(value: unknown): number {
 
 function truthy(value: unknown): boolean {
   return value === true || value === "true";
+}
+
+function taskHierarchy(value: unknown): TaskHierarchy {
+  if (typeof value !== "string") return "unknown";
+  const normalized = value.trim().toLocaleLowerCase();
+  if (normalized === "task") return "root";
+  if (normalized === "subtask") return "subtask";
+  return "unknown";
 }
 
 export class ProjectManagerAdapter {
@@ -99,6 +107,7 @@ export class ProjectManagerAdapter {
       id,
       projectId,
       parentId: optionalText(frontmatter.parentId),
+      hierarchy: taskHierarchy(frontmatter.type),
       title: text(frontmatter.title, file.basename).trim() || file.basename,
       path: file.path,
       status,
