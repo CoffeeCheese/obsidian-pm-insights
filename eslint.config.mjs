@@ -9,7 +9,7 @@ export default defineConfig([
       "eslint.config.mjs",
       "main.js",
       "node_modules/**",
-      "scripts/check-task-header-spacing.mjs"
+      "scripts/*.mjs"
     ]
   },
   ...obsidianmd.configs.recommended,

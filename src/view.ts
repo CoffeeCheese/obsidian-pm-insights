@@ -55,6 +55,13 @@ export class InsightsView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.containerEl.addClass("pmi-view");
+    this.registerDomEvent(document, "pointerdown", (event) => {
+      const picker = this.containerEl.querySelector<HTMLDetailsElement>(
+        ".pmi-project-picker[open]"
+      );
+      if (!picker || event.composedPath().includes(picker)) return;
+      picker.open = false;
+    });
     await this.render();
   }
 
@@ -124,6 +131,16 @@ export class InsightsView extends ItemView {
     summary.createSpan({ cls: "pmi-control-label", text: t.projects });
     this.projectSummaryEl = summary.createSpan("pmi-project-count");
     this.updateProjectSummary(t);
+    const chevron = summary.createSpan("pmi-project-chevron");
+    setIcon(chevron, "chevron-down");
+
+    picker.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !picker.open) return;
+      picker.open = false;
+      summary.focus();
+      event.preventDefault();
+      event.stopPropagation();
+    });
 
     const panel = picker.createDiv("pmi-project-panel");
     const projectSearch = panel.createEl("input", {
