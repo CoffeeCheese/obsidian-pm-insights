@@ -1,6 +1,7 @@
+# Project Manager Insights
+
 <div align="center">
   <p><code>OBSIDIAN · PROJECT MANAGER 小搭档</code></p>
-  <h1>Project Manager Insights</h1>
   <p><strong>藏在 Obsidian Vault 里的小小工作量观测站。</strong></p>
   <p>看看团队全景，顺着线索找到任务，同时让每篇笔记安静待在原处。</p>
   <p>

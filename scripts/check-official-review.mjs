@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 
 const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
 const readmePaths = ["README.md", "README.zh-CN.md"];
-const expectedTitle = `<h1>${manifest.name}</h1>`;
+const expectedTitle = `# ${manifest.name}`;
 const failures = [];
 
 for (const path of readmePaths) {
   const readme = readFileSync(path, "utf8");
-  if (!readme.includes(expectedTitle)) {
-    failures.push(`${path}: title must exactly match manifest name (${manifest.name})`);
+  if (!readme.startsWith(`${expectedTitle}\n`)) {
+    failures.push(`${path}: first line must be an exact Markdown title (${expectedTitle})`);
   }
 }
 

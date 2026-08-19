@@ -1,6 +1,7 @@
+# Project Manager Insights
+
 <div align="center">
   <p><code>OBSIDIAN · PROJECT MANAGER COMPANION</code></p>
-  <h1>Project Manager Insights</h1>
   <p><strong>A tiny workload observatory for busy Obsidian vaults.</strong></p>
   <p>See the team picture, follow the interesting bits, and leave every note exactly where it was.</p>
   <p>
