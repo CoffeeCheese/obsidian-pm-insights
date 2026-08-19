@@ -17,7 +17,8 @@ export interface InsightsViewHost {
   settings: InsightSettings;
   readProjectManager(): Promise<ProjectManagerSnapshot>;
   saveSettings(): Promise<void>;
-  openTask(path: string, event: MouseEvent): Promise<void>;
+  openTask(taskId: string, projectPath: string): Promise<void>;
+  openProject(projectPath: string): Promise<void>;
 }
 
 const TASK_COLUMN_MIN_WIDTHS = [180, 120, 80, 64, 64, 72] as const;
@@ -707,7 +708,7 @@ export class InsightsView extends ItemView {
       return;
     }
 
-    const projectIcons = new Map(projects.map((project) => [project.id, project.icon]));
+    const projectRecords = new Map(projects.map((project) => [project.id, project]));
     const table = detail.createDiv({
       cls: "pmi-task-table",
       attr: {
@@ -730,25 +731,60 @@ export class InsightsView extends ItemView {
     });
 
     for (const task of tasks) {
-      const row = table.createEl("button", {
+      const projectRecord = projectRecords.get(task.projectId);
+      const row = table.createDiv({
         cls: "pmi-task-row",
-        attr: { "aria-label": `${t.openTask}: ${task.title}` }
+        attr: { role: "row" }
       });
-      const title = row.createDiv("pmi-task-title");
+      const title = row.createDiv({
+        cls: "pmi-task-title pmi-task-open",
+        attr: {
+          role: "button",
+          tabindex: "0",
+          "aria-label": `${t.openTask}: ${task.title}`,
+          title: t.openTask,
+          "data-task-id": task.id
+        }
+      });
       title.createEl("strong", { text: task.title });
       const badges = title.createDiv("pmi-task-badges");
       if (task.assignmentKind === "shared") badges.createSpan({ text: t.shared });
       if (task.unestimated) badges.createSpan({ text: t.unestimated });
       if (task.archived) badges.createSpan({ text: t.archived });
-      const project = row.createDiv("pmi-task-project");
-      project.createSpan({ text: projectIcons.get(task.projectId) ?? "📋" });
+      const project = row.createDiv({
+        cls: "pmi-task-project pmi-project-open",
+        attr: {
+          role: "button",
+          tabindex: "0",
+          "aria-label": `${t.openProject}: ${task.projectTitle}`,
+          title: t.openProject,
+          "data-project-path": projectRecord?.path ?? ""
+        }
+      });
+      project.createSpan({ text: projectRecord?.icon ?? "📋" });
       project.createSpan({ text: task.projectTitle });
       row.createSpan({ cls: "pmi-task-status", text: task.status });
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.estimate) });
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.logged) });
       row.createSpan({ cls: "pmi-task-hours pmi-task-remaining", text: t.hours(task.remaining) });
-      row.addEventListener("click", (event) => void this.host.openTask(task.path, event));
+      this.bindCellAction(title, () => {
+        if (!projectRecord) return;
+        void this.host.openTask(task.id, projectRecord.path);
+      });
+      this.bindCellAction(project, () => {
+        if (!projectRecord) return;
+        void this.host.openProject(projectRecord.path);
+      });
     }
+  }
+
+  private bindCellAction(element: HTMLElement, action: () => void): void {
+    element.addEventListener("click", action);
+    element.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      action();
+    });
   }
 
   private addTaskColumnResizer(

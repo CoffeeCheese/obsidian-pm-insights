@@ -14,7 +14,8 @@
     "test:ui:headers": "node scripts/check-task-header-spacing.mjs",
     "test:ui:member-ratios": "node scripts/check-member-ratios.mjs",
     "test:ui:project-picker": "node scripts/check-project-picker-dismiss.mjs",
-    "test:ui:task-filters": "node scripts/check-task-filters.mjs"
+    "test:ui:task-filters": "node scripts/check-task-filters.mjs",
+    "test:ui:task-navigation": "node scripts/check-task-navigation.mjs"
   },
   "keywords": [
     "obsidian",

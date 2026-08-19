@@ -945,6 +945,38 @@
   text-align: start;
 }
 
+.pmi-task-open,
+.pmi-project-open {
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+
+.pmi-task-open:hover,
+.pmi-project-open:hover {
+  border: 0;
+  box-shadow: none;
+  color: var(--interactive-accent);
+  background: transparent;
+}
+
+.pmi-task-open:focus-visible,
+.pmi-project-open:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 3px;
+}
+
 .pmi-task-column > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1049,6 +1081,12 @@
 
 .pmi-task-title > strong {
   font-weight: var(--font-medium);
+}
+
+.pmi-task-open:hover > strong,
+.pmi-project-open:hover > span:last-child {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .pmi-task-badges {

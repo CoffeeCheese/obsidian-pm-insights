@@ -1,5 +1,9 @@
-import { Notice, Plugin, TFile, type WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, type WorkspaceLeaf } from "obsidian";
 import { ProjectManagerAdapter, type ProjectManagerSnapshot } from "./adapters/project-manager";
+import {
+  ProjectManagerNavigationError,
+  ProjectManagerNavigator
+} from "./adapters/project-manager-navigation";
 import { translations } from "./i18n";
 import { DEFAULT_SETTINGS, type InsightSettings } from "./model";
 import { InsightsSettingTab } from "./settings";
@@ -15,12 +19,14 @@ export default class ProjectManagerInsightsPlugin
 {
   settings: InsightSettings = structuredClone(DEFAULT_SETTINGS);
   private adapter!: ProjectManagerAdapter;
+  private navigator!: ProjectManagerNavigator;
   private toolbarIntegration!: ProjectManagerToolbarIntegration;
   private refreshTimer: number | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
     this.adapter = new ProjectManagerAdapter(this.app);
+    this.navigator = new ProjectManagerNavigator(this.app);
     this.toolbarIntegration = new ProjectManagerToolbarIntegration(this.app, this);
 
     this.registerView(INSIGHTS_VIEW_TYPE, (leaf) => new InsightsView(leaf, this));
@@ -94,14 +100,23 @@ export default class ProjectManagerInsightsPlugin
     }
   }
 
-  async openTask(path: string, event: MouseEvent): Promise<void> {
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile)) {
-      new Notice(`Task file not found: ${path}`);
-      return;
+  async openTask(taskId: string, projectPath: string): Promise<void> {
+    try {
+      await this.navigator.editTask({ taskId, projectPath });
+    } catch (error) {
+      const t = translations(this.settings);
+      const unsupported =
+        error instanceof ProjectManagerNavigationError && error.code === "unsupported-version";
+      new Notice(unsupported ? t.projectManagerVersionUnsupported : t.taskEditorUnavailable);
     }
-    const openInTab = event.metaKey || event.ctrlKey;
-    await this.app.workspace.getLeaf(openInTab ? "tab" : false).openFile(file);
+  }
+
+  async openProject(projectPath: string): Promise<void> {
+    try {
+      await this.navigator.openProject(projectPath);
+    } catch {
+      new Notice(translations(this.settings).projectManagerUnavailable);
+    }
   }
 
   async refreshInsights(): Promise<void> {
@@ -121,4 +136,3 @@ export default class ProjectManagerInsightsPlugin
     }, 250);
   }
 }
-
