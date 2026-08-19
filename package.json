@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:ui:headers": "node scripts/check-task-header-spacing.mjs",
-    "test:ui:project-picker": "node scripts/check-project-picker-dismiss.mjs"
+    "test:ui:project-picker": "node scripts/check-project-picker-dismiss.mjs",
+    "test:ui:task-filters": "node scripts/check-task-filters.mjs"
   },
   "keywords": [
     "obsidian",

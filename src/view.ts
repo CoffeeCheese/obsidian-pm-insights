@@ -19,8 +19,6 @@ export interface InsightsViewHost {
   openTask(path: string, event: MouseEvent): Promise<void>;
 }
 
-type TaskFilter = "all" | "open" | "completed";
-
 const TASK_COLUMN_MIN_WIDTHS = [180, 120, 80, 64, 64, 72] as const;
 const TASK_COLUMN_GAP = 10;
 const TASK_TABLE_INLINE_PADDING = 22;
@@ -30,7 +28,8 @@ export class InsightsView extends ItemView {
   private selectedMemberKey: string | null = null;
   private memberQuery = "";
   private taskQuery = "";
-  private taskFilter: TaskFilter = "all";
+  private taskProjectIds: Set<string> | null = null;
+  private taskStatuses: Set<string> | null = null;
   private dashboardEl: HTMLElement | null = null;
   private projectSummaryEl: HTMLElement | null = null;
   private taskColumnWidths: number[] | null = null;
@@ -56,11 +55,13 @@ export class InsightsView extends ItemView {
   async onOpen(): Promise<void> {
     this.containerEl.addClass("pmi-view");
     this.registerDomEvent(document, "pointerdown", (event) => {
-      const picker = this.containerEl.querySelector<HTMLDetailsElement>(
-        ".pmi-project-picker[open]"
+      const path = event.composedPath();
+      const openMenus = this.containerEl.querySelectorAll<HTMLDetailsElement>(
+        ".pmi-project-picker[open], .pmi-task-filter-menu[open]"
       );
-      if (!picker || event.composedPath().includes(picker)) return;
-      picker.open = false;
+      for (const menu of openMenus) {
+        if (!path.includes(menu)) menu.open = false;
+      }
     });
     await this.render();
   }
@@ -265,7 +266,13 @@ export class InsightsView extends ItemView {
       member.name.normalize("NFKC").toLocaleLowerCase().includes(this.memberQuery)
     );
     if (!visibleMembers.some((member) => member.key === this.selectedMemberKey)) {
-      this.selectedMemberKey = visibleMembers[0]?.key ?? null;
+      const nextMemberKey = visibleMembers[0]?.key ?? null;
+      if (nextMemberKey !== this.selectedMemberKey) {
+        this.taskQuery = "";
+        this.taskProjectIds = null;
+        this.taskStatuses = null;
+      }
+      this.selectedMemberKey = nextMemberKey;
     }
 
     this.renderMemberList(master, insights.members, visibleMembers, snapshot, t);
@@ -347,7 +354,8 @@ export class InsightsView extends ItemView {
     button.addEventListener("click", () => {
       this.selectedMemberKey = member.key;
       this.taskQuery = "";
-      this.taskFilter = "all";
+      this.taskProjectIds = null;
+      this.taskStatuses = null;
       this.renderDashboard(snapshot, t);
     });
   }
@@ -391,38 +399,190 @@ export class InsightsView extends ItemView {
       return;
     }
 
-    const filters = root.createDiv("pmi-task-filters");
-    const search = filters.createEl("input", {
+    const projectOptions = [...new Map(member.tasks.map((task) => [task.projectId, task.projectTitle]))]
+      .map(([value, label]) => ({
+        value,
+        label,
+        count: member.tasks.filter((task) => task.projectId === value).length
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label));
+    const statusOptions = [...new Set(member.tasks.map((task) => task.status))]
+      .map((value) => ({
+        value,
+        label: value,
+        count: member.tasks.filter((task) => task.status === value).length
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label));
+    this.taskProjectIds = this.normalizeTaskFilter(this.taskProjectIds, projectOptions);
+    this.taskStatuses = this.normalizeTaskFilter(this.taskStatuses, statusOptions);
+
+    const filters = root.createDiv("pmi-task-filter-bar");
+    const searchWrap = filters.createDiv("pmi-task-filter-search");
+    setIcon(searchWrap.createSpan(), "search");
+    const search = searchWrap.createEl("input", {
       type: "search",
       placeholder: t.taskSearch,
       cls: "pmi-pane-search"
     });
     search.value = this.taskQuery;
-    const select = filters.createEl("select");
-    select.createEl("option", { value: "all", text: t.allStatuses });
-    select.createEl("option", { value: "open", text: t.openStatuses });
-    select.createEl("option", { value: "completed", text: t.completedStatuses });
-    select.value = this.taskFilter;
+    const result = filters.createDiv({ cls: "pmi-task-filter-result", attr: { "aria-live": "polite" } });
+    const reset = filters.createEl("button", {
+      cls: "pmi-task-filter-reset",
+      attr: { type: "button", title: t.resetFilters, "aria-label": t.resetFilters }
+    });
+    setIcon(reset, "rotate-ccw");
+    reset.createSpan({ text: t.resetFilters });
 
     const renderRows = (): void => {
       this.taskQuery = search.value.normalize("NFKC").trim().toLocaleLowerCase();
-      this.taskFilter = select.value as TaskFilter;
       const tasks = member.tasks.filter((task) => {
         const matchesText =
           !this.taskQuery ||
           task.title.normalize("NFKC").toLocaleLowerCase().includes(this.taskQuery) ||
           task.projectTitle.normalize("NFKC").toLocaleLowerCase().includes(this.taskQuery);
-        const matchesStatus =
-          this.taskFilter === "all" ||
-          (this.taskFilter === "completed" ? task.completed : !task.completed);
-        return matchesText && matchesStatus;
+        const matchesProject =
+          this.taskProjectIds === null || this.taskProjectIds.has(task.projectId);
+        const matchesStatus = this.taskStatuses === null || this.taskStatuses.has(task.status);
+        return matchesText && matchesProject && matchesStatus;
       });
+      result.setText(t.taskFilterResult(tasks.length, member.tasks.length));
+      reset.disabled =
+        this.taskQuery.length === 0 &&
+        this.taskProjectIds === null &&
+        this.taskStatuses === null;
       this.renderTaskRows(root, tasks, projects, t);
     };
 
+    this.renderTaskFilterMenu(
+      filters,
+      "folder-kanban",
+      t.project,
+      t.allProjects,
+      projectOptions,
+      this.taskProjectIds,
+      (selection) => {
+        this.taskProjectIds = selection;
+        renderRows();
+      },
+      t
+    );
+    this.renderTaskFilterMenu(
+      filters,
+      "workflow",
+      t.status,
+      t.allTaskStatuses,
+      statusOptions,
+      this.taskStatuses,
+      (selection) => {
+        this.taskStatuses = selection;
+        renderRows();
+      },
+      t
+    );
     search.addEventListener("input", renderRows);
-    select.addEventListener("change", renderRows);
+    reset.addEventListener("click", () => {
+      this.taskQuery = "";
+      this.taskProjectIds = null;
+      this.taskStatuses = null;
+      root.empty();
+      this.renderTaskDetail(root, member, projects, t);
+    });
     renderRows();
+  }
+
+  private normalizeTaskFilter(
+    selection: Set<string> | null,
+    options: Array<{ value: string }>
+  ): Set<string> | null {
+    if (selection === null) return null;
+    const available = new Set(options.map((option) => option.value));
+    const normalized = new Set([...selection].filter((value) => available.has(value)));
+    return normalized.size === available.size ? null : normalized;
+  }
+
+  private renderTaskFilterMenu(
+    root: HTMLElement,
+    icon: string,
+    label: string,
+    allLabel: string,
+    options: Array<{ value: string; label: string; count: number }>,
+    selection: Set<string> | null,
+    onChange: (selection: Set<string> | null) => void,
+    t: Translations
+  ): void {
+    const menu = root.createEl("details", { cls: "pmi-task-filter-menu" });
+    const summary = menu.createEl("summary", { attr: { "aria-label": label } });
+    setIcon(summary.createSpan("pmi-task-filter-icon"), icon);
+    const copy = summary.createSpan("pmi-task-filter-copy");
+    copy.createSpan({ cls: "pmi-task-filter-label", text: label });
+    const value = copy.createSpan("pmi-task-filter-value");
+    const chevron = summary.createSpan("pmi-task-filter-chevron");
+    setIcon(chevron, "chevron-down");
+
+    const panel = menu.createDiv("pmi-task-filter-panel");
+    const panelHead = panel.createDiv("pmi-task-filter-panel-head");
+    panelHead.createEl("strong", { text: label });
+    panelHead.createSpan({ text: t.optionCount(options.length) });
+    const actions = panel.createDiv("pmi-task-filter-actions");
+    const selectAll = actions.createEl("button", { text: t.selectAll, attr: { type: "button" } });
+    const clear = actions.createEl("button", { text: t.clear, attr: { type: "button" } });
+    const list = panel.createDiv("pmi-task-filter-options");
+    let currentSelection = selection;
+
+    const summaryText = (): string => {
+      if (currentSelection === null || currentSelection.size === options.length) return allLabel;
+      if (currentSelection.size === 0) return t.noneSelected;
+      if (currentSelection.size === 1) {
+        const selectedValue = currentSelection.values().next().value as string | undefined;
+        return options.find((option) => option.value === selectedValue)?.label ?? t.selectedCount(1);
+      }
+      return t.selectedCount(currentSelection.size);
+    };
+    const update = (next: Set<string> | null): void => {
+      currentSelection = next;
+      value.setText(summaryText());
+      for (const checkbox of list.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
+        checkbox.checked =
+          currentSelection === null || currentSelection.has(checkbox.dataset.filterValue ?? "");
+      }
+      onChange(currentSelection);
+    };
+
+    for (const option of options) {
+      const row = list.createEl("label", { cls: "pmi-task-filter-option" });
+      const checkbox = row.createEl("input", { type: "checkbox" });
+      checkbox.dataset.filterValue = option.value;
+      checkbox.checked = currentSelection === null || currentSelection.has(option.value);
+      row.createSpan({ cls: "pmi-task-filter-option-name", text: option.label });
+      row.createSpan({ cls: "pmi-task-filter-option-count", text: String(option.count) });
+      checkbox.addEventListener("change", () => {
+        const next =
+          currentSelection === null
+            ? new Set(options.map((candidate) => candidate.value))
+            : new Set(currentSelection);
+        checkbox.checked ? next.add(option.value) : next.delete(option.value);
+        update(next.size === options.length ? null : next);
+      });
+    }
+
+    value.setText(summaryText());
+    selectAll.addEventListener("click", () => update(null));
+    clear.addEventListener("click", () => update(new Set()));
+    menu.addEventListener("toggle", () => {
+      if (!menu.open) return;
+      for (const sibling of root.querySelectorAll<HTMLDetailsElement>(
+        ".pmi-task-filter-menu[open]"
+      )) {
+        if (sibling !== menu) sibling.open = false;
+      }
+    });
+    menu.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !menu.open) return;
+      menu.open = false;
+      summary.focus();
+      event.preventDefault();
+      event.stopPropagation();
+    });
   }
 
   private renderTaskRows(

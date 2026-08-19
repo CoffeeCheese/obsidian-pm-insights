@@ -203,8 +203,7 @@
 }
 
 .pmi-project-search,
-.pmi-pane-search,
-.pmi-task-filters select {
+.pmi-pane-search {
   width: 100%;
   min-height: 34px;
   border: 1px solid var(--pmi-edge);
@@ -498,11 +497,262 @@
   );
 }
 
-.pmi-task-filters {
+.pmi-task-filter-bar {
+  position: relative;
+  z-index: 3;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 150px;
+  grid-template:
+    "search project status reset" auto
+    "result result result result" auto /
+    minmax(180px, 1fr) minmax(138px, 176px) minmax(138px, 176px) auto;
   gap: 8px;
   margin-block-end: 10px;
+  padding: 8px 8px 7px 10px;
+  border: 1px solid var(--pmi-edge);
+  border-inline-start: 3px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  background: var(--pmi-surface);
+}
+
+.pmi-task-filter-search {
+  position: relative;
+  grid-area: search;
+  min-width: 0;
+}
+
+.pmi-task-filter-search > span {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 50%;
+  inset-inline-start: 10px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.pmi-task-filter-search svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pmi-task-filter-search .pmi-pane-search {
+  height: 100%;
+  min-height: 40px;
+  padding-inline-start: 32px;
+  background: var(--background-primary);
+}
+
+.pmi-task-filter-menu {
+  position: relative;
+  min-width: 0;
+}
+
+.pmi-task-filter-menu:nth-of-type(1) {
+  grid-area: project;
+}
+
+.pmi-task-filter-menu:nth-of-type(2) {
+  grid-area: status;
+}
+
+.pmi-task-filter-menu > summary {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--pmi-edge);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pmi-task-filter-menu > summary::marker {
+  content: "";
+}
+
+.pmi-task-filter-menu > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+.pmi-task-filter-menu[open] > summary,
+.pmi-task-filter-menu > summary:focus-visible {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--pmi-accent-soft);
+  outline: 0;
+}
+
+.pmi-task-filter-icon,
+.pmi-task-filter-icon svg,
+.pmi-task-filter-chevron,
+.pmi-task-filter-chevron svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.pmi-task-filter-icon {
+  color: var(--text-accent);
+}
+
+.pmi-task-filter-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.pmi-task-filter-label {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 9px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.pmi-task-filter-value {
+  overflow: hidden;
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-task-filter-chevron {
+  margin-inline-start: auto;
+  color: var(--text-muted);
+  transition: transform 140ms ease;
+}
+
+.pmi-task-filter-menu[open] .pmi-task-filter-chevron {
+  color: var(--text-accent);
+  transform: rotate(180deg);
+}
+
+.pmi-task-filter-panel {
+  position: absolute;
+  z-index: 8;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-end: 0;
+  width: min(290px, calc(100vw - 48px));
+  padding: 10px;
+  border: 1px solid var(--pmi-edge-strong);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-l);
+  background: var(--background-primary);
+  transform-origin: top right;
+  animation: pmi-project-panel-enter 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pmi-task-filter-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 2px 8px;
+}
+
+.pmi-task-filter-panel-head strong {
+  font-size: var(--font-ui-small);
+}
+
+.pmi-task-filter-panel-head span {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+}
+
+.pmi-task-filter-actions {
+  display: flex;
+  gap: 6px;
+  padding-block-end: 7px;
+  border-block-end: 1px solid var(--pmi-edge);
+}
+
+.pmi-task-filter-actions button {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-task-filter-options {
+  display: grid;
+  max-height: 250px;
+  overflow: auto;
+  padding-block-start: 5px;
+}
+
+.pmi-task-filter-option {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 6px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.pmi-task-filter-option:hover {
+  background: var(--background-modifier-hover);
+}
+
+.pmi-task-filter-option input {
+  margin: 0;
+}
+
+.pmi-task-filter-option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-task-filter-option-count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--pmi-surface);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  text-align: center;
+}
+
+.pmi-task-filter-reset {
+  grid-area: reset;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+  border: 1px solid var(--pmi-edge);
+  box-shadow: none;
+  color: var(--text-muted);
+  background: var(--background-primary);
+}
+
+.pmi-task-filter-reset svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pmi-task-filter-reset:disabled {
+  opacity: 0.4;
+}
+
+.pmi-task-filter-result {
+  grid-area: result;
+  padding: 6px 3px 0;
+  border-block-start: 1px solid var(--pmi-edge);
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  letter-spacing: 0.02em;
 }
 
 .pmi-task-table {
@@ -821,13 +1071,37 @@
     border-block-start: 1px solid var(--pmi-edge);
   }
 
-  .pmi-task-filters {
-    grid-template-columns: minmax(0, 1fr);
+  .pmi-task-filter-bar {
+    grid-template:
+      "search search" auto
+      "project status" auto
+      "result reset" auto /
+      minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pmi-task-filter-reset {
+    min-height: 30px;
+    justify-self: end;
+    border: 0;
+    background: transparent;
+  }
+
+  .pmi-task-filter-result {
+    align-self: center;
+    border-block-start: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pmi-view * {
     scroll-behavior: auto;
+  }
+
+  .pmi-task-filter-chevron {
+    transition: none;
+  }
+
+  .pmi-task-filter-panel {
+    animation: none;
   }
 }
