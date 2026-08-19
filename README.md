@@ -40,16 +40,44 @@ PROJECTS  ──→  TEAM SNAPSHOT  ──→  ASSIGNEE  ──→  TASKS
 1. **Pick a few projects.** Mix and match any Project Manager projects in your vault.
 2. **Scan the team signal.** Compare planned, logged, remaining, and overrun hours.
 3. **Meet the workload.** Choose an assignee and keep personal work separate from shared work.
-4. **Follow the clue.** Search and filter the task drawer to see where every hour came from.
+4. **Follow the clue.** Search by text, combine project and status filters, then open the source task without losing the dashboard.
 
 | Inside the observatory | What you can see |
 | --- | --- |
 | 🛰️ **Team snapshot** | Combined planned, logged, remaining, and overrun hours for the selected projects. |
 | 👤 **Assignee cards** | Each person's task count and workload rails, with personal and shared work kept separate. |
-| 🔎 **Task drawer** | Searchable task details, including project, status, planned, logged, and remaining hours. |
-| 🧹 **Quality ping** | Gentle warnings for unestimated work, unassigned work, and excluded parent tasks. |
+| 🧭 **Delivery ledger** | Six personal ratios grouped by delivery, time, and data foundation. |
+| 🔎 **Task drawer** | Search plus multi-select project and status filters, with resizable task columns. |
+| 🪟 **Project Manager handoff** | Open a task in Project Manager's editor, or open its project in a new tab. |
+| 🧹 **Quality ping** | Included subtask total and gentle warnings for unestimated, unassigned, and excluded parent tasks. |
 
 The task column stays put on narrow screens while the remaining fields scroll. The interface speaks English and Simplified Chinese, and borrows its colors from your active Obsidian theme.
+
+## 🔭 Zoom in without losing the dashboard
+
+The assignee panel keeps investigation close to the numbers:
+
+- **Filter from what is actually present.** Project and status choices are built from the selected assignee's current tasks. Both filters support multiple selections and work together with text search.
+- **Dismiss menus naturally.** Click elsewhere or press `Escape` to close project and filter menus without clearing your selections.
+- **Keep the task in context.** Select a task title to open its Project Manager editor over the current dashboard. Select the project name to open the corresponding Project Manager page in a new tab.
+- **Make the table fit the question.** Drag a column divider, use the arrow keys for precise resizing, or double-click a divider to restore the default layout. Headers and records share the same left-aligned baseline.
+
+Opening task details directly is supported with Project Manager `1.8.x`. PM Insights still performs no task-note writes; any changes made inside the Project Manager editor are handled by Project Manager itself.
+
+## 🧭 Six ratios, three questions
+
+The compact ledger beside each assignee answers three different questions without inserting another dashboard between the person and their tasks.
+
+| Group | Ratio | Calculation |
+| --- | --- | --- |
+| **Delivery** | Task closure | Completed non-cancelled tasks ÷ all non-cancelled tasks. |
+| **Delivery** | Planned work closed | Planned hours on completed tasks ÷ all estimated hours. |
+| **Time** | Time consumed | Logged hours on estimated tasks ÷ their planned hours. |
+| **Time** | Tasks over budget | Started estimated tasks over plan ÷ all started estimated tasks. |
+| **Data foundation** | Estimate accuracy | Completed, started tasks within ±20% of estimate ÷ all completed, started estimated tasks. |
+| **Data foundation** | Estimate coverage | Estimated non-cancelled tasks ÷ all non-cancelled tasks. |
+
+An em dash means there is no valid sample yet; it is not reported as zero.
 
 ## 🧮 How the little gauges work
 
