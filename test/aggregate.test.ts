@@ -83,6 +83,7 @@ describe("aggregateInsights", () => {
     expect(snapshot.members.find((member) => member.name === "Alice")).toBeUndefined();
     expect(snapshot.members.find((member) => member.name === "Bob")?.tasks).toHaveLength(1);
     expect(snapshot.team.taskCount).toBe(1);
+    expect(snapshot.quality.subtaskCount).toBe(1);
     expect(snapshot.quality.excludedParentCount).toBe(1);
   });
 

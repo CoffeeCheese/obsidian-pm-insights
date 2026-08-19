@@ -233,6 +233,7 @@ export class InsightsView extends ItemView {
     quality.createEl("strong", { text: `${t.qualityTitle}:` });
     quality.createSpan({
       text: t.qualitySummary(
+        insights.quality.subtaskCount,
         insights.quality.unestimatedCount,
         insights.quality.unassignedCount,
         insights.quality.excludedParentCount

@@ -24,8 +24,8 @@ const en = {
   unassigned: "Unassigned",
   unestimated: "Unestimated",
   qualityTitle: "Data quality",
-  qualitySummary: (unestimated: number, unassigned: number, parents: number) =>
-    `${unestimated} unestimated · ${unassigned} unassigned · ${parents} parent tasks excluded`,
+  qualitySummary: (subtasks: number, unestimated: number, unassigned: number, parents: number) =>
+    `${subtasks} subtasks · ${unestimated} unestimated · ${unassigned} unassigned · ${parents} parent tasks excluded`,
   members: "Assignees",
   memberSearch: "Find an assignee…",
   tasks: "Tasks",
@@ -87,8 +87,8 @@ const zh: typeof en = {
   unassigned: "未分配",
   unestimated: "未估算",
   qualityTitle: "数据质量",
-  qualitySummary: (unestimated: number, unassigned: number, parents: number) =>
-    `${unestimated} 个未估算 · ${unassigned} 个未分配 · 已排除 ${parents} 个父任务`,
+  qualitySummary: (subtasks: number, unestimated: number, unassigned: number, parents: number) =>
+    `${subtasks} 个子任务 · ${unestimated} 个未估算 · ${unassigned} 个未分配 · 已排除 ${parents} 个父任务`,
   members: "成员",
   memberSearch: "查找成员…",
   tasks: "任务",

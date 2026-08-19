@@ -69,6 +69,7 @@ export interface MemberInsight {
 }
 
 export interface DataQualitySummary {
+  subtaskCount: number;
   unassignedCount: number;
   unestimatedCount: number;
   excludedParentCount: number;

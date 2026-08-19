@@ -166,6 +166,7 @@ export function aggregateInsights(
     tasks: allTasks,
     team: finalizeMetrics(team),
     quality: {
+      subtaskCount: allTasks.filter((task) => task.hierarchy === "subtask").length,
       unassignedCount: allTasks.filter((task) => task.assignmentKind === "unassigned").length,
       unestimatedCount: allTasks.filter((task) => task.unestimated).length,
       excludedParentCount: excludedParents.length,
