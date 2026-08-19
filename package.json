@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pm-insights",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Read-only assignee workload insights for the Obsidian Project Manager plugin.",
   "main": "main.js",
@@ -8,14 +8,15 @@
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
-    "check": "tsc --noEmit && npm run lint && npm test && npm run build",
-    "lint": "eslint .",
+    "check": "tsc --noEmit && npm run lint && npm run test:official-review && npm test && npm run build",
+    "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:ui:headers": "node scripts/check-task-header-spacing.mjs",
     "test:ui:member-ratios": "node scripts/check-member-ratios.mjs",
     "test:ui:project-picker": "node scripts/check-project-picker-dismiss.mjs",
     "test:ui:task-filters": "node scripts/check-task-filters.mjs",
-    "test:ui:task-navigation": "node scripts/check-task-navigation.mjs"
+    "test:ui:task-navigation": "node scripts/check-task-navigation.mjs",
+    "test:official-review": "node scripts/check-official-review.mjs"
   },
   "keywords": [
     "obsidian",

@@ -643,8 +643,7 @@ export class InsightsView extends ItemView {
       if (currentSelection === null || currentSelection.size === options.length) return allLabel;
       if (currentSelection.size === 0) return t.noneSelected;
       if (currentSelection.size === 1) {
-        const selectedValue = currentSelection.values().next().value as string | undefined;
-        return options.find((option) => option.value === selectedValue)?.label ?? t.selectedCount(1);
+        return options.find((option) => currentSelection?.has(option.value))?.label ?? t.selectedCount(1);
       }
       return t.selectedCount(currentSelection.size);
     };

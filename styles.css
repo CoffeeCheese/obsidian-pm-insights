@@ -146,7 +146,7 @@
 }
 
 .pmi-view .pmi-project-picker > summary::-webkit-details-marker {
-  display: none !important;
+  display: none;
 }
 
 .pmi-project-picker > summary svg {
@@ -739,7 +739,7 @@
 }
 
 .pmi-task-filter-menu > summary::-webkit-details-marker {
-  display: none !important;
+  display: none;
 }
 
 .pmi-task-filter-menu[open] > summary,

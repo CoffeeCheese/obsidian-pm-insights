@@ -1,5 +1,12 @@
-import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { translations } from "./i18n";
+import {
+  App,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  type SettingDefinition,
+  type SettingDefinitionItem
+} from "obsidian";
+import { translations, type Translations } from "./i18n";
 import type { InsightSettings, MemberAlias } from "./model";
 
 export interface SettingsHost {
@@ -17,7 +24,64 @@ export class InsightsSettingTab extends PluginSettingTab {
     this.host = plugin;
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    const t = translations(this.host.settings);
+    return [
+      {
+        type: "group",
+        heading: t.settingsHeading,
+        items: [
+          {
+            name: t.language,
+            desc: t.languageDesc,
+            aliases: [t.aliases, t.aliasesDesc, t.canonicalName, t.aliasNames],
+            control: {
+              type: "dropdown",
+              key: "locale",
+              options: {
+                auto: t.automatic,
+                en: t.english,
+                "zh-cn": t.chinese
+              }
+            }
+          }
+        ]
+      },
+      {
+        type: "list",
+        heading: t.aliases,
+        addItem: {
+          name: t.addAlias,
+          action: () => {
+            void this.addAlias();
+          }
+        },
+        onDelete: (index) => {
+          void this.deleteAlias(index);
+        },
+        items: this.host.settings.aliases.map((alias) => this.aliasDefinition(alias, t))
+      }
+    ];
+  }
+
+  getControlValue(key: string): unknown {
+    return key === "locale" ? this.host.settings.locale : undefined;
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    if (key !== "locale" || !this.isLocale(value)) return;
+    this.host.settings.locale = value;
+    await this.host.saveSettings();
+    await this.host.refreshInsights();
+    this.updateDefinitions();
+  }
+
+  // Obsidian versions before 1.13 use this imperative fallback.
   display(): void {
+    this.renderLegacySettings();
+  }
+
+  private renderLegacySettings(): void {
     const { containerEl } = this;
     const t = translations(this.host.settings);
     containerEl.empty();
@@ -36,7 +100,7 @@ export class InsightsSettingTab extends PluginSettingTab {
             this.host.settings.locale = value as InsightSettings["locale"];
             await this.host.saveSettings();
             await this.host.refreshInsights();
-            this.display();
+            this.renderLegacySettings();
           })
       );
 
@@ -50,9 +114,70 @@ export class InsightsSettingTab extends PluginSettingTab {
       button.setButtonText(t.addAlias).setCta().onClick(async () => {
         this.host.settings.aliases.push({ canonical: "", aliases: [] });
         await this.host.saveSettings();
-        this.display();
+        this.renderLegacySettings();
       })
     );
+  }
+
+  private aliasDefinition(alias: MemberAlias, t: Translations): SettingDefinition {
+    return {
+      name: alias.canonical || t.canonicalName,
+      desc: alias.aliases.length > 0 ? alias.aliases.join(", ") : t.aliasesDesc,
+      render: (setting) => {
+        setting
+          .setName("")
+          .setDesc("")
+          .addText((input) =>
+            input
+              .setPlaceholder(t.canonicalName)
+              .setValue(alias.canonical)
+              .onChange(async (value) => {
+                alias.canonical = value;
+                await this.host.saveSettings();
+                await this.host.refreshInsights();
+              })
+          )
+          .addText((input) =>
+            input
+              .setPlaceholder(t.aliasNames)
+              .setValue(alias.aliases.join(", "))
+              .onChange(async (value) => {
+                alias.aliases = this.parseAliases(value);
+                await this.host.saveSettings();
+                await this.host.refreshInsights();
+              })
+          );
+      }
+    };
+  }
+
+  private async addAlias(): Promise<void> {
+    this.host.settings.aliases.push({ canonical: "", aliases: [] });
+    await this.host.saveSettings();
+    this.updateDefinitions();
+  }
+
+  private async deleteAlias(index: number): Promise<void> {
+    this.host.settings.aliases.splice(index, 1);
+    await this.host.saveSettings();
+    await this.host.refreshInsights();
+    this.updateDefinitions();
+  }
+
+  private isLocale(value: unknown): value is InsightSettings["locale"] {
+    return value === "auto" || value === "en" || value === "zh-cn";
+  }
+
+  private parseAliases(value: string): string[] {
+    return value
+      .split(/[,，]/u)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private updateDefinitions(): void {
+    const update = Reflect.get(this, "update");
+    if (typeof update === "function") update.call(this);
   }
 
   private renderAlias(alias: MemberAlias, index: number): void {
@@ -73,10 +198,7 @@ export class InsightsSettingTab extends PluginSettingTab {
           .setPlaceholder(t.aliasNames)
           .setValue(alias.aliases.join(", "))
           .onChange(async (value) => {
-            alias.aliases = value
-              .split(/[,，]/u)
-              .map((item) => item.trim())
-              .filter(Boolean);
+            alias.aliases = this.parseAliases(value);
             await this.host.saveSettings();
             await this.host.refreshInsights();
           })
@@ -86,7 +208,7 @@ export class InsightsSettingTab extends PluginSettingTab {
           this.host.settings.aliases.splice(index, 1);
           await this.host.saveSettings();
           await this.host.refreshInsights();
-          this.display();
+          this.renderLegacySettings();
         })
       );
   }
