@@ -855,10 +855,10 @@ export class InsightsView extends ItemView {
         setIcon(
           sort.createSpan({ cls: "pmi-task-sort-icon", attr: { "aria-hidden": "true" } }),
           this.taskPrioritySort === "high-to-low"
-            ? "arrow-down-wide-narrow"
+            ? "chevron-down"
             : this.taskPrioritySort === "low-to-high"
-              ? "arrow-up-narrow-wide"
-              : "arrow-up-down"
+              ? "chevron-up"
+              : "chevrons-up-down"
         );
         sort.addEventListener("click", (event) => {
           const restoreFocus = event.detail === 0;
