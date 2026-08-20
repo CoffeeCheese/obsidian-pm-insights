@@ -17,6 +17,7 @@ export const INSIGHTS_VIEW_TYPE = "project-manager-insights-view";
 export interface InsightsViewHost {
   settings: InsightSettings;
   readProjectManager(): Promise<ProjectManagerSnapshot>;
+  reconcileProjectManager(): Promise<ProjectManagerSnapshot>;
   saveSettings(): Promise<void>;
   openTask(taskId: string, projectPath: string): Promise<void>;
   openProject(projectPath: string): Promise<void>;
@@ -248,7 +249,12 @@ export class InsightsView extends ItemView {
       attr: { "aria-label": t.refresh }
     });
     setIcon(refresh, "refresh-cw");
-    refresh.addEventListener("click", () => void this.render());
+    refresh.addEventListener("click", () => void this.reconcileAndRender());
+  }
+
+  private async reconcileAndRender(): Promise<void> {
+    await this.host.reconcileProjectManager();
+    await this.render();
   }
 
   private updateProjectSummary(t: Translations): void {

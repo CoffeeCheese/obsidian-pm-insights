@@ -1,5 +1,6 @@
 import { Notice, Plugin, type WorkspaceLeaf } from "obsidian";
-import { ProjectManagerAdapter, type ProjectManagerSnapshot } from "./adapters/project-manager";
+import { ProjectManagerCatalog, type ProjectManagerSnapshot } from "./adapters/project-manager";
+import { ObsidianProjectManagerSource } from "./adapters/project-manager-source";
 import {
   ProjectManagerNavigationError,
   ProjectManagerNavigator
@@ -18,14 +19,14 @@ export default class ProjectManagerInsightsPlugin
   implements ToolbarIntegrationHost
 {
   settings: InsightSettings = structuredClone(DEFAULT_SETTINGS);
-  private adapter!: ProjectManagerAdapter;
+  private catalog!: ProjectManagerCatalog;
   private navigator!: ProjectManagerNavigator;
   private toolbarIntegration!: ProjectManagerToolbarIntegration;
   private refreshTimer: number | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    this.adapter = new ProjectManagerAdapter(this.app);
+    this.catalog = new ProjectManagerCatalog(new ObsidianProjectManagerSource(this.app));
     this.navigator = new ProjectManagerNavigator(this.app);
     this.toolbarIntegration = new ProjectManagerToolbarIntegration(this.app, this);
 
@@ -41,14 +42,11 @@ export default class ProjectManagerInsightsPlugin
     this.addCommand({
       id: "refresh-assignee-workload-insights",
       name: translations(this.settings).commandRefresh,
-      callback: () => void this.refreshInsights()
+      callback: () => void this.reconcileInsights()
     });
     this.addSettingTab(new InsightsSettingTab(this.app, this));
 
-    this.registerEvent(this.app.metadataCache.on("changed", () => this.scheduleRefresh()));
-    this.registerEvent(this.app.vault.on("create", () => this.scheduleRefresh()));
-    this.registerEvent(this.app.vault.on("delete", () => this.scheduleRefresh()));
-    this.registerEvent(this.app.vault.on("rename", () => this.scheduleRefresh()));
+    this.register(this.catalog.subscribe(() => this.scheduleRefresh()));
     this.app.workspace.onLayoutReady(() => this.toolbarIntegration.start());
   }
 
@@ -73,7 +71,14 @@ export default class ProjectManagerInsightsPlugin
   }
 
   async readProjectManager(): Promise<ProjectManagerSnapshot> {
-    return this.adapter.read();
+    return this.catalog.snapshot();
+  }
+
+  async reconcileProjectManager(): Promise<ProjectManagerSnapshot> {
+    const snapshot = await this.catalog.reconcile();
+    if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer);
+    this.refreshTimer = null;
+    return snapshot;
   }
 
   tooltip(): string {
@@ -120,12 +125,19 @@ export default class ProjectManagerInsightsPlugin
   }
 
   async refreshInsights(): Promise<void> {
+    if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer);
+    this.refreshTimer = null;
     const views = this.app.workspace
       .getLeavesOfType(INSIGHTS_VIEW_TYPE)
       .map((leaf) => leaf.view)
       .filter((view): view is InsightsView => view instanceof InsightsView);
     await Promise.all(views.map((view) => view.refresh()));
     this.toolbarIntegration.sync();
+  }
+
+  private async reconcileInsights(): Promise<void> {
+    await this.reconcileProjectManager();
+    await this.refreshInsights();
   }
 
   private scheduleRefresh(): void {

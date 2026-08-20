@@ -12,6 +12,11 @@ if (/\.values\(\)\.next\(\)\.value\s+as\s+string\s*\|\s*undefined/u.test(view)) 
   failures.push("src/view.ts: remove the unnecessary iterator value assertion");
 }
 
+const projectManagerSource = readFileSync("src/adapters/project-manager-source.ts", "utf8");
+if (/vault\.(?:getFiles|getMarkdownFiles)\s*\(/u.test(projectManagerSource)) {
+  failures.push("Project Manager discovery must stay scoped to its configured folder");
+}
+
 if (failures.length > 0) {
   console.error(failures.join("\n"));
   process.exitCode = 1;
