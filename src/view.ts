@@ -211,13 +211,33 @@ export class InsightsView extends ItemView {
     });
     renderProjects();
 
-    const archived = controls.createEl("label", { cls: "pmi-archived-toggle" });
+    const archived = controls.createEl("label", {
+      cls: "pmi-statistics-toggle pmi-archived-toggle"
+    });
     const archivedCheckbox = archived.createEl("input", { type: "checkbox" });
     archivedCheckbox.checked = this.host.settings.includeArchived;
     archived.createSpan({ text: t.includeArchived });
     archivedCheckbox.addEventListener("change", () => {
       void (async () => {
         this.host.settings.includeArchived = archivedCheckbox.checked;
+        await this.host.saveSettings();
+        this.renderDashboard(snapshot, t);
+      })();
+    });
+
+    const parentTasks = controls.createEl("label", {
+      cls: "pmi-statistics-toggle pmi-parent-task-toggle"
+    });
+    const parentTasksCheckbox = parentTasks.createEl("input", { type: "checkbox" });
+    parentTasksCheckbox.checked = this.host.settings.countParentTasks;
+    parentTasks.createSpan({ text: t.countParentTasks });
+    parentTasksCheckbox.addEventListener("change", () => {
+      void (async () => {
+        this.host.settings.countParentTasks = parentTasksCheckbox.checked;
+        this.taskQuery = "";
+        this.taskProjectIds = null;
+        this.taskStatuses = null;
+        this.taskPriorities = null;
         await this.host.saveSettings();
         this.renderDashboard(snapshot, t);
       })();
@@ -249,6 +269,7 @@ export class InsightsView extends ItemView {
     const insights = aggregateInsights(snapshot.projects, snapshot.tasks, {
       projectIds: selectedIds,
       includeArchived: this.host.settings.includeArchived,
+      countParentTasks: this.host.settings.countParentTasks,
       aliases: this.host.settings.aliases,
       unassignedLabel: t.unassigned
     });
@@ -258,12 +279,19 @@ export class InsightsView extends ItemView {
     setIcon(quality.createSpan(), "scan-search");
     quality.createEl("strong", { text: `${t.qualityTitle}:` });
     quality.createSpan({
-      text: t.qualitySummary(
-        insights.quality.subtaskCount,
-        insights.quality.unestimatedCount,
-        insights.quality.unassignedCount,
-        insights.quality.excludedParentCount
-      )
+      text: this.host.settings.countParentTasks
+        ? t.parentTaskQualitySummary(
+            insights.quality.parentTaskCount,
+            insights.quality.unestimatedCount,
+            insights.quality.unassignedCount,
+            insights.quality.excludedChildTaskCount
+          )
+        : t.qualitySummary(
+            insights.quality.subtaskCount,
+            insights.quality.unestimatedCount,
+            insights.quality.unassignedCount,
+            insights.quality.excludedParentCount
+          )
     });
 
     const layout = dashboard.createDiv("pmi-master-detail");

@@ -119,6 +119,7 @@ function taskInsight(
 export interface AggregateOptions {
   projectIds: Set<string>;
   includeArchived: boolean;
+  countParentTasks: boolean;
   aliases: MemberAlias[];
   unassignedLabel: string;
 }
@@ -133,14 +134,14 @@ export function aggregateInsights(
   const parentIds = new Set(
     selected.map((task) => task.parentId).filter((id): id is string => Boolean(id))
   );
-  const excludedParents = selected.filter(
+  const parentTasks = selected.filter(
     (task) => task.hierarchy === "root" || parentIds.has(task.id)
   );
-  const excludedParentIds = new Set(excludedParents.map((task) => task.id));
+  const parentTaskIds = new Set(parentTasks.map((task) => task.id));
+  const childTasks = selected.filter((task) => !parentTaskIds.has(task.id));
+  const scopedTasks = options.countParentTasks ? parentTasks : childTasks;
   const resolver = new IdentityResolver(options.aliases);
-  const included = selected.filter(
-    (task) => !excludedParentIds.has(task.id) && (options.includeArchived || !task.archived)
-  );
+  const included = scopedTasks.filter((task) => options.includeArchived || !task.archived);
 
   const members = new Map<string, MemberInsight>();
   const allTasks: TaskInsight[] = [];
@@ -218,11 +219,16 @@ export function aggregateInsights(
     team: finalizeMetrics(team),
     quality: {
       subtaskCount: allTasks.filter((task) => task.hierarchy === "subtask").length,
+      parentTaskCount: allTasks.filter((task) => parentTaskIds.has(task.id)).length,
       unassignedCount: allTasks.filter((task) => task.assignmentKind === "unassigned").length,
       unestimatedCount: allTasks.filter((task) => task.unestimated).length,
-      excludedParentCount: excludedParents.length,
+      excludedParentCount: options.countParentTasks ? 0 : parentTasks.length,
+      excludedChildTaskCount: options.countParentTasks ? childTasks.length : 0,
       excludedParentHours: round(
-        excludedParents.reduce((total, task) => total + task.estimate + task.logged, 0)
+        (options.countParentTasks ? [] : parentTasks).reduce(
+          (total, task) => total + task.estimate + task.logged,
+          0
+        )
       )
     }
   };

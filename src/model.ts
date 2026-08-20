@@ -44,6 +44,7 @@ export interface InsightSettings {
   aliases: MemberAlias[];
   selectedProjectIds: string[];
   includeArchived: boolean;
+  countParentTasks: boolean;
 }
 
 export interface WorkMetrics {
@@ -93,9 +94,11 @@ export interface MemberInsight {
 
 export interface DataQualitySummary {
   subtaskCount: number;
+  parentTaskCount: number;
   unassignedCount: number;
   unestimatedCount: number;
   excludedParentCount: number;
+  excludedChildTaskCount: number;
   excludedParentHours: number;
 }
 
@@ -110,5 +113,6 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   locale: "auto",
   aliases: [],
   selectedProjectIds: [],
-  includeArchived: false
+  includeArchived: false,
+  countParentTasks: false
 };

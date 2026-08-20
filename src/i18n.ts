@@ -14,6 +14,7 @@ const en = {
   selectAll: "Select all",
   clear: "Clear",
   includeArchived: "Include archived",
+  countParentTasks: "Count parent tasks",
   refresh: "Refresh",
   planned: "Planned",
   logged: "Logged",
@@ -26,6 +27,8 @@ const en = {
   qualityTitle: "Data quality",
   qualitySummary: (subtasks: number, unestimated: number, unassigned: number, parents: number) =>
     `${subtasks} subtasks · ${unestimated} unestimated · ${unassigned} unassigned · ${parents} parent tasks excluded`,
+  parentTaskQualitySummary: (parents: number, unestimated: number, unassigned: number, children: number) =>
+    `${parents} parent tasks · ${unestimated} unestimated · ${unassigned} unassigned · ${children} child tasks excluded`,
   members: "Assignees",
   memberSearch: "Find an assignee…",
   memberRatios: "Delivery ledger",
@@ -114,6 +117,7 @@ const zh: typeof en = {
   selectAll: "全选",
   clear: "清空",
   includeArchived: "包含已归档",
+  countParentTasks: "统计父任务",
   refresh: "刷新",
   planned: "计划",
   logged: "已登记",
@@ -126,6 +130,8 @@ const zh: typeof en = {
   qualityTitle: "数据质量",
   qualitySummary: (subtasks: number, unestimated: number, unassigned: number, parents: number) =>
     `${subtasks} 个子任务 · ${unestimated} 个未估算 · ${unassigned} 个未分配 · 已排除 ${parents} 个父任务`,
+  parentTaskQualitySummary: (parents: number, unestimated: number, unassigned: number, children: number) =>
+    `${parents} 个父任务 · ${unestimated} 个未估算 · ${unassigned} 个未分配 · 已排除 ${children} 个子任务`,
   members: "成员",
   memberSearch: "查找成员…",
   memberRatios: "个人交付账本",

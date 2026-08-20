@@ -31,6 +31,7 @@ function task(overrides: Partial<TaskRecord> & Pick<TaskRecord, "id">): TaskReco
 const options = {
   projectIds: new Set(["p1", "p2"]),
   includeArchived: false,
+  countParentTasks: false,
   aliases: [{ canonical: "Alice", aliases: ["ALICE ", "Alice（frontend）"] }],
   unassignedLabel: "Unassigned"
 };
@@ -86,6 +87,32 @@ describe("aggregateInsights", () => {
     expect(snapshot.team.taskCount).toBe(1);
     expect(snapshot.quality.subtaskCount).toBe(1);
     expect(snapshot.quality.excludedParentCount).toBe(1);
+  });
+
+  it("counts only parent tasks when parent-task mode is enabled", () => {
+    const snapshot = aggregateInsights(
+      projects,
+      [
+        task({ id: "inferred-parent", hierarchy: "unknown", estimate: 10, logged: 1 }),
+        task({ id: "child", parentId: "inferred-parent", estimate: 4, logged: 2 }),
+        task({ id: "explicit-parent", hierarchy: "root", estimate: 6, assignees: ["Bob"] }),
+        task({ id: "standalone-child", estimate: 3, assignees: ["Bob"] })
+      ],
+      { ...options, countParentTasks: true }
+    );
+
+    expect(snapshot.tasks.map((candidate) => candidate.id).sort()).toEqual([
+      "explicit-parent",
+      "inferred-parent"
+    ]);
+    expect(snapshot.team).toMatchObject({ planned: 16, logged: 1, remaining: 15, taskCount: 2 });
+    expect(snapshot.quality).toMatchObject({
+      parentTaskCount: 2,
+      subtaskCount: 0,
+      excludedParentCount: 0,
+      excludedChildTaskCount: 2,
+      excludedParentHours: 0
+    });
   });
 
   it("does not call unestimated logged work an overrun", () => {
