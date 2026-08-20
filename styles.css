@@ -1067,9 +1067,7 @@
   inset-inline-start: 11px;
   z-index: 2;
   align-self: stretch;
-  box-shadow:
-    1px 0 0 var(--pmi-edge-strong),
-    12px 0 16px -16px var(--text-muted);
+  box-shadow: none;
 }
 
 .pmi-task-columns > :first-child {
