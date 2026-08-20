@@ -1241,6 +1241,26 @@
   .pmi-ratio-group {
     padding-inline: 8px;
   }
+
+  .pmi-task-filter-bar {
+    grid-template:
+      "search search" auto
+      "project status" auto
+      "result reset" auto /
+      minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pmi-task-filter-reset {
+    min-height: 30px;
+    justify-self: end;
+    border: 0;
+    background: transparent;
+  }
+
+  .pmi-task-filter-result {
+    align-self: center;
+    border-block-start: 0;
+  }
 }
 
 @media (max-width: 620px) {
@@ -1284,26 +1304,6 @@
 
   .pmi-metric:nth-child(4) {
     border-block-start: 1px solid var(--pmi-edge);
-  }
-
-  .pmi-task-filter-bar {
-    grid-template:
-      "search search" auto
-      "project status" auto
-      "result reset" auto /
-      minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .pmi-task-filter-reset {
-    min-height: 30px;
-    justify-self: end;
-    border: 0;
-    background: transparent;
-  }
-
-  .pmi-task-filter-result {
-    align-self: center;
-    border-block-start: 0;
   }
 }
 

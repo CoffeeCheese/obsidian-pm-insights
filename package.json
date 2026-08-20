@@ -15,6 +15,7 @@
     "test:ui:member-ratios": "node scripts/check-member-ratios.mjs",
     "test:ui:project-picker": "node scripts/check-project-picker-dismiss.mjs",
     "test:ui:task-filters": "node scripts/check-task-filters.mjs",
+    "test:ui:task-filter-overflow": "node scripts/check-task-filter-overflow.mjs",
     "test:ui:task-navigation": "node scripts/check-task-navigation.mjs",
     "test:official-review": "node scripts/check-official-review.mjs"
   },
