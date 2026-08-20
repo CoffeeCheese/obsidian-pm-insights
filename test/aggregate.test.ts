@@ -18,6 +18,7 @@ function task(overrides: Partial<TaskRecord> & Pick<TaskRecord, "id">): TaskReco
     path: `Tasks/${overrides.id}.md`,
     status: "todo",
     priority: null,
+    tags: [],
     assignees: ["Alice"],
     estimate: 0,
     logged: 0,

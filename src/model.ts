@@ -26,6 +26,7 @@ export interface TaskRecord {
   path: string;
   status: string;
   priority: string | null;
+  tags: string[];
   assignees: string[];
   estimate: number;
   logged: number;

@@ -59,6 +59,7 @@ describe("ProjectManagerCatalog", () => {
           type: "task",
           status: "shipped",
           priority: " urgent ",
+          tags: [" launch ", "#release"],
           assignees: ["Alex"],
           timeEstimate: 8,
           timeLogs: [{ hours: 3 }]
@@ -86,14 +87,21 @@ describe("ProjectManagerCatalog", () => {
     expect(first.projects).toEqual([
       { id: "p1", title: "Example", path: "Projects/example.md", icon: "📋" }
     ]);
-    expect(first.tasks.map(({ id, hierarchy, priority, completed }) => ({
+    expect(first.tasks.map(({ id, hierarchy, priority, tags, completed }) => ({
       id,
       hierarchy,
       priority,
+      tags,
       completed
     }))).toEqual([
-      { id: "root", hierarchy: "root", priority: "urgent", completed: true },
-      { id: "leaf", hierarchy: "subtask", priority: null, completed: false }
+      {
+        id: "root",
+        hierarchy: "root",
+        priority: "urgent",
+        tags: ["launch", "release"],
+        completed: true
+      },
+      { id: "leaf", hierarchy: "subtask", priority: null, tags: [], completed: false }
     ]);
     expect(first.priorities).toEqual([
       { id: "urgent", label: "Urgent", color: "#d45555" }
@@ -120,6 +128,7 @@ describe("ProjectManagerCatalog", () => {
       document: document(taskPath, {
         ...initial.frontmatter,
         status: "in-progress",
+        tags: "backend",
         timeEstimate: 5
       })
     });
@@ -127,7 +136,11 @@ describe("ProjectManagerCatalog", () => {
     const updated = await catalog.snapshot();
     expect(source.scans).toBe(1);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(updated.tasks[0]).toMatchObject({ status: "in-progress", estimate: 5 });
+    expect(updated.tasks[0]).toMatchObject({
+      status: "in-progress",
+      tags: ["backend"],
+      estimate: 5
+    });
 
     source.emit({ kind: "remove", path: taskPath });
     expect((await catalog.snapshot()).tasks).toEqual([]);

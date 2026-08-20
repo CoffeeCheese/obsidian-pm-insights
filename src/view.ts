@@ -927,6 +927,9 @@ export class InsightsView extends ItemView {
       if (task.assignmentKind === "shared") badges.createSpan({ text: t.shared });
       if (task.unestimated) badges.createSpan({ text: t.unestimated });
       if (task.archived) badges.createSpan({ text: t.archived });
+      for (const tag of task.tags) {
+        badges.createSpan({ cls: "pmi-task-tag", text: tag });
+      }
       const project = row.createDiv({
         cls: "pmi-task-project pmi-project-open",
         attr: {

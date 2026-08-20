@@ -78,6 +78,12 @@ function stringList(value: unknown): string[] {
   return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
+function taskTags(value: unknown): string[] {
+  return stringList(value)
+    .map((tag) => tag.trim().replace(/^#+/u, ""))
+    .filter(Boolean);
+}
+
 function loggedHours(value: unknown): number {
   if (!Array.isArray(value)) return 0;
   return (value as unknown[]).reduce<number>((total, item) => {
@@ -157,6 +163,7 @@ function task(
     path: document.path,
     status,
     priority: optionalText(frontmatter.priority),
+    tags: taskTags(frontmatter.tags),
     assignees: stringList(frontmatter.assignees),
     estimate: number(frontmatter.timeEstimate),
     logged: loggedHours(frontmatter.timeLogs),
@@ -206,6 +213,7 @@ function entriesEqual(left: CatalogEntry | undefined, right: CatalogEntry | null
     && left.record.path === right.record.path
     && left.record.status === right.record.status
     && left.record.priority === right.record.priority
+    && stringArraysEqual(left.record.tags, right.record.tags)
     && stringArraysEqual(left.record.assignees, right.record.assignees)
     && left.record.estimate === right.record.estimate
     && left.record.logged === right.record.logged
