@@ -19,9 +19,9 @@
   <p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 </div>
 
-![Project Manager Insights workload dashboard with synthetic demo data](docs/assets/pm-insights-overview.png)
+![Project Manager Insights dashboard showing cross-project workload, member ratios, data quality, and task filters with synthetic demo data](docs/assets/pm-insights-overview.png)
 
-<p align="center"><sub>A cheerful little control room—captured with the Pixel theme and synthetic data. No real project data is shown.</sub></p>
+<p align="center"><sub>The v0.2 dashboard in one frame: cross-project totals, data-quality signals, a compact six-ratio ledger, and composable task filters. Captured with the Pixel theme and synthetic data; no real project information is shown.</sub></p>
 
 ## 🫧 One calm view for all those moving parts
 

@@ -20,9 +20,9 @@
   <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
 </div>
 
-![使用虚构演示数据展示的 Project Manager Insights 工作量面板](docs/assets/pm-insights-overview.png)
+![使用虚构演示数据展示跨项目工作量、个人比率、数据质量与任务筛选的 Project Manager Insights 面板](docs/assets/pm-insights-overview.png)
 
-<p align="center"><sub>一间轻快的小小控制室——使用 Pixel 主题和虚构数据拍摄，不含任何真实项目数据。</sub></p>
+<p align="center"><sub>一张图看完 v0.2 面板：跨项目汇总、数据质量提示、紧凑的六项个人比率，以及可组合的任务筛选。使用 Pixel 主题和虚构数据拍摄，不含任何真实项目信息。</sub></p>
 
 ## 🫧 把忙碌的项目装进一个安静窗口
 
