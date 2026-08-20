@@ -831,27 +831,24 @@ export class InsightsView extends ItemView {
               ? "ascending"
               : "none"
         );
+        const sortAccessibleLabel =
+          this.taskPrioritySort === "none"
+            ? t.sortPriority
+            : `${t.priority}: ${
+                this.taskPrioritySort === "high-to-low"
+                  ? t.priorityHighToLow
+                  : t.priorityLowToHigh
+              }`;
         const sort = header.createEl("button", {
           cls: "pmi-task-sort",
-          attr: {
-            type: "button",
-            title:
-              this.taskPrioritySort === "high-to-low"
-                ? t.priorityHighToLow
-                : this.taskPrioritySort === "low-to-high"
-                  ? t.priorityLowToHigh
-                  : t.sortPriority,
-            "aria-label":
-              this.taskPrioritySort === "none"
-                ? t.sortPriority
-                : `${t.priority}: ${
-                    this.taskPrioritySort === "high-to-low"
-                      ? t.priorityHighToLow
-                      : t.priorityLowToHigh
-                  }`
-          }
+          attr: { type: "button" }
         });
-        sort.createSpan({ cls: "pmi-task-sort-label", text: label });
+        sort.createSpan({
+          cls: "pmi-task-sort-label",
+          text: label,
+          attr: { "aria-hidden": "true" }
+        });
+        sort.createSpan({ cls: "pmi-sr-only", text: sortAccessibleLabel });
         setIcon(
           sort.createSpan({ cls: "pmi-task-sort-icon", attr: { "aria-hidden": "true" } }),
           this.taskPrioritySort === "high-to-low"

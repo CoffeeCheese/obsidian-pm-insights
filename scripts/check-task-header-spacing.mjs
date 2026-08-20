@@ -39,21 +39,28 @@ const evaluation = `(() => {
   const plainHeaderLabel = headers.find((header) => !header.querySelector(".pmi-task-sort"))
     ?.querySelector(":scope > span");
   const sortStyle = sortControl ? getComputedStyle(sortControl) : null;
+  const sortIndicatorStyle = sortControl ? getComputedStyle(sortControl, "::after") : null;
   const sortIcon = sortControl?.querySelector(".pmi-task-sort-icon svg");
   const sortIconStyle = sortIcon ? getComputedStyle(sortIcon) : null;
   const plainLabelStyle = plainHeaderLabel ? getComputedStyle(plainHeaderLabel) : null;
-  const sortControlResult = sortStyle && sortIconStyle && plainLabelStyle
+  const sortControlResult = sortStyle && sortIndicatorStyle && sortIconStyle && plainLabelStyle
     ? {
         borderWidths: [sortStyle.borderTopWidth, sortStyle.borderRightWidth, sortStyle.borderBottomWidth, sortStyle.borderLeftWidth],
         boxShadow: sortStyle.boxShadow,
         backgroundColor: sortStyle.backgroundColor,
         minBlockSize: sortStyle.minBlockSize,
         transform: sortStyle.transform,
+        transitionProperty: sortStyle.transitionProperty,
+        accessibleText: sortControl.querySelector(".pmi-sr-only")?.textContent?.trim() ?? "",
+        hasAriaLabel: sortControl.hasAttribute("aria-label"),
+        hasTitle: sortControl.hasAttribute("title"),
         userSelect: sortStyle.userSelect,
         fontSize: sortStyle.fontSize,
         fontWeight: sortStyle.fontWeight,
         iconWidth: sortIconStyle.width,
         iconHeight: sortIconStyle.height,
+        indicatorHeight: sortIndicatorStyle.height,
+        indicatorTransitionProperty: sortIndicatorStyle.transitionProperty,
         plainHeaderFontSize: plainLabelStyle.fontSize,
         plainHeaderFontWeight: plainLabelStyle.fontWeight
       }
@@ -64,9 +71,15 @@ const evaluation = `(() => {
     !["rgba(0, 0, 0, 0)", "transparent"].includes(sortControlResult.backgroundColor) ||
     sortControlResult.minBlockSize !== "0px" ||
     sortControlResult.transform !== "none" ||
+    sortControlResult.transitionProperty !== "color" ||
+    !sortControlResult.accessibleText ||
+    sortControlResult.hasAriaLabel ||
+    sortControlResult.hasTitle ||
     sortControlResult.userSelect !== "none" ||
     Number.parseFloat(sortControlResult.iconWidth) > Number.parseFloat(sortControlResult.fontSize) ||
     Number.parseFloat(sortControlResult.iconHeight) > Number.parseFloat(sortControlResult.fontSize) ||
+    sortControlResult.indicatorHeight !== "2px" ||
+    sortControlResult.indicatorTransitionProperty !== "opacity, transform" ||
     sortControlResult.fontSize !== sortControlResult.plainHeaderFontSize ||
     sortControlResult.fontWeight !== sortControlResult.plainHeaderFontWeight;
   return JSON.stringify({
