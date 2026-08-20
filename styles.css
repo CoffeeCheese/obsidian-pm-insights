@@ -664,9 +664,9 @@
   z-index: 5;
   display: grid;
   grid-template:
-    "search project status reset" auto
-    "result result result result" auto /
-    minmax(180px, 1fr) minmax(138px, 176px) minmax(138px, 176px) auto;
+    "search project status priority reset" auto
+    "result result result result result" auto /
+    minmax(180px, 1fr) minmax(128px, 164px) minmax(128px, 164px) minmax(128px, 164px) auto;
   gap: 8px;
   margin-block-end: 10px;
   padding: 8px 8px 7px 10px;
@@ -718,6 +718,10 @@
 
 .pmi-task-filter-menu:nth-of-type(2) {
   grid-area: status;
+}
+
+.pmi-task-filter-menu:nth-of-type(3) {
+  grid-area: priority;
 }
 
 .pmi-task-filter-menu > summary {
@@ -869,6 +873,13 @@
 }
 
 .pmi-task-filter-option-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.pmi-task-filter-option-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -918,8 +929,8 @@
 }
 
 .pmi-task-table {
-  --pmi-task-grid-min-width: 798px;
-  --pmi-task-grid-columns: minmax(260px, 1fr) 160px 100px 66px 66px 74px;
+  --pmi-task-grid-min-width: 900px;
+  --pmi-task-grid-columns: minmax(260px, 1fr) 160px 92px 100px 66px 66px 74px;
   --pmi-task-header-clearance: 12px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1002,6 +1013,50 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pmi-task-sort {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 3px 2px 0;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.pmi-task-sort:hover {
+  border: 0;
+  box-shadow: none;
+  color: var(--text-accent);
+  background: transparent;
+}
+
+.pmi-task-sort:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.pmi-task-sort-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-task-sort-icon,
+.pmi-task-sort-icon svg {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
 }
 
 .pmi-task-column-resizer {
@@ -1091,6 +1146,7 @@
 
 .pmi-task-title > strong,
 .pmi-task-project > span:last-child,
+.pmi-task-priority-label,
 .pmi-task-status {
   display: block;
   overflow: hidden;
@@ -1132,6 +1188,28 @@
   gap: 5px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+}
+
+.pmi-task-priority {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-priority-signal {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--background-modifier-border);
+  background: var(--text-faint);
+}
+
+.pmi-task-priority-label.is-empty {
+  color: var(--text-faint);
 }
 
 .pmi-task-hours {
@@ -1226,25 +1304,13 @@
   }
 }
 
-@container pmi-detail (max-width: 620px) {
-  .pmi-detail-header {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-  }
-
-  .pmi-member-ratios {
-    min-height: 48px;
-  }
-
-  .pmi-ratio-group {
-    padding-inline: 8px;
-  }
-
+@container pmi-detail (max-width: 720px) {
   .pmi-task-filter-bar {
     grid-template:
       "search search" auto
       "project status" auto
-      "result reset" auto /
+      "priority reset" auto
+      "result result" auto /
       minmax(0, 1fr) minmax(0, 1fr);
   }
 
@@ -1258,6 +1324,21 @@
   .pmi-task-filter-result {
     align-self: center;
     border-block-start: 0;
+  }
+}
+
+@container pmi-detail (max-width: 620px) {
+  .pmi-detail-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pmi-member-ratios {
+    min-height: 48px;
+  }
+
+  .pmi-ratio-group {
+    padding-inline: 8px;
   }
 }
 

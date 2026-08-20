@@ -4,6 +4,7 @@ import { translations, type Translations } from "./i18n";
 import type {
   InsightSettings,
   MemberInsight,
+  PriorityRecord,
   ProjectRecord,
   RatioMetric,
   TaskInsight,
@@ -21,7 +22,10 @@ export interface InsightsViewHost {
   openProject(projectPath: string): Promise<void>;
 }
 
-const TASK_COLUMN_MIN_WIDTHS = [180, 120, 80, 64, 64, 72] as const;
+type TaskPrioritySort = "none" | "high-to-low" | "low-to-high";
+
+const TASK_PRIORITY_NONE = "";
+const TASK_COLUMN_MIN_WIDTHS = [180, 120, 92, 80, 64, 64, 72] as const;
 const TASK_COLUMN_GAP = 10;
 const TASK_TABLE_INLINE_PADDING = 22;
 const TASK_COLUMN_KEYBOARD_STEP = 12;
@@ -32,6 +36,8 @@ export class InsightsView extends ItemView {
   private taskQuery = "";
   private taskProjectIds: Set<string> | null = null;
   private taskStatuses: Set<string> | null = null;
+  private taskPriorities: Set<string> | null = null;
+  private taskPrioritySort: TaskPrioritySort = "none";
   private dashboardEl: HTMLElement | null = null;
   private projectSummaryEl: HTMLElement | null = null;
   private taskColumnWidths: number[] | null = null;
@@ -273,13 +279,14 @@ export class InsightsView extends ItemView {
         this.taskQuery = "";
         this.taskProjectIds = null;
         this.taskStatuses = null;
+        this.taskPriorities = null;
       }
       this.selectedMemberKey = nextMemberKey;
     }
 
     this.renderMemberList(master, insights.members, visibleMembers, snapshot, t);
     const selected = insights.members.find((member) => member.key === this.selectedMemberKey);
-    this.renderTaskDetail(detail, selected, snapshot.projects, t);
+    this.renderTaskDetail(detail, selected, snapshot.projects, snapshot.priorities, t);
   }
 
   private renderTeamStrip(root: HTMLElement, metrics: WorkMetrics, t: Translations): void {
@@ -358,6 +365,7 @@ export class InsightsView extends ItemView {
       this.taskQuery = "";
       this.taskProjectIds = null;
       this.taskStatuses = null;
+      this.taskPriorities = null;
       this.renderDashboard(snapshot, t);
     });
   }
@@ -390,6 +398,7 @@ export class InsightsView extends ItemView {
     root: HTMLElement,
     member: MemberInsight | undefined,
     projects: ProjectRecord[],
+    priorities: PriorityRecord[],
     t: Translations
   ): void {
     const header = root.createDiv("pmi-pane-header pmi-detail-header");
@@ -418,8 +427,40 @@ export class InsightsView extends ItemView {
         count: member.tasks.filter((task) => task.status === value).length
       }))
       .sort((left, right) => left.label.localeCompare(right.label));
+    const priorityDefinitions = new Map(priorities.map((priority) => [priority.id, priority]));
+    const memberPriorityKeys = new Set(
+      member.tasks.map((task) => task.priority ?? TASK_PRIORITY_NONE)
+    );
+    const priorityOptions = [
+      ...priorities
+        .filter((priority) => memberPriorityKeys.has(priority.id))
+        .map((priority) => ({
+          value: priority.id,
+          label: priority.label,
+          color: priority.color,
+          count: member.tasks.filter((task) => task.priority === priority.id).length
+        })),
+      ...[...memberPriorityKeys]
+        .filter((value) => value !== TASK_PRIORITY_NONE && !priorityDefinitions.has(value))
+        .sort((left, right) => left.localeCompare(right))
+        .map((value) => ({
+          value,
+          label: value,
+          color: "",
+          count: member.tasks.filter((task) => task.priority === value).length
+        })),
+      ...(memberPriorityKeys.has(TASK_PRIORITY_NONE)
+        ? [{
+            value: TASK_PRIORITY_NONE,
+            label: t.noPriority,
+            color: "",
+            count: member.tasks.filter((task) => task.priority === null).length
+          }]
+        : [])
+    ];
     this.taskProjectIds = this.normalizeTaskFilter(this.taskProjectIds, projectOptions);
     this.taskStatuses = this.normalizeTaskFilter(this.taskStatuses, statusOptions);
+    this.taskPriorities = this.normalizeTaskFilter(this.taskPriorities, priorityOptions);
 
     const filters = root.createDiv("pmi-task-filter-bar");
     const searchWrap = filters.createDiv("pmi-task-filter-search");
@@ -448,14 +489,44 @@ export class InsightsView extends ItemView {
         const matchesProject =
           this.taskProjectIds === null || this.taskProjectIds.has(task.projectId);
         const matchesStatus = this.taskStatuses === null || this.taskStatuses.has(task.status);
-        return matchesText && matchesProject && matchesStatus;
+        const matchesPriority =
+          this.taskPriorities === null ||
+          this.taskPriorities.has(task.priority ?? TASK_PRIORITY_NONE);
+        return matchesText && matchesProject && matchesStatus && matchesPriority;
       });
+      const priorityRanks = new Map(
+        priorityOptions.map((priority, index) => [priority.value, index])
+      );
+      const sortedTasks = tasks
+        .map((task, index) => ({ task, index }))
+        .sort((left, right) => {
+          if (this.taskPrioritySort === "none") return left.index - right.index;
+          if (left.task.priority === null && right.task.priority !== null) return 1;
+          if (left.task.priority !== null && right.task.priority === null) return -1;
+          const leftRank =
+            priorityRanks.get(left.task.priority ?? TASK_PRIORITY_NONE) ?? Number.MAX_SAFE_INTEGER;
+          const rightRank =
+            priorityRanks.get(right.task.priority ?? TASK_PRIORITY_NONE) ?? Number.MAX_SAFE_INTEGER;
+          const rankDifference = leftRank - rightRank;
+          if (rankDifference === 0) return left.index - right.index;
+          return this.taskPrioritySort === "high-to-low" ? rankDifference : -rankDifference;
+        })
+        .map(({ task }) => task);
       result.setText(t.taskFilterResult(tasks.length, member.tasks.length));
       reset.disabled =
         this.taskQuery.length === 0 &&
         this.taskProjectIds === null &&
-        this.taskStatuses === null;
-      this.renderTaskRows(root, tasks, projects, t);
+        this.taskStatuses === null &&
+        this.taskPriorities === null;
+      this.renderTaskRows(root, sortedTasks, projects, priorities, t, () => {
+        this.taskPrioritySort =
+          this.taskPrioritySort === "none"
+            ? "high-to-low"
+            : this.taskPrioritySort === "high-to-low"
+              ? "low-to-high"
+              : "none";
+        renderRows();
+      });
     };
 
     this.renderTaskFilterMenu(
@@ -484,13 +555,27 @@ export class InsightsView extends ItemView {
       },
       t
     );
+    this.renderTaskFilterMenu(
+      filters,
+      "signal-high",
+      t.priority,
+      t.allPriorities,
+      priorityOptions,
+      this.taskPriorities,
+      (selection) => {
+        this.taskPriorities = selection;
+        renderRows();
+      },
+      t
+    );
     search.addEventListener("input", renderRows);
     reset.addEventListener("click", () => {
       this.taskQuery = "";
       this.taskProjectIds = null;
       this.taskStatuses = null;
+      this.taskPriorities = null;
       root.empty();
-      this.renderTaskDetail(root, member, projects, t);
+      this.renderTaskDetail(root, member, projects, priorities, t);
     });
     renderRows();
   }
@@ -615,7 +700,7 @@ export class InsightsView extends ItemView {
     icon: string,
     label: string,
     allLabel: string,
-    options: Array<{ value: string; label: string; count: number }>,
+    options: Array<{ value: string; label: string; count: number; color?: string }>,
     selection: Set<string> | null,
     onChange: (selection: Set<string> | null) => void,
     t: Translations
@@ -662,7 +747,12 @@ export class InsightsView extends ItemView {
       const checkbox = row.createEl("input", { type: "checkbox" });
       checkbox.dataset.filterValue = option.value;
       checkbox.checked = currentSelection === null || currentSelection.has(option.value);
-      row.createSpan({ cls: "pmi-task-filter-option-name", text: option.label });
+      const name = row.createSpan("pmi-task-filter-option-name");
+      if (option.color) {
+        const signal = name.createSpan({ cls: "pmi-priority-signal", attr: { "aria-hidden": "true" } });
+        signal.style.backgroundColor = option.color;
+      }
+      name.createSpan({ cls: "pmi-task-filter-option-label", text: option.label });
       row.createSpan({ cls: "pmi-task-filter-option-count", text: String(option.count) });
       checkbox.addEventListener("change", () => {
         const next =
@@ -698,7 +788,9 @@ export class InsightsView extends ItemView {
     detail: HTMLElement,
     tasks: TaskInsight[],
     projects: ProjectRecord[],
-    t: Translations
+    priorities: PriorityRecord[],
+    t: Translations,
+    onPrioritySort: (restoreFocus: boolean) => void
   ): void {
     detail.querySelector(".pmi-task-table")?.remove();
     detail.querySelector(".pmi-list-empty.pmi-task-empty")?.remove();
@@ -719,16 +811,70 @@ export class InsightsView extends ItemView {
     if (this.taskColumnWidths) this.applyTaskColumnWidths(table, this.taskColumnWidths);
 
     const columns = table.createDiv("pmi-task-columns");
-    const columnLabels = [t.tasks, t.project, t.status, t.planned, t.logged, t.remaining];
+    const columnLabels = [
+      t.tasks,
+      t.project,
+      t.priority,
+      t.status,
+      t.planned,
+      t.logged,
+      t.remaining
+    ];
     const columnHeaders = columnLabels.map((label) => {
       const header = columns.createDiv({ cls: "pmi-task-column", attr: { role: "columnheader" } });
-      header.createSpan({ text: label });
+      if (label === t.priority) {
+        header.setAttribute(
+          "aria-sort",
+          this.taskPrioritySort === "high-to-low"
+            ? "descending"
+            : this.taskPrioritySort === "low-to-high"
+              ? "ascending"
+              : "none"
+        );
+        const sort = header.createEl("button", {
+          cls: "pmi-task-sort",
+          attr: {
+            type: "button",
+            title:
+              this.taskPrioritySort === "high-to-low"
+                ? t.priorityHighToLow
+                : this.taskPrioritySort === "low-to-high"
+                  ? t.priorityLowToHigh
+                  : t.sortPriority,
+            "aria-label":
+              this.taskPrioritySort === "none"
+                ? t.sortPriority
+                : `${t.priority}: ${
+                    this.taskPrioritySort === "high-to-low"
+                      ? t.priorityHighToLow
+                      : t.priorityLowToHigh
+                  }`
+          }
+        });
+        sort.createSpan({ cls: "pmi-task-sort-label", text: label });
+        setIcon(
+          sort.createSpan({ cls: "pmi-task-sort-icon", attr: { "aria-hidden": "true" } }),
+          this.taskPrioritySort === "high-to-low"
+            ? "arrow-down-wide-narrow"
+            : this.taskPrioritySort === "low-to-high"
+              ? "arrow-up-narrow-wide"
+              : "arrow-up-down"
+        );
+        sort.addEventListener("click", (event) => {
+          const restoreFocus = event.detail === 0;
+          onPrioritySort(restoreFocus);
+          if (restoreFocus) detail.querySelector<HTMLElement>(".pmi-task-sort")?.focus();
+        });
+      } else {
+        header.createSpan({ text: label });
+      }
       return header;
     });
     columnHeaders.forEach((header, index) => {
       this.addTaskColumnResizer(table, columns, header, index, columnLabels[index] ?? "", t);
     });
 
+    const priorityDefinitions = new Map(priorities.map((priority) => [priority.id, priority]));
     for (const task of tasks) {
       const projectRecord = projectRecords.get(task.projectId);
       const row = table.createDiv({
@@ -762,6 +908,19 @@ export class InsightsView extends ItemView {
       });
       project.createSpan({ text: projectRecord?.icon ?? "📋" });
       project.createSpan({ text: task.projectTitle });
+      const priorityDefinition = task.priority ? priorityDefinitions.get(task.priority) : undefined;
+      const priority = row.createDiv("pmi-task-priority");
+      if (priorityDefinition?.color) {
+        const signal = priority.createSpan({
+          cls: "pmi-priority-signal",
+          attr: { "aria-hidden": "true" }
+        });
+        signal.style.backgroundColor = priorityDefinition.color;
+      }
+      priority.createSpan({
+        cls: `pmi-task-priority-label${task.priority ? "" : " is-empty"}`,
+        text: priorityDefinition?.label ?? task.priority ?? t.noPriority
+      });
       row.createSpan({ cls: "pmi-task-status", text: task.status });
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.estimate) });
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.logged) });

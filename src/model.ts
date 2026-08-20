@@ -5,6 +5,12 @@ export interface ProjectRecord {
   icon: string;
 }
 
+export interface PriorityRecord {
+  id: string;
+  label: string;
+  color: string;
+}
+
 export interface TimeLogRecord {
   hours: number;
 }
@@ -19,6 +25,7 @@ export interface TaskRecord {
   title: string;
   path: string;
   status: string;
+  priority: string | null;
   assignees: string[];
   estimate: number;
   logged: number;

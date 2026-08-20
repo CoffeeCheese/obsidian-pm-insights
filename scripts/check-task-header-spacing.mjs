@@ -6,7 +6,7 @@ const evaluation = `(() => {
   const minimumGap = ${minimumGap};
   const headers = [...document.querySelectorAll(".pmi-task-column")];
   const headerResults = headers.map((header) => {
-    const label = header.querySelector(":scope > span");
+    const label = header.querySelector(":scope > span, .pmi-task-sort-label");
     const handle = header.querySelector(".pmi-task-column-resizer");
     if (!label || !handle) {
       return { label: "missing", gap: -Infinity, justifyContent: "missing", textAlign: "missing" };

@@ -4,7 +4,10 @@ vi.mock("obsidian", () => ({}));
 
 import { ProjectManagerAdapter } from "../src/adapters/project-manager";
 
-function appWithTasks(frontmatters: Record<string, unknown>[]): ConstructorParameters<
+function appWithTasks(
+  frontmatters: Record<string, unknown>[],
+  settings?: Record<string, unknown>
+): ConstructorParameters<
   typeof ProjectManagerAdapter
 >[0] {
   const files = frontmatters.map((_, index) => ({
@@ -17,7 +20,8 @@ function appWithTasks(frontmatters: Record<string, unknown>[]): ConstructorParam
       configDir: "test-config",
       getMarkdownFiles: () => files,
       adapter: {
-        exists: async () => false
+        exists: async () => settings !== undefined,
+        read: async () => JSON.stringify(settings)
       }
     },
     metadataCache: {
@@ -44,6 +48,34 @@ describe("ProjectManagerAdapter", () => {
       { id: "root", hierarchy: "root" },
       { id: "leaf", hierarchy: "subtask" },
       { id: "legacy", hierarchy: "unknown" }
+    ]);
+  });
+
+  it("reads task priority and Project Manager's configured priority metadata", async () => {
+    const adapter = new ProjectManagerAdapter(
+      appWithTasks(
+        [
+          { "pm-task": true, id: "configured", projectId: "p1", priority: " urgent " },
+          { "pm-task": true, id: "missing", projectId: "p1" }
+        ],
+        {
+          priorities: [
+            { id: "urgent", label: "Urgent", color: "#d45555" },
+            { id: "later", label: "Later", color: "#779977" }
+          ]
+        }
+      )
+    );
+
+    const snapshot = await adapter.read();
+
+    expect(snapshot.tasks.map(({ id, priority }) => ({ id, priority }))).toEqual([
+      { id: "configured", priority: "urgent" },
+      { id: "missing", priority: null }
+    ]);
+    expect(snapshot.priorities).toEqual([
+      { id: "urgent", label: "Urgent", color: "#d45555" },
+      { id: "later", label: "Later", color: "#779977" }
     ]);
   });
 });

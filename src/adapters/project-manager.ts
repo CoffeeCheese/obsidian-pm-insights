@@ -1,19 +1,39 @@
 import { App, TFile } from "obsidian";
-import type { ProjectRecord, TaskHierarchy, TaskRecord } from "../model";
+import type { PriorityRecord, ProjectRecord, TaskHierarchy, TaskRecord } from "../model";
 
 interface ProjectManagerStatus {
   id?: unknown;
   complete?: unknown;
 }
 
+interface ProjectManagerPriority {
+  id?: unknown;
+  label?: unknown;
+  color?: unknown;
+}
+
 interface ProjectManagerSettingsFile {
   statuses?: ProjectManagerStatus[];
+  priorities?: ProjectManagerPriority[];
 }
 
 export interface ProjectManagerSnapshot {
   projects: ProjectRecord[];
   tasks: TaskRecord[];
+  priorities: PriorityRecord[];
 }
+
+interface ProjectManagerSettings {
+  completeStatuses: Set<string>;
+  priorities: PriorityRecord[];
+}
+
+const DEFAULT_PRIORITIES: PriorityRecord[] = [
+  { id: "critical", label: "Critical", color: "#c47070" },
+  { id: "high", label: "High", color: "#b8a06b" },
+  { id: "medium", label: "Medium", color: "#8a94a0" },
+  { id: "low", label: "Low", color: "#79b58d" }
+];
 
 function text(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -58,7 +78,7 @@ export class ProjectManagerAdapter {
   constructor(private readonly app: App) {}
 
   async read(): Promise<ProjectManagerSnapshot> {
-    const completeStatuses = await this.readCompleteStatuses();
+    const settings = await this.readSettings();
     const projects: ProjectRecord[] = [];
     const tasks: TaskRecord[] = [];
 
@@ -70,14 +90,15 @@ export class ProjectManagerAdapter {
         const project = this.project(file, frontmatter);
         if (project) projects.push(project);
       } else if (truthy(frontmatter["pm-task"])) {
-        const task = this.task(file, frontmatter, completeStatuses);
+        const task = this.task(file, frontmatter, settings.completeStatuses);
         if (task) tasks.push(task);
       }
     }
 
     return {
       projects: projects.sort((left, right) => left.title.localeCompare(right.title)),
-      tasks
+      tasks,
+      priorities: settings.priorities
     };
   }
 
@@ -111,6 +132,7 @@ export class ProjectManagerAdapter {
       title: text(frontmatter.title, file.basename).trim() || file.basename,
       path: file.path,
       status,
+      priority: optionalText(frontmatter.priority),
       assignees: stringList(frontmatter.assignees),
       estimate: number(frontmatter.timeEstimate),
       logged: loggedHours(frontmatter.timeLogs),
@@ -121,19 +143,33 @@ export class ProjectManagerAdapter {
     };
   }
 
-  private async readCompleteStatuses(): Promise<Set<string>> {
-    const defaults = new Set(["done", "completed", "cancelled", "canceled"]);
+  private async readSettings(): Promise<ProjectManagerSettings> {
+    const completeStatuses = new Set(["done", "completed", "cancelled", "canceled"]);
+    let priorities = DEFAULT_PRIORITIES;
     const path = `${this.app.vault.configDir}/plugins/project-manager/data.json`;
     try {
-      if (!(await this.app.vault.adapter.exists(path))) return defaults;
-      const parsed = JSON.parse(await this.app.vault.adapter.read(path)) as ProjectManagerSettingsFile;
-      for (const status of parsed.statuses ?? []) {
-        if (status.complete === true && typeof status.id === "string") defaults.add(status.id);
+      if (await this.app.vault.adapter.exists(path)) {
+        const parsed = JSON.parse(await this.app.vault.adapter.read(path)) as ProjectManagerSettingsFile;
+        for (const status of parsed.statuses ?? []) {
+          if (status.complete === true && typeof status.id === "string") {
+            completeStatuses.add(status.id);
+          }
+        }
+        const configuredPriorities = (parsed.priorities ?? []).flatMap((priority) => {
+          const id = text(priority.id).trim();
+          if (!id) return [];
+          return [{
+            id,
+            label: text(priority.label, id).trim() || id,
+            color: text(priority.color).trim()
+          }];
+        });
+        if (configuredPriorities.length > 0) priorities = configuredPriorities;
       }
     } catch {
-      // Project Manager's settings are an optional compatibility hint. Task
-      // completion timestamps and progress remain the primary fallback.
+      // Project Manager's settings are optional compatibility hints. Task
+      // frontmatter and the built-in priority definitions remain available.
     }
-    return defaults;
+    return { completeStatuses, priorities };
   }
 }

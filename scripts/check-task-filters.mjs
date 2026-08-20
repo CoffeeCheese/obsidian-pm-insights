@@ -22,7 +22,12 @@ const evaluation = `(async () => {
   const menus = [...filterBar.querySelectorAll(".pmi-task-filter-menu")];
   const projectMenu = menus[0];
   const statusMenu = menus[1];
-  if (!(projectMenu instanceof HTMLDetailsElement) || !(statusMenu instanceof HTMLDetailsElement)) {
+  const priorityMenu = menus[2];
+  if (
+    !(projectMenu instanceof HTMLDetailsElement) ||
+    !(statusMenu instanceof HTMLDetailsElement) ||
+    !(priorityMenu instanceof HTMLDetailsElement)
+  ) {
     return JSON.stringify({ setup: false });
   }
 
@@ -34,12 +39,17 @@ const evaluation = `(async () => {
     .map((node) => node.textContent?.trim() ?? ""))].sort();
   const initialStatuses = [...new Set([...document.querySelectorAll(".pmi-task-status")]
     .map((node) => node.textContent?.trim() ?? ""))].sort();
+  const initialPriorities = [...new Set([...document.querySelectorAll(".pmi-task-priority-label")]
+    .map((node) => node.textContent?.trim() ?? ""))].sort();
   const projectOptions = optionReport(projectMenu);
   const statusOptions = optionReport(statusMenu);
+  const priorityOptions = optionReport(priorityMenu);
   const projectOptionsMatchRows = JSON.stringify(projectOptions.map(({ label }) => label).sort()) ===
     JSON.stringify(initialProjects);
   const statusOptionsMatchRows = JSON.stringify(statusOptions.map(({ label }) => label).sort()) ===
     JSON.stringify(initialStatuses);
+  const priorityOptionsMatchRows = JSON.stringify(priorityOptions.map(({ label }) => label).sort()) ===
+    JSON.stringify(initialPriorities);
 
   const countIntrudingColumnResizers = (menu) => {
     menu.open = true;
@@ -65,6 +75,7 @@ const evaluation = `(async () => {
   };
   const projectIntrudingColumnResizers = countIntrudingColumnResizers(projectMenu);
   const statusIntrudingColumnResizers = countIntrudingColumnResizers(statusMenu);
+  const priorityIntrudingColumnResizers = countIntrudingColumnResizers(priorityMenu);
 
   const statusClear = statusMenu.querySelector(".pmi-task-filter-actions button:last-child");
   statusClear?.click();
@@ -81,7 +92,27 @@ const evaluation = `(async () => {
 
   filterBar.querySelector(".pmi-task-filter-reset")?.click();
   const refreshedBar = document.querySelector(".pmi-task-filter-bar");
-  const refreshedProjectMenu = refreshedBar?.querySelector(".pmi-task-filter-menu");
+  const refreshedMenus = [...(refreshedBar?.querySelectorAll(".pmi-task-filter-menu") ?? [])];
+  const refreshedPriorityMenu = refreshedMenus[2];
+  if (!(refreshedPriorityMenu instanceof HTMLDetailsElement)) {
+    return JSON.stringify({ setup: false });
+  }
+  const priorityClear = refreshedPriorityMenu.querySelector(".pmi-task-filter-actions button:last-child");
+  priorityClear?.click();
+  const clearedPriorityRows = document.querySelectorAll(".pmi-task-row").length;
+  const firstPriority = refreshedPriorityMenu.querySelector('input[type="checkbox"]');
+  const firstPriorityCount = Number(
+    firstPriority?.closest(".pmi-task-filter-option")?.querySelector(".pmi-task-filter-option-count")?.textContent ?? 0
+  );
+  if (firstPriority instanceof HTMLInputElement) {
+    firstPriority.checked = true;
+    firstPriority.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  const visiblePriorityRows = document.querySelectorAll(".pmi-task-row").length;
+
+  refreshedBar?.querySelector(".pmi-task-filter-reset")?.click();
+  const projectBar = document.querySelector(".pmi-task-filter-bar");
+  const refreshedProjectMenu = projectBar?.querySelector(".pmi-task-filter-menu");
   const projectClear = refreshedProjectMenu?.querySelector(".pmi-task-filter-actions button:last-child");
   projectClear?.click();
   const clearedProjectRows = document.querySelectorAll(".pmi-task-row").length;
@@ -95,38 +126,70 @@ const evaluation = `(async () => {
   }
   const visibleProjectRows = document.querySelectorAll(".pmi-task-row").length;
 
-  if (!(refreshedProjectMenu instanceof HTMLDetailsElement)) {
+  projectBar?.querySelector(".pmi-task-filter-reset")?.click();
+  const priorityRank = new Map(priorityOptions.map(({ label }, index) => [label, index]));
+  const prioritySequence = () => [...document.querySelectorAll(".pmi-task-priority-label:not(.is-empty)")]
+    .map((node) => priorityRank.get(node.textContent?.trim() ?? "") ?? Number.MAX_SAFE_INTEGER);
+  const isOrdered = (values, direction) => values.every((value, index) =>
+    index === 0 || (direction === "high-to-low" ? values[index - 1] <= value : values[index - 1] >= value)
+  );
+  const initialSort = document.querySelector(".pmi-task-sort");
+  initialSort?.click();
+  const highToLowButton = document.querySelector(".pmi-task-sort");
+  const highToLowSorted = isOrdered(prioritySequence(), "high-to-low");
+  const highToLowAria = highToLowButton?.closest("[role=columnheader]")?.getAttribute("aria-sort");
+  highToLowButton?.click();
+  const lowToHighButton = document.querySelector(".pmi-task-sort");
+  const lowToHighSorted = isOrdered(prioritySequence(), "low-to-high");
+  const lowToHighAria = lowToHighButton?.closest("[role=columnheader]")?.getAttribute("aria-sort");
+  lowToHighButton?.click();
+  const sortResetAria = document.querySelector(".pmi-task-sort")
+    ?.closest("[role=columnheader]")?.getAttribute("aria-sort");
+
+  const dismissalProjectMenu = document.querySelector(".pmi-task-filter-menu");
+  if (!(dismissalProjectMenu instanceof HTMLDetailsElement)) {
     return JSON.stringify({ setup: false });
   }
   const outside = document.querySelector(".pmi-detail-header");
   if (!(outside instanceof HTMLElement)) {
     return JSON.stringify({ setup: false });
   }
-  refreshedProjectMenu.open = true;
+  dismissalProjectMenu.open = true;
   outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true }));
-  const closedOutside = !refreshedProjectMenu.open;
-  refreshedProjectMenu.open = true;
-  const projectSummary = refreshedProjectMenu.querySelector(":scope > summary");
-  const projectCheckbox = refreshedProjectMenu.querySelector('input[type="checkbox"]');
+  const closedOutside = !dismissalProjectMenu.open;
+  dismissalProjectMenu.open = true;
+  const projectSummary = dismissalProjectMenu.querySelector(":scope > summary");
+  const projectCheckbox = dismissalProjectMenu.querySelector('input[type="checkbox"]');
   projectCheckbox?.focus();
   projectCheckbox?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  const closedWithEscape = !refreshedProjectMenu.open;
+  const closedWithEscape = !dismissalProjectMenu.open;
   const focusReturned = document.activeElement === projectSummary;
 
   return JSON.stringify({
     setup: true,
     projectOptionsMatchRows,
     statusOptionsMatchRows,
+    priorityOptionsMatchRows,
     projectIntrudingColumnResizers,
     statusIntrudingColumnResizers,
+    priorityIntrudingColumnResizers,
     projectOptionCount: projectOptions.length,
     statusOptionCount: statusOptions.length,
+    priorityOptionCount: priorityOptions.length,
     clearedStatusRows,
     expectedStatusRows,
     visibleStatusRows,
+    clearedPriorityRows,
+    firstPriorityCount,
+    visiblePriorityRows,
     clearedProjectRows,
     firstProjectCount,
     visibleProjectRows,
+    highToLowSorted,
+    highToLowAria,
+    lowToHighSorted,
+    lowToHighAria,
+    sortResetAria,
     closedOutside,
     closedWithEscape,
     focusReturned
@@ -147,14 +210,24 @@ if (
   !report.setup ||
   !report.projectOptionsMatchRows ||
   !report.statusOptionsMatchRows ||
+  !report.priorityOptionsMatchRows ||
   report.projectIntrudingColumnResizers !== 0 ||
   report.statusIntrudingColumnResizers !== 0 ||
+  report.priorityIntrudingColumnResizers !== 0 ||
   report.projectOptionCount < 1 ||
   report.statusOptionCount < 1 ||
+  report.priorityOptionCount < 1 ||
   report.clearedStatusRows !== 0 ||
   report.visibleStatusRows !== report.expectedStatusRows ||
+  report.clearedPriorityRows !== 0 ||
+  report.visiblePriorityRows !== report.firstPriorityCount ||
   report.clearedProjectRows !== 0 ||
   report.visibleProjectRows !== report.firstProjectCount ||
+  !report.highToLowSorted ||
+  report.highToLowAria !== "descending" ||
+  !report.lowToHighSorted ||
+  report.lowToHighAria !== "ascending" ||
+  report.sortResetAria !== "none" ||
   !report.closedOutside ||
   !report.closedWithEscape ||
   !report.focusReturned
@@ -163,6 +236,6 @@ if (
   process.exitCode = 1;
 } else {
   console.log(
-    `Task filters use ${report.projectOptionCount} current projects and ${report.statusOptionCount} current statuses; both panels stay above column resizers, and multi-select and dismissal passed.`
+    `Task filters use ${report.projectOptionCount} projects, ${report.statusOptionCount} statuses, and ${report.priorityOptionCount} priorities; priority sorting, multi-select, layering, and dismissal passed.`
   );
 }
