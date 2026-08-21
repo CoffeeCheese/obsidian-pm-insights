@@ -433,12 +433,13 @@ export class InsightsView extends ItemView {
       const fill = track.createDiv("pmi-progress-fill");
       fill.style.width = `${metric.percentage ?? 0}%`;
     }
-    row.createDiv({
-      cls: "pmi-progress-caption",
+    const caption = row.createDiv("pmi-progress-caption");
+    caption.createSpan({
       text: metric.state === "progress"
         ? t.stageTaskProgress(metric.completed, metric.total)
         : t.noMappedStageTasks
     });
+    this.renderProgressWeight(caption, metric.weight, t, metric.state === "skipped");
   }
 
   private renderAcceptanceProgress(
@@ -478,11 +479,24 @@ export class InsightsView extends ItemView {
       const pending = track.createDiv("pmi-progress-acceptance-pending");
       pending.style.width = `${(metric.pending / metric.total) * 100}%`;
     }
-    row.createDiv({
-      cls: "pmi-progress-caption",
+    const caption = row.createDiv("pmi-progress-caption");
+    caption.createSpan({
       text: metric.total > 0
         ? t.acceptanceTaskProgress(metric.accepted, metric.total, metric.pending)
         : t.noRootTasks
+    });
+    this.renderProgressWeight(caption, metric.weight, t);
+  }
+
+  private renderProgressWeight(
+    root: HTMLElement,
+    weight: number,
+    t: Translations,
+    inactive = false
+  ): void {
+    root.createSpan({
+      cls: `pmi-progress-weight${inactive ? " pmi-progress-weight--inactive" : ""}`,
+      text: `${t.stageWeight} ${t.percentage(weight)}`
     });
   }
 
