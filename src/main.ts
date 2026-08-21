@@ -6,7 +6,12 @@ import {
   ProjectManagerNavigator
 } from "./adapters/project-manager-navigation";
 import { translations } from "./i18n";
-import { DEFAULT_SETTINGS, type InsightSettings } from "./model";
+import {
+  DEFAULT_SETTINGS,
+  type DeliveryProgressSettings,
+  type DeliveryStageId,
+  type InsightSettings
+} from "./model";
 import { InsightsSettingTab } from "./settings";
 import {
   ProjectManagerToolbarIntegration,
@@ -58,11 +63,13 @@ export default class ProjectManagerInsightsPlugin
 
   async loadSettings(): Promise<void> {
     const saved = (await this.loadData()) as Partial<InsightSettings> | null;
+    const deliveryProgress = this.deliveryProgressSettings(saved?.deliveryProgress);
     this.settings = {
       ...structuredClone(DEFAULT_SETTINGS),
       ...saved,
       aliases: Array.isArray(saved?.aliases) ? saved.aliases : [],
-      selectedProjectIds: Array.isArray(saved?.selectedProjectIds) ? saved.selectedProjectIds : []
+      selectedProjectIds: Array.isArray(saved?.selectedProjectIds) ? saved.selectedProjectIds : [],
+      deliveryProgress
     };
   }
 
@@ -146,5 +153,36 @@ export default class ProjectManagerInsightsPlugin
       this.refreshTimer = null;
       void this.refreshInsights();
     }, 250);
+  }
+
+  private deliveryProgressSettings(
+    saved: Partial<DeliveryProgressSettings> | undefined
+  ): DeliveryProgressSettings {
+    const defaults = structuredClone(DEFAULT_SETTINGS.deliveryProgress);
+    const stageIds: DeliveryStageId[] = ["design", "development", "testing"];
+    for (const stageId of stageIds) {
+      const candidate = saved?.stages?.[stageId];
+      if (!candidate) continue;
+      defaults.stages[stageId] = {
+        ...defaults.stages[stageId],
+        ...candidate,
+        tags: Array.isArray(candidate.tags)
+          ? candidate.tags.filter((tag): tag is string => typeof tag === "string")
+          : defaults.stages[stageId].tags,
+        weight: typeof candidate.weight === "number" && Number.isFinite(candidate.weight)
+          ? candidate.weight
+          : defaults.stages[stageId].weight,
+        acceptancePrerequisite: typeof candidate.acceptancePrerequisite === "boolean"
+          ? candidate.acceptancePrerequisite
+          : defaults.stages[stageId].acceptancePrerequisite,
+        skipWhenEmpty: typeof candidate.skipWhenEmpty === "boolean"
+          ? candidate.skipWhenEmpty
+          : defaults.stages[stageId].skipWhenEmpty
+      };
+    }
+    if (typeof saved?.acceptanceWeight === "number" && Number.isFinite(saved.acceptanceWeight)) {
+      defaults.acceptanceWeight = saved.acceptanceWeight;
+    }
+    return defaults;
   }
 }

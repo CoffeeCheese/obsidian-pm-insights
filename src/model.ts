@@ -40,12 +40,27 @@ export interface MemberAlias {
   aliases: string[];
 }
 
+export type DeliveryStageId = "design" | "development" | "testing";
+
+export interface DeliveryStageSettings {
+  tags: string[];
+  weight: number;
+  acceptancePrerequisite: boolean;
+  skipWhenEmpty: boolean;
+}
+
+export interface DeliveryProgressSettings {
+  stages: Record<DeliveryStageId, DeliveryStageSettings>;
+  acceptanceWeight: number;
+}
+
 export interface InsightSettings {
   locale: "auto" | "en" | "zh-cn";
   aliases: MemberAlias[];
   selectedProjectIds: string[];
   includeArchived: boolean;
   countParentTasks: boolean;
+  deliveryProgress: DeliveryProgressSettings;
 }
 
 export interface WorkMetrics {
@@ -115,5 +130,28 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   aliases: [],
   selectedProjectIds: [],
   includeArchived: false,
-  countParentTasks: false
+  countParentTasks: false,
+  deliveryProgress: {
+    stages: {
+      design: {
+        tags: ["type/design"],
+        weight: 10,
+        acceptancePrerequisite: false,
+        skipWhenEmpty: true
+      },
+      development: {
+        tags: ["type/dev"],
+        weight: 50,
+        acceptancePrerequisite: true,
+        skipWhenEmpty: false
+      },
+      testing: {
+        tags: ["type/test"],
+        weight: 30,
+        acceptancePrerequisite: true,
+        skipWhenEmpty: true
+      }
+    },
+    acceptanceWeight: 10
+  }
 };
