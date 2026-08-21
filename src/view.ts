@@ -352,10 +352,7 @@ export class InsightsView extends ItemView {
       cls: "pmi-delivery-progress",
       attr: { role: "region", "aria-label": t.deliveryProgress }
     });
-    const header = section.createDiv("pmi-delivery-progress-header");
-    const copy = header.createDiv();
-    copy.createEl("h2", { text: t.deliveryProgress });
-    copy.createEl("p", { text: t.deliveryProgressHint });
+    this.renderTotalProgress(section, progress, t);
 
     const rails = section.createDiv("pmi-progress-rails");
     const stageDefinitions: Array<{
@@ -378,7 +375,6 @@ export class InsightsView extends ItemView {
       );
     }
     this.renderAcceptanceProgress(rails, progress, t);
-    this.renderTotalProgress(rails, progress, t);
 
     const issueCount = progress.quality.unclassifiedTaskCount
       + progress.quality.conflictingTaskCount
@@ -500,7 +496,9 @@ export class InsightsView extends ItemView {
     const heading = row.createDiv("pmi-progress-row-heading");
     const name = heading.createDiv("pmi-progress-name");
     setIcon(name.createSpan(), "route");
-    name.createSpan({ text: t.totalProgress });
+    const label = name.createDiv("pmi-progress-overview-label");
+    label.createSpan({ text: t.deliveryProgress });
+    label.createEl("small", { text: t.totalProgress });
     heading.createEl("strong", {
       text: percentage === null ? t.ratioUnavailable : t.percentage(percentage)
     });
@@ -521,7 +519,6 @@ export class InsightsView extends ItemView {
       const fill = track.createDiv("pmi-progress-fill");
       fill.style.width = `${percentage}%`;
     }
-    row.createDiv({ cls: "pmi-progress-caption", text: t.deliveryProgressHint });
   }
 
   private metric(root: HTMLElement, label: string, value: string, kind = ""): void {

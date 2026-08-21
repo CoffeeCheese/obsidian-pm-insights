@@ -315,28 +315,6 @@
   background: var(--background-primary);
 }
 
-.pmi-delivery-progress-header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 16px;
-  border-block-end: 1px solid var(--pmi-edge);
-}
-
-.pmi-delivery-progress-header h2 {
-  margin: 0;
-  font-size: var(--font-ui-large);
-  letter-spacing: -0.015em;
-}
-
-.pmi-delivery-progress-header p {
-  max-width: 680px;
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
-
 .pmi-progress-rails {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -367,15 +345,19 @@
 }
 
 .pmi-progress-row--total {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(150px, 0.55fr) minmax(280px, 2.45fr);
-  column-gap: 18px;
+  grid-template-columns: minmax(210px, 0.62fr) minmax(280px, 2.38fr);
+  column-gap: 22px;
   align-items: center;
-  padding-block: 13px;
-  border-block-start: 1px solid var(--pmi-edge-strong);
+  padding-block: 10px;
+  border-block-end: 1px solid var(--pmi-edge-strong);
   border-inline-end: 0;
-  background: color-mix(in srgb, var(--pmi-surface) 68%, transparent);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--pmi-stage-design) 8%, var(--background-primary)),
+      color-mix(in srgb, var(--pmi-stage-complete) 6%, var(--background-primary))
+    );
 }
 
 .pmi-progress-row-heading {
@@ -387,8 +369,21 @@
 }
 
 .pmi-progress-row--total .pmi-progress-row-heading {
-  grid-row: 1 / span 2;
   margin: 0;
+}
+
+.pmi-progress-overview-label {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pmi-progress-overview-label small {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-normal);
+  white-space: nowrap;
 }
 
 .pmi-progress-name {
@@ -485,10 +480,6 @@
   font-size: var(--font-ui-smaller);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.pmi-progress-row--total .pmi-progress-caption {
-  margin-block-start: 5px;
 }
 
 .pmi-delivery-progress-quality {
@@ -1898,15 +1889,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pmi-delivery-progress-header {
-    gap: 12px;
-    padding: 14px;
-  }
-
-  .pmi-delivery-progress-header p {
-    display: none;
-  }
-
   .pmi-progress-rails {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1922,11 +1904,8 @@
 
   .pmi-progress-row--total {
     grid-template-columns: minmax(0, 1fr);
-    gap: 9px;
-  }
-
-  .pmi-progress-row--total .pmi-progress-row-heading {
-    grid-row: auto;
+    gap: 8px;
+    padding-block: 11px;
   }
 
   .pmi-metric:nth-child(3) {
