@@ -598,8 +598,155 @@
   justify-content: flex-end;
 }
 
-.pmi-progress-setting input.pmi-progress-tags-input {
+.pmi-progress-tag-field {
+  display: flex;
+  align-items: stretch;
   width: min(260px, 38vw);
+  min-width: 180px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--input-radius);
+  background: var(--background-modifier-form-field);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.pmi-progress-tag-field:focus-within {
+  border-color: var(--background-modifier-border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+}
+
+.pmi-progress-setting input.pmi-progress-tags-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pmi-progress-setting input.pmi-progress-tags-input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.pmi-progress-tag-picker {
+  align-self: center;
+  flex: 0 0 auto;
+  margin-inline-end: 3px;
+  color: var(--text-accent);
+}
+
+.pmi-project-tag-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.pmi-project-tag-modal-description {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+body .modal.pmi-project-tag-modal input[type="text"].pmi-project-tag-search {
+  width: 100%;
+  margin-block-end: 12px;
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: none;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+body .modal.pmi-project-tag-modal input[type="text"].pmi-project-tag-search:focus,
+body .modal.pmi-project-tag-modal input[type="text"].pmi-project-tag-search:focus-visible {
+  border-color: color-mix(in srgb, var(--interactive-accent) 58%, var(--background-modifier-border));
+  box-shadow: none;
+  outline: none;
+}
+
+.pmi-project-tag-list {
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  border-block: 1px solid var(--background-modifier-border);
+}
+
+.pmi-project-tag-option {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 9px;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.pmi-project-tag-option + .pmi-project-tag-option {
+  border-block-start: 1px solid var(--background-modifier-border-hover);
+}
+
+.pmi-project-tag-option:hover:not(.is-disabled) {
+  background: var(--background-modifier-hover);
+}
+
+.pmi-project-tag-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.pmi-project-tag-option-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.pmi-project-tag-option code {
+  overflow: hidden;
+  color: var(--text-normal);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-project-tag-usage {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-project-tag-empty {
+  padding: 28px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.pmi-project-tag-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding-block-start: 14px;
+}
+
+.pmi-project-tag-selected-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-project-tag-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .pmi-progress-tag-field {
+    width: min(100%, 320px);
+  }
+
+  .pmi-project-tag-option-label {
+    display: grid;
+    gap: 2px;
+  }
+
+  .pmi-project-tag-usage {
+    white-space: normal;
+  }
 }
 
 .pmi-progress-setting input.pmi-progress-weight-input {

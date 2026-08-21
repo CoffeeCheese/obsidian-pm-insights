@@ -1,8 +1,12 @@
 import {
   App,
+  ButtonComponent,
+  Modal,
+  Notice,
   Plugin,
   PluginSettingTab,
   Setting,
+  TextComponent,
   setIcon,
   type SettingDefinition,
   type SettingDefinitionItem
@@ -16,14 +20,127 @@ import {
 } from "./model";
 import {
   deliveryWeightTotal,
-  hasDeliveryTagMappingConflict
+  hasDeliveryTagMappingConflict,
+  normalizeProgressTag
 } from "./domain/delivery-progress";
+import { collectProjectTagOptions, type ProjectTagOption } from "./domain/project-tags";
+import type { ProjectManagerSnapshot } from "./adapters/project-manager";
 
 export interface SettingsHost {
   app: App;
   settings: InsightSettings;
   saveSettings(): Promise<void>;
   refreshInsights(): Promise<void>;
+  readProjectManager(): Promise<ProjectManagerSnapshot>;
+}
+
+interface ProjectTagPickerCopy {
+  title: string;
+  description: string;
+  searchPlaceholder: string;
+  empty: string;
+  noMatches: string;
+  taskCount: (count: number) => string;
+  selectedCount: (count: number) => string;
+  usedBy: (stage: string) => string;
+  cancel: string;
+  apply: string;
+}
+
+class ProjectTagPickerModal extends Modal {
+  private readonly selected = new Set<string>();
+  private listEl!: HTMLElement;
+  private countEl!: HTMLElement;
+  private query = "";
+
+  constructor(
+    app: App,
+    private readonly options: readonly ProjectTagOption[],
+    selected: readonly string[],
+    private readonly reservedBy: ReadonlyMap<string, string>,
+    private readonly copy: ProjectTagPickerCopy,
+    private readonly onApply: (selected: string[]) => void
+  ) {
+    super(app);
+    for (const tag of selected) this.selected.add(tag);
+  }
+
+  onOpen(): void {
+    this.modalEl.addClass("pmi-project-tag-modal");
+    this.titleEl.setText(this.copy.title);
+    this.contentEl.createEl("p", {
+      cls: "pmi-project-tag-modal-description",
+      text: this.copy.description
+    });
+
+    const search = new TextComponent(this.contentEl);
+    search.setPlaceholder(this.copy.searchPlaceholder).onChange((value) => {
+      this.query = value.trim().toLocaleLowerCase();
+      this.renderOptions();
+    });
+    search.inputEl.addClass("pmi-project-tag-search");
+    search.inputEl.setAttribute("aria-label", this.copy.searchPlaceholder);
+
+    this.listEl = this.contentEl.createDiv("pmi-project-tag-list");
+    const footer = this.contentEl.createDiv("pmi-project-tag-footer");
+    this.countEl = footer.createSpan("pmi-project-tag-selected-count");
+    const actions = footer.createDiv("pmi-project-tag-actions");
+    new ButtonComponent(actions).setButtonText(this.copy.cancel).onClick(() => this.close());
+    new ButtonComponent(actions).setButtonText(this.copy.apply).setCta().onClick(() => {
+      this.onApply([...this.selected]);
+      this.close();
+    });
+
+    this.renderOptions();
+    window.setTimeout(() => search.inputEl.focus(), 0);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+
+  private renderOptions(): void {
+    this.listEl.empty();
+    const visible = this.options.filter((option) => option.tag.includes(this.query));
+
+    if (this.options.length === 0 || visible.length === 0) {
+      this.listEl.createDiv({
+        cls: "pmi-project-tag-empty",
+        text: this.options.length === 0 ? this.copy.empty : this.copy.noMatches
+      });
+    }
+
+    for (const option of visible) {
+      const reservedStage = this.reservedBy.get(option.tag);
+      const checked = this.selected.has(option.tag);
+      const disabled = Boolean(reservedStage) && !checked;
+      const row = this.listEl.createEl("label", {
+        cls: `pmi-project-tag-option${disabled ? " is-disabled" : ""}`
+      });
+      const checkbox = row.createEl("input", { type: "checkbox" });
+      checkbox.checked = checked;
+      checkbox.disabled = disabled;
+      const label = row.createDiv("pmi-project-tag-option-label");
+      label.createEl("code", { text: `#${option.tag}` });
+      label.createSpan({
+        cls: "pmi-project-tag-usage",
+        text: reservedStage
+          ? this.copy.usedBy(reservedStage)
+          : this.copy.taskCount(option.taskCount)
+      });
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) this.selected.add(option.tag);
+        else this.selected.delete(option.tag);
+        this.updateCount();
+      });
+    }
+
+    this.updateCount();
+  }
+
+  private updateCount(): void {
+    this.countEl.setText(this.copy.selectedCount(this.selected.size));
+  }
 }
 
 export class InsightsSettingTab extends PluginSettingTab {
@@ -217,6 +334,22 @@ export class InsightsSettingTab extends PluginSettingTab {
         });
       input.inputEl.addClass("pmi-progress-tags-input");
       input.inputEl.setAttribute("aria-label", t.stageTags);
+      const field = setting.controlEl.createDiv("pmi-progress-tag-field");
+      setting.controlEl.insertBefore(field, input.inputEl);
+      field.appendChild(input.inputEl);
+      const pickerButton = field.createEl("button", {
+        cls: "clickable-icon pmi-progress-tag-picker",
+        attr: {
+          type: "button",
+          "aria-label": t.chooseProjectTags,
+          "data-tooltip-position": "top"
+        }
+      });
+      pickerButton.setAttribute("aria-label", t.chooseProjectTags);
+      setIcon(pickerButton, "tags");
+      pickerButton.addEventListener("click", () => {
+        void this.openProjectTagPicker(stageId, input.inputEl, t);
+      });
     });
     this.addWeightInput(setting, stage.weight, t.stageWeight, (value) => {
       stage.weight = value;
@@ -233,6 +366,83 @@ export class InsightsSettingTab extends PluginSettingTab {
       stage.skipWhenEmpty,
       (checked) => this.saveProgressStageFlag(stageId, "skipWhenEmpty", checked)
     );
+  }
+
+  private async openProjectTagPicker(
+    stageId: DeliveryStageId,
+    inputEl: HTMLInputElement,
+    t: Translations
+  ): Promise<void> {
+    try {
+      const snapshot = await this.host.readProjectManager();
+      const options = collectProjectTagOptions(snapshot.tasks);
+      const optionTags = new Set(options.map((option) => option.tag));
+      const stage = this.progressDraft.stages[stageId];
+      const normalizedSelected = stage.tags
+        .map(normalizeProgressTag)
+        .filter(Boolean);
+      const manualTags = stage.tags.filter((tag) => !optionTags.has(normalizeProgressTag(tag)));
+      const reservedBy = this.reservedProjectTags(stageId, options, t);
+      const copy: ProjectTagPickerCopy = {
+        title: t.chooseProjectTags,
+        description: t.projectTagsDescription,
+        searchPlaceholder: t.searchProjectTags,
+        empty: t.noProjectTags,
+        noMatches: t.noMatchingProjectTags,
+        taskCount: t.projectTagTaskCount,
+        selectedCount: t.projectTagsSelected,
+        usedBy: t.projectTagUsedBy,
+        cancel: t.cancel,
+        apply: t.applyProjectTags
+      };
+
+      new ProjectTagPickerModal(
+        this.app,
+        options,
+        normalizedSelected.filter((tag) => optionTags.has(tag)),
+        reservedBy,
+        copy,
+        (selected) => {
+          stage.tags = [...manualTags, ...selected];
+          inputEl.value = stage.tags.join(", ");
+          inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+          this.updateProgressValidation();
+        }
+      ).open();
+    } catch {
+      new Notice(t.projectManagerUnavailable);
+    }
+  }
+
+  private reservedProjectTags(
+    currentStageId: DeliveryStageId,
+    options: readonly ProjectTagOption[],
+    t: Translations
+  ): Map<string, string> {
+    const stageNames: Record<DeliveryStageId, string> = {
+      design: t.designStage,
+      development: t.developmentStage,
+      testing: t.testingStage
+    };
+    const reserved = new Map<string, string>();
+    for (const option of options) {
+      for (const stageId of ["design", "development", "testing"] as const) {
+        if (stageId === currentStageId) continue;
+        const conflicts = this.progressDraft.stages[stageId].tags.some((tag) => {
+          const mapped = normalizeProgressTag(tag);
+          return mapped && (
+            option.tag === mapped
+            || option.tag.startsWith(`${mapped}/`)
+            || mapped.startsWith(`${option.tag}/`)
+          );
+        });
+        if (conflicts) {
+          reserved.set(option.tag, stageNames[stageId]);
+          break;
+        }
+      }
+    }
+    return reserved;
   }
 
   private renderAcceptanceWeight(setting: Setting, t: Translations): void {
