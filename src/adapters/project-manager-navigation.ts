@@ -36,20 +36,23 @@ interface ProjectTableState {
   rowHeight?: number;
 }
 
-interface ProjectTableView {
+interface ProjectSubview {
   state?: ProjectTableState;
   refresh?(): Promise<void> | void;
+  openTask?(task: ProjectTask): void;
 }
 
 interface ProjectManagerProjectView {
   containerEl: HTMLElement;
+  currentView?: string;
   filter?: { showArchived?: boolean };
   project?: { tasks?: ProjectTask[] };
-  subview?: ProjectTableView;
+  subview?: ProjectSubview;
   load?(): void;
   unload?(): void;
   onOpen?(): Promise<void> | void;
   onClose?(): Promise<void> | void;
+  renderCurrentView?(): void;
   setState?(state: { filePath: string }, result: Record<string, never>): Promise<void> | void;
 }
 
@@ -132,10 +135,12 @@ export class ProjectManagerNavigator {
       ({ leaf: detachedLeaf, view: projectView } = await this.createDetachedProjectView(
         target.projectPath
       ));
-      const taskButton = await this.findTaskButton(projectView, target.taskId);
-      if (!taskButton) throw new ProjectManagerNavigationError("task-not-found");
-
-      taskButton.click();
+      const task = await this.findProjectTask(projectView, target.taskId);
+      if (!task || !this.openProjectTask(projectView, task)) {
+        const taskButton = await this.findTaskButton(projectView, target.taskId);
+        if (!taskButton) throw new ProjectManagerNavigationError("task-not-found");
+        taskButton.click();
+      }
       const modal = await this.waitFor(() =>
         [...document.querySelectorAll<HTMLElement>(".modal-container")].find(
           (candidate) => !existingModals.has(candidate)
@@ -200,7 +205,7 @@ export class ProjectManagerNavigator {
     view: ProjectManagerProjectView,
     taskId: string
   ): Promise<HTMLElement | null> {
-    const ready = await this.waitFor(() => view.project && view.subview?.state);
+    const ready = await this.waitFor(() => view.project && view.subview);
     if (!ready) return null;
 
     this.revealAllTasks(view);
@@ -218,6 +223,36 @@ export class ProjectManagerNavigator {
     wrapper.scrollTop = Math.max(0, rowIndex * rowHeight - rowHeight * 2);
     wrapper.dispatchEvent(new Event("scroll"));
     return (await this.waitFor(() => this.taskButton(view.containerEl, taskId))) ?? null;
+  }
+
+  private async findProjectTask(
+    view: ProjectManagerProjectView,
+    taskId: string
+  ): Promise<ProjectTask | null> {
+    const ready = await this.waitFor(() => view.project && view.subview);
+    if (!ready) return null;
+
+    const find = (tasks: ProjectTask[]): ProjectTask | undefined => {
+      for (const task of tasks) {
+        if (task.id === taskId) return task;
+        const nested = find(task.subtasks ?? []);
+        if (nested) return nested;
+      }
+      return undefined;
+    };
+
+    return find(view.project?.tasks ?? []) ?? null;
+  }
+
+  private openProjectTask(view: ProjectManagerProjectView, task: ProjectTask): boolean {
+    if (!view.subview?.openTask && view.renderCurrentView) {
+      view.currentView = "kanban";
+      view.renderCurrentView();
+    }
+
+    if (!view.subview?.openTask) return false;
+    view.subview.openTask(task);
+    return true;
   }
 
   private revealAllTasks(view: ProjectManagerProjectView): void {

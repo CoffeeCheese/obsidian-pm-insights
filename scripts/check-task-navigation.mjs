@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 
 const vault = process.argv[2] ?? "dev-test";
+const requestedTaskId = process.argv[3] ?? "";
 const openResult = spawnSync(
   "obsidian",
   [`vault=${vault}`, "command", "id=project-manager-insights:open-assignee-workload-insights"],
@@ -18,7 +19,12 @@ const evaluation = `(async () => {
     return null;
   };
 
-  const taskButton = await waitFor(() => [...document.querySelectorAll(".pmi-task-open")].at(-1));
+  const requestedTaskId = ${JSON.stringify(requestedTaskId)};
+  const taskButton = await waitFor(() =>
+    requestedTaskId
+      ? document.querySelector(\`.pmi-task-open[data-task-id="\${CSS.escape(requestedTaskId)}"]\`)
+      : [...document.querySelectorAll(".pmi-task-open")].at(-1)
+  );
   const projectButton = taskButton?.closest(".pmi-task-row")?.querySelector(".pmi-project-open");
   const row = taskButton?.closest(".pmi-task-row");
   const insightsLeaf = app.workspace.getLeavesOfType("project-manager-insights-view")[0];
@@ -50,6 +56,15 @@ const evaluation = `(async () => {
   const originalProjectLeaves = new Set(app.workspace.getLeavesOfType("pm-project"));
   const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
   const originalModals = new Set(document.querySelectorAll(".modal-container"));
+  let taskFailureNotice = false;
+  const captureFailureNotice = () => {
+    taskFailureNotice ||= [...document.querySelectorAll(".notice")].some((notice) =>
+      notice.textContent?.includes("无法在 Project Manager 中打开此任务")
+    );
+    return taskFailureNotice;
+  };
+  const noticeObserver = new MutationObserver(captureFailureNotice);
+  noticeObserver.observe(document.body, { childList: true, subtree: true });
   let taskSawTemporaryProjectTab = false;
   const inspectTaskLeaves = () => {
     if (app.workspace.getLeavesOfType("pm-project").some((leaf) => !originalProjectLeaves.has(leaf))) {
@@ -60,13 +75,20 @@ const evaluation = `(async () => {
   const activeLeafRef = app.workspace.on("active-leaf-change", inspectTaskLeaves);
   const leafPoll = window.setInterval(inspectTaskLeaves, 5);
   taskButton.click();
-  const taskModal = await waitFor(() =>
-    [...document.querySelectorAll(".modal-container")].find((modal) => !originalModals.has(modal))
+  await waitFor(
+    () =>
+      [...document.querySelectorAll(".modal-container")].find((modal) => !originalModals.has(modal)) ||
+      captureFailureNotice(),
+    250
+  );
+  const taskModal = [...document.querySelectorAll(".modal-container")].find(
+    (modal) => !originalModals.has(modal)
   );
   const taskUsedDetachedHost = [...document.querySelectorAll(".pmi-detached-project-host")].some(
     (host) => !originalDetachedHosts.has(host)
   );
   window.clearInterval(leafPoll);
+  noticeObserver.disconnect();
   app.workspace.offref(layoutRef);
   app.workspace.offref(activeLeafRef);
   await waitFor(() => app.workspace.getLeavesOfType("pm-project").every((leaf) => originalProjectLeaves.has(leaf)));
@@ -116,6 +138,7 @@ const evaluation = `(async () => {
     textCellAppearanceUnchanged,
     taskId,
     projectPath,
+    taskFailureNotice,
     taskModalOpened: Boolean(taskModal),
     taskModalClosed,
     taskStayedOnInsights,
@@ -152,6 +175,7 @@ if (
   !report.textCellAppearanceUnchanged ||
   !report.taskId ||
   !report.projectPath ||
+  report.taskFailureNotice ||
   !report.taskModalOpened ||
   !report.taskModalClosed ||
   !report.taskStayedOnInsights ||
