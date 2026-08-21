@@ -77,6 +77,20 @@ The compact ledger beside each assignee answers three different questions withou
 | **Data foundation** | Estimate accuracy | Completed, started tasks within ±20% of estimate ÷ all completed, started estimated tasks. |
 | **Data foundation** | Estimate coverage | Estimated non-cancelled tasks ÷ all non-cancelled tasks. |
 
+## 🛤️ Read delivery progress from the task tree
+
+Delivery progress reads the complete task trees in the selected projects, independently of assignee and task-drawer filters. In settings, one or more hierarchical Obsidian tags can be mapped to design, development, and testing; for example, `type/dev` also matches `type/dev/frontend`.
+
+| Progress | Calculation |
+| --- | --- |
+| **Design / development / testing** | Completed leaf subtasks of that type ÷ all eligible leaf subtasks of that type. |
+| **Acceptance** | Root tasks whose prerequisites and root completion are satisfied ÷ all eligible root tasks. A secondary rail segment shows work that is ready for acceptance. |
+| **Total** | The weighted result of each stage. Configured weights must total 100%. |
+
+- Each mapped type can be required before acceptance and can skip statistics when no task matches. Skipped stage weights are removed and the remaining weights are normalized.
+- Type conflicts, unclassified work, tasks without a root, missing prerequisites, and prematurely completed roots are surfaced as data-quality signals.
+- Cancelling a root excludes its entire tree. Archived content continues to follow the existing dashboard setting, while the parent-task counting toggle never changes delivery-progress rules.
+
 An em dash means there is no valid sample yet; it is not reported as zero.
 
 ## 🧮 How the little gauges work

@@ -1,7 +1,13 @@
 import { ItemView, setIcon, type WorkspaceLeaf } from "obsidian";
 import { aggregateInsights } from "./domain/aggregate";
+import {
+  aggregateDeliveryProgress,
+  type DeliveryProgressSnapshot,
+  type StageProgressMetric
+} from "./domain/delivery-progress";
 import { translations, type Translations } from "./i18n";
 import type {
+  DeliveryStageId,
   InsightSettings,
   MemberInsight,
   PriorityRecord,
@@ -281,6 +287,12 @@ export class InsightsView extends ItemView {
     });
 
     this.renderTeamStrip(dashboard, insights.team, t);
+    const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
+      projectIds: selectedIds,
+      includeArchived: this.host.settings.includeArchived,
+      settings: this.host.settings.deliveryProgress
+    });
+    this.renderDeliveryProgress(dashboard, deliveryProgress, t);
     const quality = dashboard.createDiv("pmi-quality-strip");
     setIcon(quality.createSpan(), "scan-search");
     quality.createEl("strong", { text: `${t.qualityTitle}:` });
@@ -329,6 +341,187 @@ export class InsightsView extends ItemView {
     this.metric(strip, t.logged, t.hours(metrics.logged));
     this.metric(strip, t.remaining, t.hours(metrics.remaining), "remaining");
     this.metric(strip, t.overrun, t.hours(metrics.overrun), metrics.overrun > 0 ? "overrun" : "");
+  }
+
+  private renderDeliveryProgress(
+    root: HTMLElement,
+    progress: DeliveryProgressSnapshot,
+    t: Translations
+  ): void {
+    const section = root.createDiv({
+      cls: "pmi-delivery-progress",
+      attr: { role: "region", "aria-label": t.deliveryProgress }
+    });
+    const header = section.createDiv("pmi-delivery-progress-header");
+    const copy = header.createDiv();
+    copy.createEl("h2", { text: t.deliveryProgress });
+    copy.createEl("p", { text: t.deliveryProgressHint });
+
+    const rails = section.createDiv("pmi-progress-rails");
+    const stageDefinitions: Array<{
+      id: DeliveryStageId;
+      label: string;
+      icon: string;
+    }> = [
+      { id: "design", label: t.designProgress, icon: "pencil-ruler" },
+      { id: "development", label: t.developmentProgress, icon: "code-2" },
+      { id: "testing", label: t.testingProgress, icon: "flask-conical" }
+    ];
+    for (const stage of stageDefinitions) {
+      this.renderStageProgress(
+        rails,
+        stage.id,
+        stage.label,
+        stage.icon,
+        progress.stages[stage.id],
+        t
+      );
+    }
+    this.renderAcceptanceProgress(rails, progress, t);
+    this.renderTotalProgress(rails, progress, t);
+
+    const issueCount = progress.quality.unclassifiedTaskCount
+      + progress.quality.conflictingTaskCount
+      + progress.quality.unlinkedTaskCount
+      + progress.quality.missingPrerequisiteCount
+      + progress.quality.prematureCompletionCount;
+    if (issueCount > 0) {
+      const quality = section.createDiv("pmi-delivery-progress-quality");
+      setIcon(quality.createSpan(), "circle-alert");
+      quality.createSpan({
+        text: t.deliveryProgressQuality(
+          progress.quality.unclassifiedTaskCount,
+          progress.quality.conflictingTaskCount,
+          progress.quality.unlinkedTaskCount,
+          progress.quality.missingPrerequisiteCount,
+          progress.quality.prematureCompletionCount
+        )
+      });
+    }
+  }
+
+  private renderStageProgress(
+    root: HTMLElement,
+    stageId: DeliveryStageId,
+    label: string,
+    icon: string,
+    metric: StageProgressMetric,
+    t: Translations
+  ): void {
+    const row = root.createDiv(`pmi-progress-row pmi-progress-row--${stageId}`);
+    const heading = row.createDiv("pmi-progress-row-heading");
+    const name = heading.createDiv("pmi-progress-name");
+    setIcon(name.createSpan(), icon);
+    name.createSpan({ text: label });
+    const value = metric.state === "skipped"
+      ? t.skippedStatistics
+      : metric.state === "missing"
+        ? t.missingStageTasks
+        : t.percentage(metric.percentage ?? 0);
+    heading.createEl("strong", { text: value });
+
+    const track = row.createDiv({
+      cls: `pmi-progress-track pmi-progress-track--${metric.state}`,
+      attr: metric.percentage === null
+        ? { "aria-label": `${label}: ${value}` }
+        : {
+            role: "progressbar",
+            "aria-label": label,
+            "aria-valuemin": "0",
+            "aria-valuemax": "100",
+            "aria-valuenow": String(metric.percentage),
+            "aria-valuetext": t.stageTaskProgress(metric.completed, metric.total)
+          }
+    });
+    if (metric.state === "progress") {
+      const fill = track.createDiv("pmi-progress-fill");
+      fill.style.width = `${metric.percentage ?? 0}%`;
+    }
+    row.createDiv({
+      cls: "pmi-progress-caption",
+      text: metric.state === "progress"
+        ? t.stageTaskProgress(metric.completed, metric.total)
+        : t.noMappedStageTasks
+    });
+  }
+
+  private renderAcceptanceProgress(
+    root: HTMLElement,
+    progress: DeliveryProgressSnapshot,
+    t: Translations
+  ): void {
+    const metric = progress.acceptance;
+    const row = root.createDiv("pmi-progress-row pmi-progress-row--acceptance");
+    const heading = row.createDiv("pmi-progress-row-heading");
+    const name = heading.createDiv("pmi-progress-name");
+    setIcon(name.createSpan(), "badge-check");
+    name.createSpan({ text: t.acceptanceProgress });
+    heading.createEl("strong", {
+      text: metric.percentage === null ? t.ratioUnavailable : t.percentage(metric.percentage)
+    });
+    const track = row.createDiv({
+      cls: "pmi-progress-track pmi-progress-track--acceptance",
+      attr: metric.percentage === null
+        ? { "aria-label": `${t.acceptanceProgress}: ${t.noRootTasks}` }
+        : {
+            role: "progressbar",
+            "aria-label": t.acceptanceProgress,
+            "aria-valuemin": "0",
+            "aria-valuemax": "100",
+            "aria-valuenow": String(metric.percentage),
+            "aria-valuetext": t.acceptanceTaskProgress(
+              metric.accepted,
+              metric.total,
+              metric.pending
+            )
+          }
+    });
+    if (metric.total > 0) {
+      const accepted = track.createDiv("pmi-progress-acceptance-complete");
+      accepted.style.width = `${(metric.accepted / metric.total) * 100}%`;
+      const pending = track.createDiv("pmi-progress-acceptance-pending");
+      pending.style.width = `${(metric.pending / metric.total) * 100}%`;
+    }
+    row.createDiv({
+      cls: "pmi-progress-caption",
+      text: metric.total > 0
+        ? t.acceptanceTaskProgress(metric.accepted, metric.total, metric.pending)
+        : t.noRootTasks
+    });
+  }
+
+  private renderTotalProgress(
+    root: HTMLElement,
+    progress: DeliveryProgressSnapshot,
+    t: Translations
+  ): void {
+    const percentage = progress.totalPercentage;
+    const row = root.createDiv("pmi-progress-row pmi-progress-row--total");
+    const heading = row.createDiv("pmi-progress-row-heading");
+    const name = heading.createDiv("pmi-progress-name");
+    setIcon(name.createSpan(), "route");
+    name.createSpan({ text: t.totalProgress });
+    heading.createEl("strong", {
+      text: percentage === null ? t.ratioUnavailable : t.percentage(percentage)
+    });
+    const track = row.createDiv({
+      cls: "pmi-progress-track pmi-progress-track--total",
+      attr: percentage === null
+        ? { "aria-label": `${t.totalProgress}: ${t.noRootTasks}` }
+        : {
+            role: "progressbar",
+            "aria-label": t.totalProgress,
+            "aria-valuemin": "0",
+            "aria-valuemax": "100",
+            "aria-valuenow": String(percentage),
+            "aria-valuetext": t.percentage(percentage)
+          }
+    });
+    if (percentage !== null) {
+      const fill = track.createDiv("pmi-progress-fill");
+      fill.style.width = `${percentage}%`;
+    }
+    row.createDiv({ cls: "pmi-progress-caption", text: t.deliveryProgressHint });
   }
 
   private metric(root: HTMLElement, label: string, value: string, kind = ""): void {
