@@ -43,6 +43,15 @@ const options = (progressSettings = settings(), includeArchived = false) => ({
   settings: progressSettings
 });
 
+function stage(
+  snapshot: ReturnType<typeof aggregateDeliveryProgress>,
+  stageId: string
+) {
+  const metric = snapshot.stages.find((candidate) => candidate.id === stageId);
+  if (!metric) throw new Error(`Missing stage ${stageId}`);
+  return metric;
+}
+
 describe("aggregateDeliveryProgress", () => {
   it("normalizes hierarchical tags and classifies leaf descendants recursively", () => {
     const snapshot = aggregateDeliveryProgress([
@@ -58,7 +67,7 @@ describe("aggregateDeliveryProgress", () => {
     ], options());
 
     expect(normalizeProgressTag(" #TYPE/dev/Frontend ")).toBe("type/dev/frontend");
-    expect(snapshot.stages.development).toMatchObject({
+    expect(stage(snapshot, "development")).toMatchObject({
       completed: 1,
       total: 2,
       percentage: 50,
@@ -69,9 +78,11 @@ describe("aggregateDeliveryProgress", () => {
 
   it("detects overlapping tag hierarchies across stage mappings", () => {
     const progressSettings = settings();
-    progressSettings.stages.testing.tags = ["type/dev/frontend"];
+    const testing = progressSettings.stages.find((candidate) => candidate.id === "testing");
+    if (!testing) throw new Error("Missing testing stage");
+    testing.tags = ["type/dev/frontend"];
     expect(hasDeliveryTagMappingConflict(progressSettings)).toBe(true);
-    progressSettings.stages.testing.tags = ["type/test"];
+    testing.tags = ["type/test"];
     expect(hasDeliveryTagMappingConflict(progressSettings)).toBe(false);
   });
 
@@ -98,14 +109,16 @@ describe("aggregateDeliveryProgress", () => {
 
   it("blocks absent prerequisites unless the mapping skips empty work", () => {
     const strict = settings();
-    strict.stages.testing.skipWhenEmpty = false;
+    const testing = strict.stages.find((candidate) => candidate.id === "testing");
+    if (!testing) throw new Error("Missing testing stage");
+    testing.skipWhenEmpty = false;
     const strictSnapshot = aggregateDeliveryProgress([
       root("root"),
       task({ id: "dev", parentId: "root", tags: ["type/dev"], completed: true })
     ], options(strict));
 
     expect(strictSnapshot.acceptance).toMatchObject({ pending: 0, notReady: 1 });
-    expect(strictSnapshot.stages.testing.state).toBe("missing");
+    expect(stage(strictSnapshot, "testing").state).toBe("missing");
     expect(strictSnapshot.quality.missingPrerequisiteCount).toBe(1);
     expect(strictSnapshot.quality.issues.some((issue) =>
       issue.kind === "missing-prerequisite"
@@ -113,13 +126,13 @@ describe("aggregateDeliveryProgress", () => {
         && issue.stageId === "testing"
     )).toBe(true);
 
-    strict.stages.testing.skipWhenEmpty = true;
+    testing.skipWhenEmpty = true;
     const skippedSnapshot = aggregateDeliveryProgress([
       root("root"),
       task({ id: "dev", parentId: "root", tags: ["type/dev"], completed: true })
     ], options(strict));
     expect(skippedSnapshot.acceptance).toMatchObject({ pending: 1, notReady: 0 });
-    expect(skippedSnapshot.stages.testing.state).toBe("skipped");
+    expect(stage(skippedSnapshot, "testing").state).toBe("skipped");
   });
 
   it("renormalizes total progress after removing skipped stage weights", () => {
@@ -133,7 +146,7 @@ describe("aggregateDeliveryProgress", () => {
       task({ id: "two-test", parentId: "two", tags: ["type/test"], completed: true })
     ], options(progressSettings));
 
-    expect(snapshot.stages.design.state).toBe("skipped");
+    expect(stage(snapshot, "design").state).toBe("skipped");
     expect(snapshot.totalPercentage).toBe(66.67);
     expect(deliveryWeightTotal(progressSettings)).toBe(100);
   });
@@ -146,8 +159,8 @@ describe("aggregateDeliveryProgress", () => {
       task({ id: "unlinked", parentId: "missing", tags: ["type/dev"] })
     ], options());
 
-    expect(snapshot.stages.development.total).toBe(0);
-    expect(snapshot.stages.testing.total).toBe(0);
+    expect(stage(snapshot, "development").total).toBe(0);
+    expect(stage(snapshot, "testing").total).toBe(0);
     expect(snapshot.quality).toMatchObject({
       conflictingTaskCount: 1,
       unclassifiedTaskCount: 1,
@@ -179,9 +192,9 @@ describe("aggregateDeliveryProgress", () => {
     ];
 
     expect(aggregateDeliveryProgress(tasks, options()).rootTaskCount).toBe(1);
-    expect(aggregateDeliveryProgress(tasks, options()).stages.development.total).toBe(1);
+    expect(stage(aggregateDeliveryProgress(tasks, options()), "development").total).toBe(1);
     expect(aggregateDeliveryProgress(tasks, options(settings(), true)).rootTaskCount).toBe(2);
-    expect(aggregateDeliveryProgress(tasks, options(settings(), true)).stages.development.total).toBe(2);
+    expect(stage(aggregateDeliveryProgress(tasks, options(settings(), true)), "development").total).toBe(2);
   });
 
   it("does not accept a completed root before its prerequisites are met", () => {
@@ -195,5 +208,37 @@ describe("aggregateDeliveryProgress", () => {
     expect(snapshot.quality.issues.some((issue) =>
       issue.kind === "premature-completion" && issue.task.id === "root"
     )).toBe(true);
+  });
+
+  it("aggregates custom stages in their configured order", () => {
+    const progressSettings = settings();
+    progressSettings.stages = [
+      {
+        id: "discovery",
+        name: "Discovery",
+        tags: ["type/discovery"],
+        weight: 35,
+        acceptancePrerequisite: false,
+        skipWhenEmpty: false
+      },
+      {
+        id: "delivery",
+        name: "Delivery",
+        tags: ["type/delivery"],
+        weight: 55,
+        acceptancePrerequisite: true,
+        skipWhenEmpty: false
+      }
+    ];
+
+    const snapshot = aggregateDeliveryProgress([
+      root("root"),
+      task({ id: "discover", parentId: "root", tags: ["type/discovery"], completed: true }),
+      task({ id: "deliver", parentId: "root", tags: ["type/delivery"] })
+    ], options(progressSettings));
+
+    expect(snapshot.stages.map((metric) => metric.id)).toEqual(["discovery", "delivery"]);
+    expect(stage(snapshot, "discovery").percentage).toBe(100);
+    expect(stage(snapshot, "delivery").percentage).toBe(0);
   });
 });

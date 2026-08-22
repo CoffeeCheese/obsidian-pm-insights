@@ -7,6 +7,11 @@ import {
 } from "./domain/delivery-progress";
 import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
+import { validateGateSchedule } from "./domain/gate-schedule";
+import { aggregateGateRisk, type GateRiskSnapshot } from "./domain/gate-risk";
+import { GateRiskModal } from "./gate-risk-modal";
+import { ProjectGatesModal } from "./project-gates-modal";
+import { deliveryStageLabel } from "./delivery-stage-label";
 import type {
   DeliveryStageId,
   InsightSettings,
@@ -325,6 +330,25 @@ export class InsightsView extends ItemView {
       });
       token.createSpan({ cls: "pmi-project-scope-project-icon", text: project.icon });
       token.createSpan({ cls: "pmi-project-scope-project-name", text: project.title });
+      const gateValidation = validateGateSchedule(
+        this.host.settings.gateSchedules[project.id],
+        this.host.settings.deliveryProgress.stages.map((stage) => stage.id)
+      );
+      const gates = token.createEl("button", {
+        cls: `pmi-project-scope-gates${gateValidation.valid ? " is-configured" : ""}`,
+        attr: {
+          type: "button",
+          "aria-label": t.configureProjectGates(project.title),
+          title: gateValidation.valid ? t.gatesConfigured : t.gatesNotConfigured,
+          "data-tooltip-position": "top"
+        }
+      });
+      setIcon(gates, "calendar-range");
+      gates.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.openProjectGates(project, snapshot, t);
+      });
       const remove = token.createEl("button", {
         cls: "pmi-project-scope-remove",
         attr: {
@@ -393,13 +417,21 @@ export class InsightsView extends ItemView {
       unassignedLabel: t.unassigned
     });
 
+    const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
+      projectIds: selectedIds,
+      includeArchived: this.host.settings.includeArchived,
+      settings: this.host.settings.deliveryProgress
+    });
+    const gateRisk = aggregateGateRisk(snapshot.projects, snapshot.tasks, {
+      projectIds: selectedIds,
+      includeArchived: this.host.settings.includeArchived,
+      settings: this.host.settings.deliveryProgress,
+      gateSchedules: this.host.settings.gateSchedules,
+      today: this.todayDate()
+    });
+    this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
-      const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
-        projectIds: selectedIds,
-        includeArchived: this.host.settings.includeArchived,
-        settings: this.host.settings.deliveryProgress
-      });
       this.renderDeliveryProgress(dashboard, deliveryProgress, snapshot.projects, t);
     } else {
       this.renderDeliveryProgressCollapsed(dashboard, t);
@@ -446,6 +478,105 @@ export class InsightsView extends ItemView {
     this.renderTaskDetail(detail, selected, snapshot.projects, snapshot.priorities, t);
   }
 
+  private openProjectGates(
+    project: ProjectRecord,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    new ProjectGatesModal(this.app, {
+      project,
+      stages: this.host.settings.deliveryProgress.stages,
+      stageName: (stage) => this.deliveryStageLabel(stage.id, stage.name, t),
+      schedule: this.host.settings.gateSchedules[project.id],
+      translations: t,
+      save: async (schedule) => {
+        this.host.settings.gateSchedules[project.id] = schedule;
+        await this.host.saveSettings();
+        this.updateProjectScope(snapshot, t);
+        this.renderDashboard(snapshot, t);
+      }
+    }).open();
+  }
+
+  private renderGateRiskSummary(
+    root: HTMLElement,
+    risk: GateRiskSnapshot,
+    delivery: DeliveryProgressSnapshot,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const state = risk.counts.overdue > 0
+      ? "overdue"
+      : risk.counts.high > 0
+        ? "high"
+        : risk.counts.attention > 0
+          ? "attention"
+          : risk.counts.unconfigured > 0
+            ? "unconfigured"
+            : "normal";
+    const summary = root.createEl("button", {
+      cls: `pmi-gate-risk-summary is-${state}`,
+      attr: { type: "button", "aria-label": t.viewGateRisk }
+    });
+    const signal = summary.createSpan("pmi-gate-risk-summary-signal");
+    setIcon(signal, state === "normal" ? "milestone" : "shield-alert");
+    const copy = summary.createDiv("pmi-gate-risk-summary-copy");
+    copy.createSpan({ cls: "pmi-gate-risk-summary-label", text: t.gateRisk });
+    copy.createEl("strong", {
+      text: t.gateRiskSummary(
+        risk.counts.overdue,
+        risk.counts.high,
+        risk.counts.attention,
+        risk.counts.unconfigured
+      )
+    });
+    if (risk.nearestGate) {
+      copy.createSpan({
+        cls: "pmi-gate-risk-summary-nearest",
+        text: t.nearestGate(
+          risk.nearestGate.project.title,
+          this.gateRiskName(risk.nearestGate.gate, t),
+          risk.nearestGate.gate.daysRemaining
+        )
+      });
+    }
+    const action = summary.createSpan("pmi-gate-risk-summary-action");
+    action.createSpan({ text: t.viewGateRisk });
+    setIcon(action.createSpan(), "chevron-right");
+    summary.addEventListener("click", () => {
+      new GateRiskModal(this.app, {
+        snapshot: risk,
+        priorities: snapshot.priorities,
+        translations: t,
+        hasDeliveryIssues: delivery.quality.issues.length > 0,
+        openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath),
+        openDeliveryIssues: () => {
+          new DeliveryIssuesModal(this.app, {
+            issues: delivery.quality.issues,
+            projects: snapshot.projects,
+            translations: t,
+            openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath)
+          }).open();
+        },
+        configureProject: (project) => this.openProjectGates(project, snapshot, t)
+      }).open();
+    });
+  }
+
+  private gateRiskName(gate: GateRiskSnapshot["projects"][number]["gates"][number], t: Translations): string {
+    if (gate.kind === "acceptance") return t.acceptanceGateLabel;
+    if (gate.kind === "launch") return t.launchGateLabel;
+    return this.deliveryStageLabel(gate.id, gate.name, t);
+  }
+
+  private todayDate(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   private renderTeamStrip(root: HTMLElement, metrics: WorkMetrics, t: Translations): void {
     const strip = root.createDiv("pmi-team-strip");
     this.metric(strip, t.planned, t.hours(metrics.planned));
@@ -469,22 +600,13 @@ export class InsightsView extends ItemView {
     });
 
     const rails = section.createDiv("pmi-progress-rails");
-    const stageDefinitions: Array<{
-      id: DeliveryStageId;
-      label: string;
-      icon: string;
-    }> = [
-      { id: "design", label: t.designProgress, icon: "pencil-ruler" },
-      { id: "development", label: t.developmentProgress, icon: "code-2" },
-      { id: "testing", label: t.testingProgress, icon: "flask-conical" }
-    ];
-    for (const stage of stageDefinitions) {
+    for (const [index, metric] of progress.stages.entries()) {
       this.renderStageProgress(
         rails,
-        stage.id,
-        stage.label,
-        stage.icon,
-        progress.stages[stage.id],
+        this.deliveryStageLabel(metric.id, metric.name, t),
+        this.deliveryStageIcon(metric.id, index),
+        metric,
+        index,
         t
       );
     }
@@ -553,13 +675,15 @@ export class InsightsView extends ItemView {
 
   private renderStageProgress(
     root: HTMLElement,
-    stageId: DeliveryStageId,
     label: string,
     icon: string,
     metric: StageProgressMetric,
+    index: number,
     t: Translations
   ): void {
-    const row = root.createDiv(`pmi-progress-row pmi-progress-row--${stageId}`);
+    const row = root.createDiv("pmi-progress-row pmi-progress-row--stage");
+    row.dataset.stageId = metric.id;
+    row.style.setProperty("--pmi-progress-color", `var(--pmi-stage-${(index % 8) + 1})`);
     const heading = row.createDiv("pmi-progress-row-heading");
     const name = heading.createDiv("pmi-progress-name");
     setIcon(name.createSpan(), icon);
@@ -595,6 +719,22 @@ export class InsightsView extends ItemView {
         : t.noMappedStageTasks
     });
     this.renderProgressWeight(caption, metric.weight, t, metric.state === "skipped");
+  }
+
+  private deliveryStageLabel(
+    stageId: DeliveryStageId,
+    name: string,
+    t: Translations
+  ): string {
+    return deliveryStageLabel(stageId, name, t);
+  }
+
+  private deliveryStageIcon(stageId: DeliveryStageId, index: number): string {
+    if (stageId === "design") return "pencil-ruler";
+    if (stageId === "development") return "code-2";
+    if (stageId === "testing") return "flask-conical";
+    return ["scan-search", "blocks", "git-branch", "shield-check", "package-check"][index % 5]
+      ?? "milestone";
   }
 
   private renderAcceptanceProgress(

@@ -169,6 +169,9 @@ function task(
     logged: loggedHours(frontmatter.timeLogs),
     progress,
     completed: Boolean(optionalText(frontmatter.completed)) || completeStatuses.has(status),
+    startDate: optionalText(frontmatter.start),
+    dueDate: optionalText(frontmatter.due),
+    completedAt: optionalText(frontmatter.completed),
     archived: truthy(frontmatter.archived)
   };
 }
@@ -218,6 +221,9 @@ function entriesEqual(left: CatalogEntry | undefined, right: CatalogEntry | null
     && left.record.logged === right.record.logged
     && left.record.progress === right.record.progress
     && left.record.completed === right.record.completed
+    && left.record.startDate === right.record.startDate
+    && left.record.dueDate === right.record.dueDate
+    && left.record.completedAt === right.record.completedAt
     && left.record.archived === right.record.archived;
 }
 

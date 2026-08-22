@@ -4,16 +4,24 @@ import type {
   TaskRecord
 } from "../model";
 
-export const DELIVERY_STAGE_IDS: DeliveryStageId[] = ["design", "development", "testing"];
-
 export type StageProgressState = "progress" | "skipped" | "missing";
 
 export interface StageProgressMetric {
+  id: DeliveryStageId;
+  name: string;
   completed: number;
   total: number;
   percentage: number | null;
   state: StageProgressState;
   weight: number;
+  tasks: TaskRecord[];
+}
+
+export interface AcceptanceRootMetric {
+  task: TaskRecord;
+  state: "accepted" | "pending" | "not-ready";
+  prerequisites: TaskRecord[];
+  blockers: TaskRecord[];
 }
 
 export interface AcceptanceProgressMetric {
@@ -23,6 +31,7 @@ export interface AcceptanceProgressMetric {
   total: number;
   percentage: number | null;
   weight: number;
+  roots: AcceptanceRootMetric[];
 }
 
 export interface DeliveryProgressQuality {
@@ -43,10 +52,11 @@ export type DeliveryProgressIssue =
     kind: "missing-prerequisite";
     task: TaskRecord;
     stageId: DeliveryStageId;
+    stageName: string;
   };
 
 export interface DeliveryProgressSnapshot {
-  stages: Record<DeliveryStageId, StageProgressMetric>;
+  stages: StageProgressMetric[];
   acceptance: AcceptanceProgressMetric;
   totalPercentage: number | null;
   rootTaskCount: number;
@@ -99,25 +109,27 @@ function matchedStages(
   settings: DeliveryProgressSettings
 ): DeliveryStageId[] {
   const taskTags = task.tags.map(normalizeProgressTag).filter(Boolean);
-  return DELIVERY_STAGE_IDS.filter((stageId) => {
-    const mapped = settings.stages[stageId].tags.map(normalizeProgressTag).filter(Boolean);
-    return mapped.some((mappedTag) => taskTags.some((tag) => tagMatches(tag, mappedTag)));
+  return settings.stages.flatMap((stage) => {
+    const mapped = stage.tags.map(normalizeProgressTag).filter(Boolean);
+    return mapped.some((mappedTag) => taskTags.some((tag) => tagMatches(tag, mappedTag)))
+      ? [stage.id]
+      : [];
   });
 }
 
 export function deliveryWeightTotal(settings: DeliveryProgressSettings): number {
   return round(
-    DELIVERY_STAGE_IDS.reduce((total, stageId) => total + settings.stages[stageId].weight, 0)
+    settings.stages.reduce((total, stage) => total + stage.weight, 0)
       + settings.acceptanceWeight
   );
 }
 
 export function hasDeliveryTagMappingConflict(settings: DeliveryProgressSettings): boolean {
-  const mappings = DELIVERY_STAGE_IDS.flatMap((stageId) =>
-    settings.stages[stageId].tags
+  const mappings = settings.stages.flatMap((stage) =>
+    stage.tags
       .map(normalizeProgressTag)
       .filter(Boolean)
-      .map((tag) => ({ stageId, tag }))
+      .map((tag) => ({ stageId: stage.id, tag }))
   );
   return mappings.some((mapping, index) => mappings.slice(index + 1).some((candidate) =>
     mapping.stageId !== candidate.stageId
@@ -203,55 +215,71 @@ export function aggregateDeliveryProgress(
     if (stageId) classified.push({ task, rootKey, stageId });
   }
 
-  const stages = Object.fromEntries(
-    DELIVERY_STAGE_IDS.map((stageId) => {
-      const stageTasks = classified.filter((entry) => entry.stageId === stageId);
-      const completed = stageTasks.filter((entry) => entry.task.completed).length;
-      const total = stageTasks.length;
-      const skipped = total === 0 && options.settings.stages[stageId].skipWhenEmpty;
-      return [stageId, {
-        completed,
-        total,
-        percentage: percentage(completed, total),
-        state: total > 0 ? "progress" : skipped ? "skipped" : "missing",
-        weight: options.settings.stages[stageId].weight
-      } satisfies StageProgressMetric];
-    })
-  ) as Record<DeliveryStageId, StageProgressMetric>;
+  const stages = options.settings.stages.map((stage) => {
+    const stageTasks = classified.filter((entry) => entry.stageId === stage.id);
+    const completed = stageTasks.filter((entry) => entry.task.completed).length;
+    const total = stageTasks.length;
+    const skipped = total === 0 && stage.skipWhenEmpty;
+    return {
+      id: stage.id,
+      name: stage.name,
+      completed,
+      total,
+      percentage: percentage(completed, total),
+      state: total > 0 ? "progress" : skipped ? "skipped" : "missing",
+      weight: stage.weight,
+      tasks: stageTasks.map((entry) => entry.task)
+    } satisfies StageProgressMetric;
+  });
 
   let accepted = 0;
   let pending = 0;
   let notReady = 0;
   let missingPrerequisiteCount = 0;
   let prematureCompletionCount = 0;
+  const acceptanceRoots: AcceptanceRootMetric[] = [];
 
   for (const rootKey of eligibleRootKeys) {
     const root = rootByKey.get(rootKey);
     if (!root) continue;
     let prerequisitesMet = true;
-    for (const stageId of DELIVERY_STAGE_IDS) {
-      const stage = options.settings.stages[stageId];
+    const prerequisites: TaskRecord[] = [];
+    const blockers: TaskRecord[] = [];
+    for (const stage of options.settings.stages) {
       if (!stage.acceptancePrerequisite) continue;
       const stageTasks = classified.filter(
-        (entry) => entry.rootKey === rootKey && entry.stageId === stageId
+        (entry) => entry.rootKey === rootKey && entry.stageId === stage.id
       );
+      prerequisites.push(...stageTasks.map((entry) => entry.task));
       if (stageTasks.length === 0) {
         if (!stage.skipWhenEmpty) {
           prerequisitesMet = false;
           missingPrerequisiteCount += 1;
-          issues.push({ kind: "missing-prerequisite", task: root, stageId });
+          issues.push({
+            kind: "missing-prerequisite",
+            task: root,
+            stageId: stage.id,
+            stageName: stage.name
+          });
         }
         continue;
       }
-      if (stageTasks.some((entry) => !entry.task.completed)) prerequisitesMet = false;
+      const incomplete = stageTasks.filter((entry) => !entry.task.completed);
+      if (incomplete.length > 0) {
+        prerequisitesMet = false;
+        blockers.push(...incomplete.map((entry) => entry.task));
+      }
     }
 
     if (prerequisitesMet && root.completed) {
       accepted += 1;
+      acceptanceRoots.push({ task: root, state: "accepted", prerequisites, blockers });
     } else if (prerequisitesMet) {
       pending += 1;
+      acceptanceRoots.push({ task: root, state: "pending", prerequisites, blockers });
     } else {
       notReady += 1;
+      acceptanceRoots.push({ task: root, state: "not-ready", prerequisites, blockers });
       if (root.completed) {
         prematureCompletionCount += 1;
         issues.push({ kind: "premature-completion", task: root });
@@ -266,13 +294,13 @@ export function aggregateDeliveryProgress(
     notReady,
     total: rootTaskCount,
     percentage: percentage(accepted, rootTaskCount),
-    weight: options.settings.acceptanceWeight
+    weight: options.settings.acceptanceWeight,
+    roots: acceptanceRoots
   };
 
   let weightedProgress = 0;
   let activeWeight = 0;
-  for (const stageId of DELIVERY_STAGE_IDS) {
-    const metric = stages[stageId];
+  for (const metric of stages) {
     if (metric.state === "skipped") continue;
     activeWeight += metric.weight;
     weightedProgress += metric.weight * (metric.percentage ?? 0);

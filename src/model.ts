@@ -32,6 +32,9 @@ export interface TaskRecord {
   logged: number;
   progress: number;
   completed: boolean;
+  startDate?: string | null;
+  dueDate?: string | null;
+  completedAt?: string | null;
   archived: boolean;
 }
 
@@ -40,9 +43,11 @@ export interface MemberAlias {
   aliases: string[];
 }
 
-export type DeliveryStageId = "design" | "development" | "testing";
+export type DeliveryStageId = string;
 
 export interface DeliveryStageSettings {
+  id: DeliveryStageId;
+  name: string;
   tags: string[];
   weight: number;
   acceptancePrerequisite: boolean;
@@ -50,8 +55,15 @@ export interface DeliveryStageSettings {
 }
 
 export interface DeliveryProgressSettings {
-  stages: Record<DeliveryStageId, DeliveryStageSettings>;
+  stages: DeliveryStageSettings[];
   acceptanceWeight: number;
+}
+
+export interface ProjectGateSchedule {
+  startDate: string;
+  stageGates: Record<DeliveryStageId, string>;
+  acceptanceGate: string;
+  launchDate: string;
 }
 
 export interface InsightSettings {
@@ -62,6 +74,7 @@ export interface InsightSettings {
   countParentTasks: boolean;
   showDeliveryProgress: boolean;
   deliveryProgress: DeliveryProgressSettings;
+  gateSchedules: Record<string, ProjectGateSchedule>;
 }
 
 export interface WorkMetrics {
@@ -133,27 +146,34 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   includeArchived: false,
   countParentTasks: false,
   showDeliveryProgress: true,
+  gateSchedules: {},
   deliveryProgress: {
-    stages: {
-      design: {
+    stages: [
+      {
+        id: "design",
+        name: "",
         tags: ["type/design"],
         weight: 10,
         acceptancePrerequisite: false,
         skipWhenEmpty: true
       },
-      development: {
+      {
+        id: "development",
+        name: "",
         tags: ["type/dev"],
         weight: 50,
         acceptancePrerequisite: true,
         skipWhenEmpty: false
       },
-      testing: {
+      {
+        id: "testing",
+        name: "",
         tags: ["type/test"],
         weight: 30,
         acceptancePrerequisite: true,
         skipWhenEmpty: true
       }
-    },
+    ],
     acceptanceWeight: 10
   }
 };

@@ -20,4 +20,91 @@ describe("normalizeInsightSettings", () => {
 
     expect(normalizeInsightSettings(saved).showDeliveryProgress).toBe(true);
   });
+
+  it("migrates the fixed delivery stages to an ordered stage list", () => {
+    const migrated = normalizeInsightSettings({
+      deliveryProgress: {
+        stages: {
+          design: {
+            tags: ["type/ux"],
+            weight: 15,
+            acceptancePrerequisite: true,
+            skipWhenEmpty: false
+          },
+          development: {
+            tags: ["type/code"],
+            weight: 45,
+            acceptancePrerequisite: true,
+            skipWhenEmpty: false
+          },
+          testing: {
+            tags: ["type/qa"],
+            weight: 30,
+            acceptancePrerequisite: true,
+            skipWhenEmpty: true
+          }
+        },
+        acceptanceWeight: 10
+      }
+    } as unknown as Partial<InsightSettings>);
+
+    expect(migrated.deliveryProgress.stages).toEqual([
+      expect.objectContaining({ id: "design", name: "", tags: ["type/ux"], weight: 15 }),
+      expect.objectContaining({ id: "development", name: "", tags: ["type/code"], weight: 45 }),
+      expect.objectContaining({ id: "testing", name: "", tags: ["type/qa"], weight: 30 })
+    ]);
+  });
+
+  it("preserves ordered custom stages with stable identities", () => {
+    const saved = structuredClone(DEFAULT_SETTINGS);
+    saved.deliveryProgress.stages = [
+      {
+        id: "discovery",
+        name: "Discovery",
+        tags: ["type/discovery"],
+        weight: 20,
+        acceptancePrerequisite: false,
+        skipWhenEmpty: true
+      },
+      {
+        id: "delivery",
+        name: "Delivery",
+        tags: ["type/delivery"],
+        weight: 70,
+        acceptancePrerequisite: true,
+        skipWhenEmpty: false
+      }
+    ];
+
+    expect(normalizeInsightSettings(saved).deliveryProgress.stages).toEqual(
+      saved.deliveryProgress.stages
+    );
+  });
+
+  it("normalizes project gate schedules without discarding orphaned projects", () => {
+    const normalized = normalizeInsightSettings({
+      gateSchedules: {
+        "project-one": {
+          startDate: "2026-08-01",
+          stageGates: { design: "2026-08-05", development: "2026-08-12" },
+          acceptanceGate: "2026-08-18",
+          launchDate: "2026-08-20"
+        },
+        "temporarily-missing": {
+          startDate: "2026-09-01",
+          stageGates: {},
+          acceptanceGate: "",
+          launchDate: ""
+        }
+      }
+    });
+
+    expect(normalized.gateSchedules["project-one"]).toEqual({
+      startDate: "2026-08-01",
+      stageGates: { design: "2026-08-05", development: "2026-08-12" },
+      acceptanceGate: "2026-08-18",
+      launchDate: "2026-08-20"
+    });
+    expect(normalized.gateSchedules["temporarily-missing"]).toBeDefined();
+  });
 });

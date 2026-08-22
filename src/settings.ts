@@ -25,6 +25,8 @@ import {
 } from "./domain/delivery-progress";
 import { collectProjectTagOptions, type ProjectTagOption } from "./domain/project-tags";
 import type { ProjectManagerSnapshot } from "./adapters/project-manager";
+import { ConfirmActionModal } from "./confirm-action-modal";
+import { deliveryStageLabel } from "./delivery-stage-label";
 
 export interface SettingsHost {
   app: App;
@@ -182,6 +184,12 @@ export class InsightsSettingTab extends PluginSettingTab {
       {
         type: "group",
         heading: t.progressSettingsHeading,
+        extraButtons: [
+          (button) => button
+            .setIcon("plus")
+            .setTooltip(t.addDeliveryStage)
+            .onClick(() => this.addProgressStage(t))
+        ],
         items: [
           {
             name: t.showDeliveryProgress,
@@ -191,9 +199,9 @@ export class InsightsSettingTab extends PluginSettingTab {
               key: "showDeliveryProgress"
             }
           },
-          this.progressStageDefinition("design", t.designStage, t),
-          this.progressStageDefinition("development", t.developmentStage, t),
-          this.progressStageDefinition("testing", t.testingStage, t),
+          ...this.progressDraft.stages.map((stage) =>
+            this.progressStageDefinition(stage.id, t)
+          ),
           {
             name: t.acceptanceWeight,
             desc: t.acceptanceWeightDesc,
@@ -311,20 +319,15 @@ export class InsightsSettingTab extends PluginSettingTab {
             await this.host.refreshInsights();
           })
       );
-    this.renderProgressStage(
-      new Setting(containerEl).setName(t.designStage),
-      "design",
-      t
-    );
-    this.renderProgressStage(
-      new Setting(containerEl).setName(t.developmentStage),
-      "development",
-      t
-    );
-    this.renderProgressStage(
-      new Setting(containerEl).setName(t.testingStage),
-      "testing",
-      t
+    for (const stage of this.progressDraft.stages) {
+      this.renderProgressStage(
+        new Setting(containerEl).setName(this.stageDisplayName(stage.id, t)),
+        stage.id,
+        t
+      );
+    }
+    new Setting(containerEl).addButton((button) =>
+      button.setButtonText(t.addDeliveryStage).onClick(() => this.addProgressStage(t))
     );
     this.renderAcceptanceWeight(
       new Setting(containerEl).setName(t.acceptanceWeight).setDesc(t.acceptanceWeightDesc),
@@ -335,11 +338,10 @@ export class InsightsSettingTab extends PluginSettingTab {
 
   private progressStageDefinition(
     stageId: DeliveryStageId,
-    name: string,
     t: Translations
   ): SettingDefinition {
     return {
-      name,
+      name: this.stageDisplayName(stageId, t),
       desc: t.progressSettingsDesc,
       render: (setting) => this.renderProgressStage(setting, stageId, t)
     };
@@ -350,8 +352,21 @@ export class InsightsSettingTab extends PluginSettingTab {
     stageId: DeliveryStageId,
     t: Translations
   ): void {
-    const stage = this.progressDraft.stages[stageId];
+    const stage = this.progressDraft.stages.find((candidate) => candidate.id === stageId);
+    if (!stage) return;
     setting.settingEl.addClass("pmi-progress-setting");
+    setting.addText((input) => {
+      input
+        .setPlaceholder(t.stageNamePlaceholder)
+        .setValue(this.stageDisplayName(stage.id, t))
+        .onChange((value) => {
+          stage.name = value.trim();
+          setting.nameEl.setText(value.trim() || t.stageNamePlaceholder);
+          this.updateProgressValidation();
+        });
+      input.inputEl.addClass("pmi-progress-name-input");
+      input.inputEl.setAttribute("aria-label", t.stageName);
+    });
     setting.addText((input) => {
       input
         .setPlaceholder(t.stageTags)
@@ -394,6 +409,25 @@ export class InsightsSettingTab extends PluginSettingTab {
       stage.skipWhenEmpty,
       (checked) => this.saveProgressStageFlag(stageId, "skipWhenEmpty", checked)
     );
+    const index = this.progressDraft.stages.findIndex((candidate) => candidate.id === stageId);
+    setting.addExtraButton((button) => {
+      button.setIcon("arrow-up").setTooltip(t.moveStageUp).onClick(() => {
+        this.moveProgressStage(index, -1);
+      });
+      button.setDisabled(index <= 0);
+    });
+    setting.addExtraButton((button) => {
+      button.setIcon("arrow-down").setTooltip(t.moveStageDown).onClick(() => {
+        this.moveProgressStage(index, 1);
+      });
+      button.setDisabled(index >= this.progressDraft.stages.length - 1);
+    });
+    setting.addExtraButton((button) => {
+      button.setIcon("trash-2").setTooltip(t.deleteDeliveryStage).onClick(() => {
+        this.deleteProgressStage(stageId, t);
+      });
+      button.setDisabled(this.progressDraft.stages.length <= 1);
+    });
   }
 
   private async openProjectTagPicker(
@@ -405,7 +439,8 @@ export class InsightsSettingTab extends PluginSettingTab {
       const snapshot = await this.host.readProjectManager();
       const options = collectProjectTagOptions(snapshot.tasks);
       const optionTags = new Set(options.map((option) => option.tag));
-      const stage = this.progressDraft.stages[stageId];
+      const stage = this.progressDraft.stages.find((candidate) => candidate.id === stageId);
+      if (!stage) return;
       const normalizedSelected = stage.tags
         .map(normalizeProgressTag)
         .filter(Boolean);
@@ -447,16 +482,11 @@ export class InsightsSettingTab extends PluginSettingTab {
     options: readonly ProjectTagOption[],
     t: Translations
   ): Map<string, string> {
-    const stageNames: Record<DeliveryStageId, string> = {
-      design: t.designStage,
-      development: t.developmentStage,
-      testing: t.testingStage
-    };
     const reserved = new Map<string, string>();
     for (const option of options) {
-      for (const stageId of ["design", "development", "testing"] as const) {
-        if (stageId === currentStageId) continue;
-        const conflicts = this.progressDraft.stages[stageId].tags.some((tag) => {
+      for (const stage of this.progressDraft.stages) {
+        if (stage.id === currentStageId) continue;
+        const conflicts = stage.tags.some((tag) => {
           const mapped = normalizeProgressTag(tag);
           return mapped && (
             option.tag === mapped
@@ -465,7 +495,7 @@ export class InsightsSettingTab extends PluginSettingTab {
           );
         });
         if (conflicts) {
-          reserved.set(option.tag, stageNames[stageId]);
+          reserved.set(option.tag, this.stageDisplayName(stage.id, t));
           break;
         }
       }
@@ -519,15 +549,15 @@ export class InsightsSettingTab extends PluginSettingTab {
     checkbox.addEventListener("change", () => void onChange(checkbox.checked));
   }
 
-  private async saveProgressStageFlag(
+  private saveProgressStageFlag(
     stageId: DeliveryStageId,
     key: "acceptancePrerequisite" | "skipWhenEmpty",
     checked: boolean
-  ): Promise<void> {
-    this.progressDraft.stages[stageId][key] = checked;
-    this.host.settings.deliveryProgress.stages[stageId][key] = checked;
-    await this.host.saveSettings();
-    await this.host.refreshInsights();
+  ): void {
+    const stage = this.progressDraft.stages.find((candidate) => candidate.id === stageId);
+    if (!stage) return;
+    stage[key] = checked;
+    this.updateProgressValidation();
   }
 
   private renderProgressSave(setting: Setting, t: Translations): void {
@@ -537,6 +567,12 @@ export class InsightsSettingTab extends PluginSettingTab {
     setting.addButton((button) => {
       button.setButtonText(t.saveProgressSettings).setCta().onClick(async () => {
         if (!this.progressSettingsValid()) return;
+        const activeStageIds = new Set(this.progressDraft.stages.map((stage) => stage.id));
+        for (const schedule of Object.values(this.host.settings.gateSchedules)) {
+          schedule.stageGates = Object.fromEntries(
+            Object.entries(schedule.stageGates).filter(([stageId]) => activeStageIds.has(stageId))
+          );
+        }
         this.host.settings.deliveryProgress = structuredClone(this.progressDraft);
         await this.host.saveSettings();
         await this.host.refreshInsights();
@@ -548,10 +584,19 @@ export class InsightsSettingTab extends PluginSettingTab {
 
   private progressSettingsValid(): boolean {
     const weights = [
-      ...Object.values(this.progressDraft.stages).map((stage) => stage.weight),
+      ...this.progressDraft.stages.map((stage) => stage.weight),
       this.progressDraft.acceptanceWeight
     ];
-    return weights.every((weight) => Number.isFinite(weight) && weight >= 0 && weight <= 100)
+    const effectiveNames = this.progressDraft.stages.map((stage) =>
+      this.stageDisplayName(stage.id, translations(this.host.settings)).normalize("NFKC").toLocaleLowerCase()
+    );
+    return this.progressDraft.stages.length >= 1
+      && this.progressDraft.stages.length <= 8
+      && new Set(this.progressDraft.stages.map((stage) => stage.id)).size === this.progressDraft.stages.length
+      && effectiveNames.every(Boolean)
+      && new Set(effectiveNames).size === effectiveNames.length
+      && this.progressDraft.stages.every((stage) => stage.tags.length > 0)
+      && weights.every((weight) => Number.isFinite(weight) && weight >= 0 && weight <= 100)
       && Math.abs(deliveryWeightTotal(this.progressDraft) - 100) < 0.001
       && !hasDeliveryTagMappingConflict(this.progressDraft);
   }
@@ -561,10 +606,73 @@ export class InsightsSettingTab extends PluginSettingTab {
     this.progressTotalEl?.setText(t.weightTotal(Number.isFinite(total) ? total : 0));
     const valid = this.progressSettingsValid();
     const weightInvalid = !Number.isFinite(total) || Math.abs(total - 100) >= 0.001;
+    const names = this.progressDraft.stages.map((stage) =>
+      this.stageDisplayName(stage.id, t).normalize("NFKC").toLocaleLowerCase()
+    );
+    const namesInvalid = names.some((name) => !name) || new Set(names).size !== names.length;
+    const tagsInvalid = this.progressDraft.stages.some((stage) => stage.tags.length === 0);
     this.progressErrorEl?.setText(
-      valid ? "" : weightInvalid ? t.weightTotalInvalid : t.tagMappingConflict
+      valid
+        ? ""
+        : namesInvalid
+          ? t.stageNameInvalid
+          : tagsInvalid
+            ? t.stageTagsInvalid
+            : weightInvalid
+              ? t.weightTotalInvalid
+              : t.tagMappingConflict
     );
     if (this.progressSaveButtonEl) this.progressSaveButtonEl.disabled = !valid;
+  }
+
+  private stageDisplayName(stageId: DeliveryStageId, t: Translations): string {
+    const stage = this.progressDraft.stages.find((candidate) => candidate.id === stageId);
+    return deliveryStageLabel(stageId, stage?.name ?? "", t, false);
+  }
+
+  private addProgressStage(t: Translations): void {
+    if (this.progressDraft.stages.length >= 8) {
+      new Notice(t.stageLimitReached);
+      return;
+    }
+    const sequence = this.progressDraft.stages.length + 1;
+    this.progressDraft.stages.push({
+      id: `stage-${Date.now().toString(36)}-${sequence}`,
+      name: t.newDeliveryStage(sequence),
+      tags: [],
+      weight: 0,
+      acceptancePrerequisite: false,
+      skipWhenEmpty: false
+    });
+    this.updateDefinitions();
+  }
+
+  private moveProgressStage(index: number, offset: -1 | 1): void {
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= this.progressDraft.stages.length) return;
+    const [stage] = this.progressDraft.stages.splice(index, 1);
+    if (!stage) return;
+    this.progressDraft.stages.splice(target, 0, stage);
+    this.updateDefinitions();
+  }
+
+  private deleteProgressStage(stageId: DeliveryStageId, t: Translations): void {
+    if (this.progressDraft.stages.length <= 1) return;
+    const stage = this.progressDraft.stages.find((candidate) => candidate.id === stageId);
+    if (!stage) return;
+    new ConfirmActionModal(this.app, {
+      title: t.deleteDeliveryStage,
+      message: t.confirmDeleteDeliveryStage(this.stageDisplayName(stageId, t)),
+      cancel: t.cancel,
+      confirm: t.deleteDeliveryStage,
+      destructive: true,
+      onConfirm: () => {
+        this.progressDraft.stages = this.progressDraft.stages.filter(
+          (candidate) => candidate.id !== stageId
+        );
+        this.updateDefinitions();
+      }
+    }).open();
   }
 
   private renderAliasGuide(setting: Setting, t: Translations): void {

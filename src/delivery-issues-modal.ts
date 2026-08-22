@@ -2,6 +2,7 @@ import { Modal, setIcon, type App } from "obsidian";
 import type { DeliveryProgressIssue } from "./domain/delivery-progress";
 import type { Translations } from "./i18n";
 import type { DeliveryStageId, ProjectRecord } from "./model";
+import { deliveryStageLabel } from "./delivery-stage-label";
 
 type DeliveryProgressIssueKind = DeliveryProgressIssue["kind"];
 type IssueFilter = "all" | DeliveryProgressIssueKind;
@@ -183,15 +184,13 @@ export class DeliveryIssuesModal extends Modal {
       case "unlinked": return t.deliveryIssueUnlinkedReason;
       case "premature-completion": return t.deliveryIssuePrematureCompletionReason;
       case "missing-prerequisite":
-        return t.deliveryIssueMissingPrerequisiteReason(this.stageLabel(issue.stageId, t));
+        return t.deliveryIssueMissingPrerequisiteReason(
+          issue.stageName || this.stageLabel(issue.stageId, t)
+        );
     }
   }
 
   private stageLabel(stageId: DeliveryStageId, t: Translations): string {
-    switch (stageId) {
-      case "design": return t.designProgress;
-      case "development": return t.developmentProgress;
-      case "testing": return t.testingProgress;
-    }
+    return deliveryStageLabel(stageId, "", t);
   }
 }

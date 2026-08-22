@@ -18,27 +18,42 @@ const evaluation = `(async () => {
     return null;
   };
 
-  const qualityButton = await waitFor(() =>
-    document.querySelector(".pmi-delivery-progress-quality")
-  );
-  if (!(qualityButton instanceof HTMLButtonElement)) {
-    return JSON.stringify({ setup: false, reason: "delivery issue trigger unavailable" });
-  }
+  const plugin = app.plugins.plugins["project-manager-insights"];
+  if (!plugin) return JSON.stringify({ setup: false, reason: "plugin unavailable" });
+  const originalProjectIds = [...plugin.settings.selectedProjectIds];
+  const snapshot = await plugin.readProjectManager();
+  let report;
+  try {
+    plugin.settings.selectedProjectIds = snapshot.projects.map((project) => project.id);
+    await plugin.saveSettings();
+    await plugin.refreshInsights();
 
-  const originalModals = new Set(document.querySelectorAll(".modal-container"));
-  const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
-  const originalNotices = new Set(document.querySelectorAll(".notice"));
-  qualityButton.click();
+    const qualityButton = await waitFor(() =>
+      document.querySelector(".pmi-delivery-progress-quality")
+    );
+    if (!(qualityButton instanceof HTMLButtonElement)) {
+      return JSON.stringify({ setup: false, reason: "delivery issue trigger unavailable" });
+    }
+
+    const originalModals = new Set(document.querySelectorAll(".modal-container"));
+    const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
+    const originalNotices = new Set(document.querySelectorAll(".notice"));
+    const navigableTaskIds = new Set(
+      [...document.querySelectorAll(".pmi-task-open")].map((button) => button.dataset.taskId)
+    );
+    activeWindow = document.defaultView;
+    activeDocument = document;
+    qualityButton.click();
   const issueModal = await waitFor(() =>
     [...document.querySelectorAll(".pmi-delivery-issues-modal")].find(
       (modal) => !originalModals.has(modal.closest(".modal-container"))
     )
   );
   const issueModalContainer = issueModal?.closest(".modal-container");
-  const alternateFilter = issueModal?.querySelector(".pmi-issue-filter:not(.is-active)");
-  if (alternateFilter instanceof HTMLButtonElement) alternateFilter.click();
   const activeFilter = issueModal?.querySelector(".pmi-issue-filter.is-active")?.textContent ?? "";
-  const issueRow = issueModal?.querySelector(".pmi-issue-row");
+  const issueRow = [...(issueModal?.querySelectorAll(".pmi-issue-row") ?? [])].find(
+    (row) => navigableTaskIds.has(row.dataset.taskId)
+  ) ?? issueModal?.querySelector(".pmi-issue-row");
   if (!(issueModal instanceof HTMLElement) ||
       !(issueModalContainer instanceof HTMLElement) ||
       !(issueRow instanceof HTMLButtonElement)) {
@@ -92,17 +107,23 @@ const evaluation = `(async () => {
     issueModal.querySelector(".modal-close-button, .modal-header-button")?.click();
   }
 
-  return JSON.stringify({
-    setup: true,
-    selectedTaskId,
-    taskModalClosed: !taskModal.isConnected,
-    issueModalReturned,
-    issueListUsable,
-    activeFilterPreserved,
-    issueModalIsTop,
-    detachedHostCleaned,
-    taskFailureNotice
-  });
+    report = {
+      setup: true,
+      selectedTaskId,
+      taskModalClosed: !taskModal.isConnected,
+      issueModalReturned,
+      issueListUsable,
+      activeFilterPreserved,
+      issueModalIsTop,
+      detachedHostCleaned,
+      taskFailureNotice
+    };
+  } finally {
+    plugin.settings.selectedProjectIds = originalProjectIds;
+    await plugin.saveSettings();
+    await plugin.refreshInsights();
+  }
+  return JSON.stringify(report);
 })()`;
 
 const result = spawnSync("obsidian", [`vault=${vault}`, "eval", `code=${evaluation}`], {

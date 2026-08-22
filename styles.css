@@ -33,6 +33,14 @@
   --pmi-stage-design: #8b7be8;
   --pmi-stage-development: #4b91f1;
   --pmi-stage-testing: #25a7a0;
+  --pmi-stage-1: var(--pmi-stage-design);
+  --pmi-stage-2: var(--pmi-stage-development);
+  --pmi-stage-3: var(--pmi-stage-testing);
+  --pmi-stage-4: #d99a32;
+  --pmi-stage-5: #789d54;
+  --pmi-stage-6: #9a74b2;
+  --pmi-stage-7: #428f9b;
+  --pmi-stage-8: #c7795b;
   --pmi-stage-acceptance: #d99a32;
   --pmi-stage-complete: #45a06b;
   color: var(--text-normal);
@@ -461,6 +469,69 @@
 
 .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
   .pmi-project-scope-token
+  button.pmi-project-scope-gates {
+  appearance: none;
+  position: relative;
+  display: grid;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  margin-inline-start: 2px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  color: var(--text-faint);
+  background: transparent;
+  cursor: pointer;
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-gates::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--background-primary);
+  border-radius: 50%;
+  background: var(--color-orange);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-gates.is-configured::after {
+  background: var(--pmi-stage-complete);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-gates:is(:hover, :focus-visible) {
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-gates:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--interactive-accent) 42%, transparent);
+  outline-offset: 0;
+}
+
+.pmi-project-scope-gates svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
   button.pmi-project-scope-remove {
   appearance: none;
   position: relative;
@@ -579,6 +650,595 @@
   background: var(--background-primary);
 }
 
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary {
+  --pmi-risk-color: var(--pmi-stage-complete);
+  appearance: none;
+  display: grid;
+  width: 100%;
+  max-width: var(--pmi-content-max);
+  min-height: 50px;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin: 0 auto 10px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--pmi-risk-color) 38%, var(--pmi-edge));
+  border-radius: var(--radius-m);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--pmi-risk-color) 72%, transparent);
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--pmi-risk-color) 5%, var(--background-primary));
+  text-align: start;
+  cursor: pointer;
+  transform: none;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary.is-unconfigured {
+  --pmi-risk-color: var(--text-muted);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary.is-attention {
+  --pmi-risk-color: var(--color-yellow);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary:is(.is-high, .is-overdue) {
+  --pmi-risk-color: var(--color-orange);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary.is-overdue {
+  --pmi-risk-color: var(--color-red);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary:is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--pmi-risk-color) 62%, var(--pmi-edge));
+  box-shadow: inset 3px 0 0 var(--pmi-risk-color);
+  background: color-mix(in srgb, var(--pmi-risk-color) 8%, var(--background-primary));
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-gate-risk-summary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pmi-risk-color) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.pmi-gate-risk-summary-signal {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pmi-risk-color) 46%, transparent);
+  border-radius: 50%;
+  color: var(--pmi-risk-color);
+  background: var(--background-primary);
+}
+
+.pmi-gate-risk-summary-signal svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pmi-gate-risk-summary-copy {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.pmi-gate-risk-summary-label {
+  color: var(--pmi-risk-color);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+}
+
+.pmi-gate-risk-summary-copy strong {
+  overflow: hidden;
+  font-size: var(--font-ui-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-gate-risk-summary-nearest {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-gate-risk-summary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.pmi-gate-risk-summary-action svg {
+  width: 13px;
+  height: 13px;
+}
+
+body .modal-container .modal.pmi-gate-risk-modal {
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(900px, calc(100vh - 24px));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 30%, var(--background-modifier-border));
+}
+
+body .modal-container .modal.pmi-gate-risk-modal .modal-content {
+  padding: 0;
+  overflow-y: auto;
+}
+
+.pmi-risk-lead {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  padding: 24px 52px 20px 24px;
+  border-block-end: 1px solid var(--background-modifier-border);
+  background: color-mix(in srgb, var(--color-orange) 5%, var(--background-primary));
+}
+
+.pmi-risk-lead-signal {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-orange) 48%, transparent);
+  border-radius: 50%;
+  color: var(--color-orange);
+  background: var(--background-primary);
+}
+
+.pmi-risk-lead-copy h2,
+.pmi-risk-lead-copy p {
+  margin: 0;
+}
+
+.pmi-risk-lead-copy h2 {
+  font-size: 24px;
+  letter-spacing: -0.025em;
+}
+
+.pmi-risk-lead-copy p {
+  margin-block: 4px 6px;
+  color: var(--text-muted);
+}
+
+.pmi-risk-lead-copy > strong {
+  color: var(--color-orange);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-risk-project-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 18px;
+  border-block-end: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-project-tab {
+  display: inline-flex;
+  min-height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  color: var(--text-muted);
+  background: transparent;
+  transform: none;
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-project-tab:is(:hover, :focus-visible) {
+  border-color: var(--background-modifier-border);
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+  box-shadow: none;
+  transform: none;
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-project-tab.is-active {
+  border-color: color-mix(in srgb, var(--interactive-accent) 38%, var(--background-modifier-border));
+  color: var(--text-normal);
+  background: var(--background-primary);
+}
+
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-project-tab:not(.clickable-icon),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-task:not(.clickable-icon),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-delivery-issues-link:not(.clickable-icon),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-quality-link:not(.clickable-icon),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-configure:not(.clickable-icon),
+body .modal-container .modal.pmi-project-gates-modal
+  button:is(.pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon),
+body .modal-container .modal.pmi-confirm-action-modal
+  button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon) {
+  box-shadow: none;
+  transform: none;
+}
+
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-project-tab:not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-task:not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-delivery-issues-link:not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-quality-link:not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-gate-risk-modal
+  button.pmi-risk-configure:not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-project-gates-modal
+  button:is(.pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-confirm-action-modal
+  button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon):is(:hover, :focus-visible, :active) {
+  box-shadow: none;
+  transform: none;
+}
+
+.pmi-risk-state {
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+}
+
+.is-attention > :is(summary, button) .pmi-risk-state,
+.pmi-risk-project-tab.is-attention .pmi-risk-state {
+  color: color-mix(in srgb, var(--color-yellow) 82%, var(--text-normal));
+  background: color-mix(in srgb, var(--color-yellow) 12%, transparent);
+}
+
+.is-high > :is(summary, button) .pmi-risk-state,
+.pmi-risk-project-tab.is-high .pmi-risk-state {
+  color: var(--color-orange);
+  background: color-mix(in srgb, var(--color-orange) 11%, transparent);
+}
+
+.is-overdue > :is(summary, button) .pmi-risk-state,
+.pmi-risk-project-tab.is-overdue .pmi-risk-state {
+  color: var(--color-red);
+  background: color-mix(in srgb, var(--color-red) 10%, transparent);
+}
+
+.pmi-risk-project-panel {
+  padding: 18px 22px 20px;
+}
+
+.pmi-risk-timeline {
+  position: relative;
+}
+
+.pmi-risk-gate {
+  --pmi-risk-color: var(--text-muted);
+  position: relative;
+  margin: 0;
+  border: 0;
+}
+
+.pmi-risk-gate.is-attention { --pmi-risk-color: var(--color-yellow); }
+.pmi-risk-gate.is-high { --pmi-risk-color: var(--color-orange); }
+.pmi-risk-gate.is-overdue { --pmi-risk-color: var(--color-red); }
+.pmi-risk-gate.is-passed { --pmi-risk-color: var(--pmi-stage-complete); }
+
+.pmi-risk-gate.is-nearest .pmi-risk-gate-node {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pmi-risk-color) 12%, transparent);
+}
+
+.pmi-risk-gate:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset-block: 27px -1px;
+  inset-inline-start: 14px;
+  width: 1px;
+  background: color-mix(in srgb, var(--interactive-accent) 28%, var(--background-modifier-border));
+}
+
+.pmi-risk-gate > summary {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(145px, auto);
+  gap: 10px;
+  align-items: center;
+  min-height: 60px;
+  padding: 8px 9px 8px 0;
+  border-block-end: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pmi-risk-gate > summary::-webkit-details-marker { display: none; }
+
+.pmi-risk-gate > summary:hover {
+  background: color-mix(in srgb, var(--pmi-risk-color) 4%, transparent);
+}
+
+.pmi-risk-gate > summary:focus-visible {
+  background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.pmi-risk-gate > summary:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.pmi-risk-gate-node {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pmi-risk-color) 58%, var(--background-modifier-border));
+  border-radius: 50%;
+  color: var(--pmi-risk-color);
+  background: var(--background-primary);
+}
+
+.pmi-risk-gate-node svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pmi-risk-gate-main,
+.pmi-risk-gate-progress {
+  display: grid;
+  min-width: 0;
+}
+
+.pmi-risk-gate-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmi-risk-gate-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-risk-nearest {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--pmi-risk-color) 36%, var(--background-modifier-border));
+  border-radius: var(--radius-s);
+  color: var(--pmi-risk-color);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+}
+
+.pmi-risk-gate-date,
+.pmi-risk-gate-progress span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-risk-gate-date,
+.pmi-risk-gate-progress strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-risk-gate-progress {
+  justify-items: end;
+  text-align: end;
+}
+
+.pmi-risk-gate-body {
+  margin-inline-start: 14px;
+  padding: 10px 10px 14px 25px;
+  border-inline-start: 1px solid color-mix(in srgb, var(--pmi-risk-color) 42%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--pmi-risk-color) 3%, transparent);
+}
+
+.pmi-risk-reasons,
+.pmi-risk-quality {
+  display: grid;
+  gap: 5px;
+  margin-block-end: 10px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-risk-reasons > div,
+.pmi-risk-quality {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pmi-risk-reasons svg,
+.pmi-risk-quality svg {
+  width: 13px;
+  height: 13px;
+  color: var(--pmi-risk-color);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link {
+  margin-inline-start: auto;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 28%, var(--background-modifier-border));
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: var(--font-ui-smaller);
+  transform: none;
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--interactive-accent) 48%, var(--background-modifier-border));
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--interactive-accent) 6%, transparent);
+}
+
+.pmi-risk-task-group h4 {
+  margin: 12px 0 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.pmi-risk-task-list {
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-task {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: start;
+  transform: none;
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-task + button.pmi-risk-task {
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) {
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--interactive-accent) 6%, transparent);
+  box-shadow: inset 2px 0 0 var(--interactive-accent);
+  transform: none;
+}
+
+.pmi-risk-task > div {
+  display: grid;
+  min-width: 0;
+}
+
+.pmi-risk-task strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-risk-task > div > span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-risk-task > span:last-child svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.pmi-risk-no-tasks {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-risk-unconfigured {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 22px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  color: var(--text-muted);
+}
+
+.pmi-risk-unconfigured > span svg { width: 24px; height: 24px; }
+.pmi-risk-unconfigured p { margin: 4px 0 12px; }
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  border: 0;
+  border-block-start: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  text-align: start;
+  transform: none;
+}
+
+.pmi-risk-delivery-issues-link > span:nth-child(2) { flex: 1; }
+.pmi-risk-delivery-issues-link svg { width: 14px; height: 14px; }
+
+@media (max-width: 620px) {
+  .pmi-gate-risk-summary-copy {
+    display: grid;
+    gap: 1px;
+  }
+
+  .pmi-gate-risk-summary-nearest,
+  .pmi-gate-risk-summary-action > span:first-child {
+    display: none;
+  }
+
+  body .modal-container .modal.pmi-gate-risk-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .pmi-risk-lead {
+    grid-template-columns: 38px minmax(0, 1fr);
+    padding: 18px 44px 16px 16px;
+  }
+
+  .pmi-risk-lead-signal {
+    width: 36px;
+    height: 36px;
+  }
+
+  .pmi-risk-project-panel {
+    padding-inline: 12px;
+  }
+
+  .pmi-risk-gate > summary {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .pmi-risk-gate-progress {
+    grid-column: 2;
+    justify-items: start;
+    text-align: start;
+  }
+}
+
 .pmi-delivery-progress {
   border: 1px solid var(--pmi-edge-strong);
   border-block-start: 0;
@@ -688,7 +1348,7 @@
 
 .pmi-progress-rails {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
 }
 
 .pmi-progress-row {
@@ -1617,6 +2277,11 @@ button.pmi-issue-row:hover .pmi-issue-row-arrow {
   justify-content: flex-end;
 }
 
+.pmi-progress-setting input.pmi-progress-name-input {
+  width: min(170px, 26vw);
+  font-weight: var(--font-medium);
+}
+
 .pmi-progress-tag-field {
   display: flex;
   align-items: stretch;
@@ -1797,6 +2462,161 @@ body .modal.pmi-project-tag-modal input[type="text"].pmi-project-tag-search:focu
 .pmi-progress-weight-error:not(:empty) {
   margin-block-start: 4px;
   color: var(--text-error);
+}
+
+body .modal-container .modal.pmi-project-gates-modal {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(820px, calc(100vh - 32px));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 34%, var(--background-modifier-border));
+}
+
+body .modal-container .modal.pmi-project-gates-modal .modal-content {
+  padding: 0;
+  overflow-y: auto;
+}
+
+.pmi-gate-editor-lead {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 13px;
+  padding: 22px 48px 18px 22px;
+  border-block-end: 1px solid var(--background-modifier-border);
+  background: color-mix(in srgb, var(--interactive-accent) 5%, var(--background-primary));
+}
+
+.pmi-gate-editor-signal {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 42%, transparent);
+  border-radius: 50%;
+  color: var(--text-accent);
+  background: var(--background-primary);
+}
+
+.pmi-gate-editor-copy h2,
+.pmi-gate-editor-copy p {
+  margin: 0;
+}
+
+.pmi-gate-editor-copy h2 {
+  font-size: var(--font-ui-large);
+}
+
+.pmi-gate-editor-copy strong {
+  display: block;
+  margin-block-start: 3px;
+}
+
+.pmi-gate-editor-copy p {
+  margin-block-start: 5px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-gate-editor-timeline {
+  padding: 16px 22px 4px;
+}
+
+.pmi-gate-editor-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 11px;
+  min-height: 54px;
+}
+
+.pmi-gate-editor-row:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset-block: 26px -1px;
+  inset-inline-start: 13px;
+  width: 1px;
+  background: color-mix(in srgb, var(--interactive-accent) 34%, var(--background-modifier-border));
+}
+
+.pmi-gate-editor-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 42%, var(--background-modifier-border));
+  border-radius: 50%;
+  color: var(--text-accent);
+  background: var(--background-primary);
+}
+
+.pmi-gate-editor-node svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pmi-gate-editor-field {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(150px, 190px);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  padding-block-end: 12px;
+}
+
+.pmi-gate-editor-field > span {
+  overflow: hidden;
+  font-weight: var(--font-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .modal.pmi-project-gates-modal input[type="date"] {
+  width: 100%;
+  font-family: var(--font-monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-gate-editor-validation {
+  min-height: 20px;
+  padding: 4px 22px;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-gate-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 22px 18px;
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+.pmi-confirm-action-modal {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.pmi-confirm-action-modal p {
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.pmi-confirm-action-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-block-start: 18px;
+}
+
+@media (max-width: 520px) {
+  .pmi-gate-editor-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .pmi-gate-editor-row {
+    min-height: 72px;
+  }
 }
 
 .mod-settings .setting-item.pmi-alias-guide {
