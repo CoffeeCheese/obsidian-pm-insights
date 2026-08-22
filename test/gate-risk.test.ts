@@ -157,6 +157,26 @@ describe("aggregateGateRisk", () => {
     expect(acceptance?.quality).toEqual({ missingDue: 0, unestimated: 1, unassigned: 1 });
   });
 
+  it("requires estimates on delivery subtasks instead of requirement root tasks", () => {
+    const snapshot = risk([
+      root({ estimate: 0 }),
+      task({ id: "estimated-work", estimate: 4 })
+    ], "2026-08-12");
+    const acceptance = snapshot.projects[0]?.gates.find((gate) => gate.id === "acceptance");
+
+    expect(acceptance?.quality.unestimated).toBe(0);
+  });
+
+  it("still reports an unestimated delivery subtask beneath a requirement root", () => {
+    const snapshot = risk([
+      root({ estimate: 0 }),
+      task({ id: "unestimated-work", estimate: 0 })
+    ], "2026-08-12");
+    const acceptance = snapshot.projects[0]?.gates.find((gate) => gate.id === "acceptance");
+
+    expect(acceptance?.quality.unestimated).toBe(1);
+  });
+
   it("reports incomplete schedules separately from risk", () => {
     const snapshot = risk([root(), task({ id: "open" })], "2026-08-08", {});
     expect(snapshot.projects[0]).toMatchObject({ configured: false, state: "unconfigured" });

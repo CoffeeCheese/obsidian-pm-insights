@@ -103,7 +103,7 @@ const en = {
   gateTaskDue: (date: string) => `Due ${date}`,
   gateTaskNoDue: "No due date",
   gateQuality: (due: number, estimate: number, assignee: number) =>
-    `${due} without due dates · ${estimate} unestimated · ${assignee} unassigned`,
+    `${due} without due dates · ${estimate} work tasks unestimated · ${assignee} unassigned`,
   acceptanceGateLabel: "Acceptance",
   launchGateLabel: "Launch reminder",
   designProgress: "Design",
@@ -381,7 +381,7 @@ const zh: typeof en = {
   gateTaskDue: (date: string) => `截止 ${date}`,
   gateTaskNoDue: "未设置截止日",
   gateQuality: (due: number, estimate: number, assignee: number) =>
-    `${due} 个未设截止日 · ${estimate} 个未估时 · ${assignee} 个未分配`,
+    `${due} 个未设截止日 · ${estimate} 个子任务未估时 · ${assignee} 个未分配`,
   acceptanceGateLabel: "验收",
   launchGateLabel: "上线提醒",
   designProgress: "设计进度",

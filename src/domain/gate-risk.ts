@@ -108,7 +108,9 @@ function taskDate(value: string | null | undefined): string | null {
 function dataQuality(tasks: TaskRecord[]): GateDataQuality {
   return {
     missingDue: tasks.filter((task) => !taskDate(task.dueDate)).length,
-    unestimated: tasks.filter((task) => task.estimate <= 0).length,
+    // Root tasks represent requirements. Their delivery effort is planned on
+    // the executable stage subtasks, so a root estimate would double count it.
+    unestimated: tasks.filter((task) => task.hierarchy !== "root" && task.estimate <= 0).length,
     unassigned: tasks.filter((task) => task.assignees.length === 0).length
   };
 }
