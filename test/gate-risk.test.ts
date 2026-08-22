@@ -111,6 +111,26 @@ describe("aggregateGateRisk", () => {
     expect(overdue.projects[0]?.nearestGate?.id).toBe("delivery");
   });
 
+  it("preserves skipped stage semantics instead of inventing pass timing", () => {
+    const skippedSettings = structuredClone(settings);
+    const [delivery] = skippedSettings.stages;
+    if (!delivery) throw new Error("Missing delivery stage");
+    delivery.skipWhenEmpty = true;
+    const snapshot = aggregateGateRisk([project], [root()], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings: skippedSettings,
+      gateSchedules: { p1: schedule },
+      today: "2026-08-12"
+    });
+
+    expect(snapshot.projects[0]?.gates[0]).toMatchObject({
+      state: "passed",
+      skipped: true,
+      timing: null
+    });
+  });
+
   it("keeps business gates independent while acceptance exposes blocking root tasks", () => {
     const snapshot = risk([
       root(),

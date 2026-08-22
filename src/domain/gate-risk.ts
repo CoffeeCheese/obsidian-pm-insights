@@ -43,6 +43,7 @@ export interface GateRiskMetric {
   progressGap: number | null;
   daysRemaining: number;
   state: Exclude<GateRiskState, "unconfigured">;
+  skipped: boolean;
   reasons: GateRiskReason[];
   tasks: TaskRecord[];
   blockingTasks: TaskRecord[];
@@ -135,6 +136,7 @@ function assessGate(input: {
   tasks: TaskRecord[];
   blockingTasks?: TaskRecord[];
   passed: boolean;
+  skipped?: boolean;
 }): GateRiskMetric {
   const unfinished = input.tasks.filter((task) => !task.completed);
   const expected = expectedProgress(input.windowStart, input.gateDate, input.today);
@@ -156,7 +158,7 @@ function assessGate(input: {
   let timing: GateTiming | null = null;
   if (input.passed) {
     state = "passed";
-    timing = passTiming(input.tasks, input.gateDate);
+    timing = input.skipped ? null : passTiming(input.tasks, input.gateDate);
   } else if (input.today > input.gateDate) {
     state = "overdue";
     reasons.push("gate-overdue");
@@ -189,6 +191,7 @@ function assessGate(input: {
     progressGap: gap,
     daysRemaining,
     state,
+    skipped: input.skipped ?? false,
     reasons,
     tasks: unfinished,
     blockingTasks: input.blockingTasks ?? [],
@@ -243,7 +246,8 @@ function projectRisk(
       today: options.today,
       progress: progressValue,
       tasks: metric.tasks,
-      passed: metric.state === "skipped" || progressValue === 100
+      passed: metric.state === "skipped" || progressValue === 100,
+      skipped: metric.state === "skipped"
     }));
     windowStart = gateDate;
   }

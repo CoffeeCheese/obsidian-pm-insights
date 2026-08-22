@@ -50,7 +50,10 @@ const evaluation = `(async () => {
   try {
     plugin.settings.selectedProjectIds = [project.id];
     const stageGates = Object.fromEntries(
-      plugin.settings.deliveryProgress.stages.map((stage) => [stage.id, date(0)])
+      plugin.settings.deliveryProgress.stages.map((stage, index, stages) => [
+        stage.id,
+        date(index - stages.length)
+      ])
     );
     plugin.settings.gateSchedules[project.id] = {
       startDate: date(-10),
@@ -91,6 +94,19 @@ const evaluation = `(async () => {
     const projectTabs = [...(riskModal?.querySelectorAll('.pmi-risk-project-tab[role="tab"]') ?? [])];
     const activePanel = riskModal?.querySelector('[role="tabpanel"]');
     const gates = [...(riskModal?.querySelectorAll(".pmi-risk-gate") ?? [])];
+    const passedGates = gates.filter((gate) => gate.classList.contains("is-passed"));
+    const passedGatesAvoidOverdueLabel = passedGates.length > 0 && passedGates.every((gate) => {
+      const summaryText = gate.querySelector("summary")?.textContent ?? "";
+      return !summaryText.includes("已逾期") && !summaryText.toLowerCase().includes("overdue");
+    });
+    const skippedGates = gates.filter((gate) => gate.classList.contains("is-skipped"));
+    const skippedGatesUseSkipLanguage = skippedGates.length > 0 && skippedGates.every((gate) => {
+      const summaryText = gate.querySelector("summary")?.textContent ?? "";
+      const hasSkipLabel = summaryText.includes("已跳过") || summaryText.toLowerCase().includes("skipped");
+      const hasCompletionTiming = ["提前通过", "按时通过", "逾期通过", "无法判断通过时间"]
+        .some((label) => summaryText.includes(label));
+      return hasSkipLabel && !hasCompletionTiming;
+    });
     const nearestHighlighted = Boolean(
       riskModal?.querySelector(".pmi-risk-gate.is-nearest .pmi-risk-nearest")
     );
@@ -144,6 +160,8 @@ const evaluation = `(async () => {
         activePanel?.getAttribute("aria-labelledby") === projectTab?.id,
       gateCountMatches: gates.length === plugin.settings.deliveryProgress.stages.length + 2,
       hasStateLabels: gates.every((gate) => Boolean(gate.querySelector(".pmi-risk-state")?.textContent?.trim())),
+      passedGatesAvoidOverdueLabel,
+      skippedGatesUseSkipLanguage,
       nearestHighlighted,
       taskReturnVerified,
       editorAvailable: editor instanceof HTMLElement,
@@ -184,6 +202,8 @@ if (
   !report.projectTabsAccessible ||
   !report.gateCountMatches ||
   !report.hasStateLabels ||
+  !report.passedGatesAvoidOverdueLabel ||
+  !report.skippedGatesUseSkipLanguage ||
   !report.nearestHighlighted ||
   !report.taskReturnVerified ||
   !report.editorAvailable ||

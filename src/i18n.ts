@@ -74,6 +74,7 @@ const en = {
   riskStateHigh: "High risk",
   riskStateOverdue: "Overdue",
   riskStatePassed: "Passed",
+  riskStateSkipped: "Skipped",
   gateRiskProjects: "Projects in risk analysis",
   gateProgressComparison: (actual: number, expected: number) =>
     `${actual}% complete · ${expected}% expected`,
@@ -344,6 +345,7 @@ const zh: typeof en = {
   riskStateHigh: "高风险",
   riskStateOverdue: "已逾期",
   riskStatePassed: "已通过",
+  riskStateSkipped: "已跳过",
   gateRiskProjects: "参与风险分析的项目",
   gateProgressComparison: (actual: number, expected: number) =>
     `已完成 ${actual}% · 计划应达 ${expected}%`,

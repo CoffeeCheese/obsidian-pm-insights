@@ -166,7 +166,7 @@ export class GateRiskModal extends Modal {
     t: Translations
   ): void {
     const item = root.createEl("details", {
-      cls: `pmi-risk-gate is-${gate.state}${nearest ? " is-nearest" : ""}`,
+      cls: `pmi-risk-gate is-${gate.state}${gate.skipped ? " is-skipped" : ""}${nearest ? " is-nearest" : ""}`,
       attr: { "data-gate-id": gate.id }
     });
     item.open = gate.state === "overdue" || gate.state === "high" || gate.state === "attention";
@@ -177,16 +177,19 @@ export class GateRiskModal extends Modal {
     const heading = main.createDiv("pmi-risk-gate-heading");
     heading.createEl("strong", { text: this.gateName(gate, t) });
     if (nearest) heading.createSpan({ cls: "pmi-risk-nearest", text: t.nearestGateBadge });
-    heading.createSpan({ cls: "pmi-risk-state", text: this.stateLabel(gate.state, t) });
+    heading.createSpan({
+      cls: "pmi-risk-state",
+      text: gate.skipped ? t.riskStateSkipped : this.stateLabel(gate.state, t)
+    });
     main.createSpan({
       cls: "pmi-risk-gate-date",
-      text: `${gate.gateDate} · ${gate.daysRemaining < 0
-        ? t.gateDaysOverdue(Math.abs(gate.daysRemaining))
-        : t.gateDaysRemaining(gate.daysRemaining)}`
+      text: this.gateDateLabel(gate, t)
     });
     const progress = summary.createDiv("pmi-risk-gate-progress");
-    progress.createEl("strong", { text: `${gate.progress}%` });
-    if (gate.expectedProgress !== null && gate.state !== "passed") {
+    progress.createEl("strong", { text: gate.skipped ? "—" : `${gate.progress}%` });
+    if (gate.skipped) {
+      progress.createSpan({ text: t.skippedStatistics });
+    } else if (gate.expectedProgress !== null && gate.state !== "passed") {
       progress.createSpan({ text: t.gateProgressComparison(gate.progress, gate.expectedProgress) });
     } else if (gate.timing) {
       progress.createSpan({ text: this.timingLabel(gate.timing, t) });
@@ -351,5 +354,12 @@ export class GateRiskModal extends Modal {
       case "late": return t.gateTimingLate;
       case "unknown": return t.gateTimingUnknown;
     }
+  }
+
+  private gateDateLabel(gate: GateRiskMetric, t: Translations): string {
+    if (gate.state === "passed") return gate.gateDate;
+    return `${gate.gateDate} · ${gate.daysRemaining < 0
+      ? t.gateDaysOverdue(Math.abs(gate.daysRemaining))
+      : t.gateDaysRemaining(gate.daysRemaining)}`;
   }
 }
