@@ -1807,6 +1807,12 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
 }
 
 .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  button.pmi-delivery-progress-quality:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--color-orange) 42%, transparent);
+  outline-offset: -1px;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
   button.pmi-delivery-progress-quality:is(:hover, :focus-visible)
   .pmi-delivery-progress-quality-signal {
   color: color-mix(in srgb, var(--color-orange) 88%, var(--text-normal));
