@@ -1,6 +1,23 @@
 import { spawnSync } from "node:child_process";
 
 const vault = process.argv[2] ?? "Obsd";
+const targetName = process.argv[3] ?? "delivery-issues";
+const targets = {
+  "delivery-issues": {
+    label: "Delivery issue",
+    triggerSelector: ".pmi-delivery-progress-quality",
+    modalSelector: ".pmi-delivery-issues-modal"
+  },
+  "gate-risk": {
+    label: "Gate risk",
+    triggerSelector: ".pmi-gate-risk-summary",
+    modalSelector: ".pmi-gate-risk-modal"
+  }
+};
+const target = targets[targetName];
+if (!target) throw new Error(`Unknown focus-return target: ${targetName}`);
+const triggerSelector = JSON.stringify(target.triggerSelector);
+const modalSelector = JSON.stringify(target.modalSelector);
 const openResult = spawnSync(
   "obsidian",
   [`vault=${vault}`, "command", "id=project-manager-insights:open-assignee-workload-insights"],
@@ -30,13 +47,13 @@ const setup = evaluate(`(async () => {
   };
 
   const trigger = await waitFor(() =>
-    document.querySelector(".pmi-delivery-progress-quality")
+    document.querySelector(${triggerSelector})
   );
   if (!(trigger instanceof HTMLButtonElement)) {
-    return JSON.stringify({ setup: false, reason: "delivery issue trigger unavailable" });
+    return JSON.stringify({ setup: false, reason: "modal trigger unavailable" });
   }
 
-  document.querySelector(".pmi-delivery-issues-modal")
+  document.querySelector(${modalSelector})
     ?.querySelector(".modal-close-button, .modal-header-button")?.click();
   const rect = trigger.getBoundingClientRect();
 
@@ -73,12 +90,12 @@ for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) {
 }
 
 const opened = evaluate(`(async () => {
-  for (let attempt = 0; attempt < 40 && !document.querySelector(".pmi-delivery-issues-modal"); attempt += 1) {
+  for (let attempt = 0; attempt < 40 && !document.querySelector(${modalSelector}); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return JSON.stringify({
     setup: true,
-    modalOpen: Boolean(document.querySelector(".pmi-delivery-issues-modal"))
+    modalOpen: Boolean(document.querySelector(${modalSelector}))
   });
 })()`);
 if (!opened.modalOpen) {
@@ -100,18 +117,18 @@ for (const type of ["keyDown", "keyUp"]) {
 }
 
 const report = evaluate(`(async () => {
-  for (let attempt = 0; attempt < 40 && document.querySelector(".pmi-delivery-issues-modal"); attempt += 1) {
+  for (let attempt = 0; attempt < 40 && document.querySelector(${modalSelector}); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  const trigger = document.querySelector(".pmi-delivery-progress-quality");
+  const trigger = document.querySelector(${triggerSelector});
   if (!(trigger instanceof HTMLButtonElement)) {
     return JSON.stringify({ setup: false, reason: "delivery issue trigger disappeared" });
   }
   const style = getComputedStyle(trigger);
   return JSON.stringify({
     setup: true,
-    modalClosed: !document.querySelector(".pmi-delivery-issues-modal"),
+    modalClosed: !document.querySelector(${modalSelector}),
     triggerFocused: document.activeElement === trigger,
     focusVisible: trigger.matches(":focus-visible"),
     outlineStyle: style.outlineStyle,
@@ -123,7 +140,7 @@ const report = evaluate(`(async () => {
 
 if (!report.modalClosed) {
   evaluate(`(() => {
-    document.querySelector(".pmi-delivery-issues-modal")
+    document.querySelector(${modalSelector})
       ?.querySelector(".modal-close-button, .modal-header-button")?.click();
     return JSON.stringify({ setup: true });
   })()`);
@@ -137,8 +154,8 @@ if (
   !report.focusVisible ||
   thickFocusOutline
 ) {
-  console.error(`Delivery issue trigger retains a strong focus treatment after Escape: ${JSON.stringify(report)}`);
+  console.error(`${target.label} trigger retains a strong focus treatment after Escape: ${JSON.stringify(report)}`);
   process.exit(1);
 }
 
-console.log("Delivery issue trigger returns from Escape without a lingering strong focus treatment.");
+console.log(`${target.label} trigger returns from Escape without a lingering strong focus treatment.`);

@@ -704,8 +704,8 @@
 
 .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
   button.pmi-gate-risk-summary:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--pmi-risk-color) 30%, transparent);
-  outline-offset: 2px;
+  outline: 1px solid color-mix(in srgb, var(--pmi-risk-color) 30%, transparent);
+  outline-offset: -1px;
 }
 
 .pmi-gate-risk-summary-signal {

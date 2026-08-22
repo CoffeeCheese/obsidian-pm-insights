@@ -26,6 +26,7 @@
     "test:ui:delivery-issue-escape-focus": "node scripts/check-delivery-issue-escape-focus.mjs",
     "test:ui:delivery-issue-return": "node scripts/check-delivery-issue-return.mjs",
     "test:ui:gate-risk": "node scripts/check-gate-risk.mjs",
+    "test:ui:gate-risk-escape-focus": "node scripts/check-delivery-issue-escape-focus.mjs Obsd gate-risk",
     "test:ui:gate-risk-unconfigured": "node scripts/check-gate-risk-unconfigured.mjs",
     "test:official-review": "node scripts/check-official-review.mjs"
   },
