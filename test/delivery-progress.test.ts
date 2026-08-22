@@ -107,6 +107,11 @@ describe("aggregateDeliveryProgress", () => {
     expect(strictSnapshot.acceptance).toMatchObject({ pending: 0, notReady: 1 });
     expect(strictSnapshot.stages.testing.state).toBe("missing");
     expect(strictSnapshot.quality.missingPrerequisiteCount).toBe(1);
+    expect(strictSnapshot.quality.issues.some((issue) =>
+      issue.kind === "missing-prerequisite"
+        && issue.task.id === "root"
+        && issue.stageId === "testing"
+    )).toBe(true);
 
     strict.stages.testing.skipWhenEmpty = true;
     const skippedSnapshot = aggregateDeliveryProgress([
@@ -148,6 +153,19 @@ describe("aggregateDeliveryProgress", () => {
       unclassifiedTaskCount: 1,
       unlinkedTaskCount: 1
     });
+    expect(snapshot.quality.issues.map((issue) => [issue.kind, issue.task.id])).toEqual([
+      ["conflicting", "conflict"],
+      ["unclassified", "unclassified"],
+      ["unlinked", "unlinked"],
+      ["missing-prerequisite", "root"]
+    ]);
+    expect(snapshot.quality.issues).toHaveLength(
+      snapshot.quality.conflictingTaskCount
+        + snapshot.quality.unclassifiedTaskCount
+        + snapshot.quality.unlinkedTaskCount
+        + snapshot.quality.missingPrerequisiteCount
+        + snapshot.quality.prematureCompletionCount
+    );
   });
 
   it("excludes cancelled root trees and applies archive propagation", () => {
@@ -174,5 +192,8 @@ describe("aggregateDeliveryProgress", () => {
 
     expect(snapshot.acceptance).toMatchObject({ accepted: 0, pending: 0, notReady: 1 });
     expect(snapshot.quality.prematureCompletionCount).toBe(1);
+    expect(snapshot.quality.issues.some((issue) =>
+      issue.kind === "premature-completion" && issue.task.id === "root"
+    )).toBe(true);
   });
 });

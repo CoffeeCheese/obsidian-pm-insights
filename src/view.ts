@@ -6,6 +6,7 @@ import {
   type StageProgressMetric
 } from "./domain/delivery-progress";
 import { translations, type Translations } from "./i18n";
+import { DeliveryIssuesModal } from "./delivery-issues-modal";
 import type {
   DeliveryStageId,
   InsightSettings,
@@ -306,7 +307,7 @@ export class InsightsView extends ItemView {
         includeArchived: this.host.settings.includeArchived,
         settings: this.host.settings.deliveryProgress
       });
-      this.renderDeliveryProgress(dashboard, deliveryProgress, t);
+      this.renderDeliveryProgress(dashboard, deliveryProgress, snapshot.projects, t);
     } else {
       this.renderDeliveryProgressCollapsed(dashboard, t);
     }
@@ -363,6 +364,7 @@ export class InsightsView extends ItemView {
   private renderDeliveryProgress(
     root: HTMLElement,
     progress: DeliveryProgressSnapshot,
+    projects: ProjectRecord[],
     t: Translations
   ): void {
     const section = root.createDiv({
@@ -395,15 +397,19 @@ export class InsightsView extends ItemView {
     }
     this.renderAcceptanceProgress(rails, progress, t);
 
-    const issueCount = progress.quality.unclassifiedTaskCount
-      + progress.quality.conflictingTaskCount
-      + progress.quality.unlinkedTaskCount
-      + progress.quality.missingPrerequisiteCount
-      + progress.quality.prematureCompletionCount;
+    const issueCount = progress.quality.issues.length;
     if (issueCount > 0) {
-      const quality = section.createDiv("pmi-delivery-progress-quality");
-      setIcon(quality.createSpan(), "circle-alert");
+      const quality = section.createEl("button", {
+        cls: "pmi-delivery-progress-quality",
+        attr: {
+          type: "button",
+          "aria-label": `${t.viewDeliveryIssues}: ${t.deliveryIssuesCount(issueCount)}`
+        }
+      });
+      const signal = quality.createSpan("pmi-delivery-progress-quality-signal");
+      setIcon(signal, "circle-alert");
       quality.createSpan({
+        cls: "pmi-delivery-progress-quality-summary",
         text: t.deliveryProgressQuality(
           progress.quality.unclassifiedTaskCount,
           progress.quality.conflictingTaskCount,
@@ -411,6 +417,17 @@ export class InsightsView extends ItemView {
           progress.quality.missingPrerequisiteCount,
           progress.quality.prematureCompletionCount
         )
+      });
+      const action = quality.createSpan("pmi-delivery-progress-quality-action");
+      action.createSpan({ text: t.viewDeliveryIssues });
+      setIcon(action.createSpan(), "chevron-right");
+      quality.addEventListener("click", () => {
+        new DeliveryIssuesModal(this.app, {
+          issues: progress.quality.issues,
+          projects,
+          translations: t,
+          openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath)
+        }).open();
       });
     }
   }

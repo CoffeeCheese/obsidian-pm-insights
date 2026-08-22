@@ -31,7 +31,19 @@ export interface DeliveryProgressQuality {
   unlinkedTaskCount: number;
   missingPrerequisiteCount: number;
   prematureCompletionCount: number;
+  issues: DeliveryProgressIssue[];
 }
+
+export type DeliveryProgressIssue =
+  | {
+    kind: "unclassified" | "conflicting" | "unlinked" | "premature-completion";
+    task: TaskRecord;
+  }
+  | {
+    kind: "missing-prerequisite";
+    task: TaskRecord;
+    stageId: DeliveryStageId;
+  };
 
 export interface DeliveryProgressSnapshot {
   stages: Record<DeliveryStageId, StageProgressMetric>;
@@ -163,6 +175,7 @@ export function aggregateDeliveryProgress(
   let unclassifiedTaskCount = 0;
   let conflictingTaskCount = 0;
   const classified: ClassifiedTask[] = [];
+  const issues: DeliveryProgressIssue[] = [];
 
   for (const task of selected) {
     if (task.hierarchy === "root" || isCancelled(task)) continue;
@@ -170,6 +183,7 @@ export function aggregateDeliveryProgress(
     const rootKey = resolveRoot(task);
     if (!rootKey) {
       unlinkedTaskCount += 1;
+      issues.push({ kind: "unlinked", task });
       continue;
     }
     if (!eligibleRootKeys.has(rootKey)) continue;
@@ -177,10 +191,12 @@ export function aggregateDeliveryProgress(
     const stages = matchedStages(task, options.settings);
     if (stages.length === 0) {
       unclassifiedTaskCount += 1;
+      issues.push({ kind: "unclassified", task });
       continue;
     }
     if (stages.length > 1) {
       conflictingTaskCount += 1;
+      issues.push({ kind: "conflicting", task });
       continue;
     }
     const [stageId] = stages;
@@ -223,6 +239,7 @@ export function aggregateDeliveryProgress(
         if (!stage.skipWhenEmpty) {
           prerequisitesMet = false;
           missingPrerequisiteCount += 1;
+          issues.push({ kind: "missing-prerequisite", task: root, stageId });
         }
         continue;
       }
@@ -235,7 +252,10 @@ export function aggregateDeliveryProgress(
       pending += 1;
     } else {
       notReady += 1;
-      if (root.completed) prematureCompletionCount += 1;
+      if (root.completed) {
+        prematureCompletionCount += 1;
+        issues.push({ kind: "premature-completion", task: root });
+      }
     }
   }
 
@@ -274,7 +294,8 @@ export function aggregateDeliveryProgress(
       conflictingTaskCount,
       unlinkedTaskCount,
       missingPrerequisiteCount,
-      prematureCompletionCount
+      prematureCompletionCount,
+      issues
     }
   };
 }
