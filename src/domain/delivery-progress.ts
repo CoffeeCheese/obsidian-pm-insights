@@ -242,6 +242,11 @@ export function aggregateDeliveryProgress(
   for (const rootKey of eligibleRootKeys) {
     const root = rootByKey.get(rootKey);
     if (!root) continue;
+    if (root.completed && !options.settings.validateCompletedRootPrerequisites) {
+      accepted += 1;
+      acceptanceRoots.push({ task: root, state: "accepted", prerequisites: [], blockers: [] });
+      continue;
+    }
     let prerequisitesMet = true;
     const prerequisites: TaskRecord[] = [];
     const blockers: TaskRecord[] = [];

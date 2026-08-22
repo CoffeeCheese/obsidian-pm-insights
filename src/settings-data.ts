@@ -62,6 +62,9 @@ function normalizeDeliveryProgressSettings(
   if (typeof saved?.acceptanceWeight === "number" && Number.isFinite(saved.acceptanceWeight)) {
     defaults.acceptanceWeight = saved.acceptanceWeight;
   }
+  if (typeof saved?.validateCompletedRootPrerequisites === "boolean") {
+    defaults.validateCompletedRootPrerequisites = saved.validateCompletedRootPrerequisites;
+  }
   return defaults;
 }
 

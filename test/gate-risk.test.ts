@@ -50,7 +50,8 @@ const settings: DeliveryProgressSettings = {
     acceptancePrerequisite: true,
     skipWhenEmpty: false
   }],
-  acceptanceWeight: 10
+  acceptanceWeight: 10,
+  validateCompletedRootPrerequisites: true
 };
 
 const schedule: ProjectGateSchedule = {

@@ -12,6 +12,24 @@ describe("normalizeInsightSettings", () => {
     expect(normalizeInsightSettings({ showDeliveryProgress: false }).showDeliveryProgress).toBe(false);
   });
 
+  it("keeps completed-root prerequisite validation enabled unless users disable it", () => {
+    expect(normalizeInsightSettings(null).deliveryProgress.validateCompletedRootPrerequisites)
+      .toBe(true);
+    expect(normalizeInsightSettings({
+      deliveryProgress: {
+        ...structuredClone(DEFAULT_SETTINGS.deliveryProgress),
+        validateCompletedRootPrerequisites: false
+      }
+    }).deliveryProgress.validateCompletedRootPrerequisites).toBe(false);
+    expect(normalizeInsightSettings({
+      deliveryProgress: {
+        ...structuredClone(DEFAULT_SETTINGS.deliveryProgress),
+        validateCompletedRootPrerequisites: "sometimes"
+      }
+    } as unknown as Partial<InsightSettings>).deliveryProgress.validateCompletedRootPrerequisites)
+      .toBe(true);
+  });
+
   it("falls back safely when the saved visibility value is invalid", () => {
     const saved = {
       ...structuredClone(DEFAULT_SETTINGS),

@@ -210,6 +210,27 @@ describe("aggregateDeliveryProgress", () => {
     )).toBe(true);
   });
 
+  it("lets users trust a completed root without validating its prerequisites", () => {
+    const progressSettings = settings();
+    progressSettings.validateCompletedRootPrerequisites = false;
+    const snapshot = aggregateDeliveryProgress([
+      root("root", { completed: true }),
+      task({ id: "dev", parentId: "root", tags: ["type/dev"] })
+    ], options(progressSettings));
+
+    expect(snapshot.acceptance).toMatchObject({ accepted: 1, pending: 0, notReady: 0 });
+    expect(snapshot.quality.prematureCompletionCount).toBe(0);
+    expect(snapshot.quality.issues.some((issue) =>
+      issue.kind === "premature-completion" && issue.task.id === "root"
+    )).toBe(false);
+
+    const incomplete = aggregateDeliveryProgress([
+      root("root"),
+      task({ id: "dev", parentId: "root", tags: ["type/dev"] })
+    ], options(progressSettings));
+    expect(incomplete.acceptance).toMatchObject({ accepted: 0, pending: 0, notReady: 1 });
+  });
+
   it("aggregates custom stages in their configured order", () => {
     const progressSettings = settings();
     progressSettings.stages = [

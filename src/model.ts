@@ -57,6 +57,7 @@ export interface DeliveryStageSettings {
 export interface DeliveryProgressSettings {
   stages: DeliveryStageSettings[];
   acceptanceWeight: number;
+  validateCompletedRootPrerequisites: boolean;
 }
 
 export interface ProjectGateSchedule {
@@ -174,6 +175,7 @@ export const DEFAULT_SETTINGS: InsightSettings = {
         skipWhenEmpty: true
       }
     ],
-    acceptanceWeight: 10
+    acceptanceWeight: 10,
+    validateCompletedRootPrerequisites: true
   }
 };

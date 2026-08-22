@@ -50,6 +50,14 @@ const evaluation = `(async () => {
 
   skipCheckbox.checked = true;
   skipCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
+  const completedRootValidation = container?.querySelector(
+    ".pmi-completed-root-validation input[type=checkbox]"
+  );
+  if (!(completedRootValidation instanceof HTMLInputElement)) {
+    return JSON.stringify({ setup: false, reason: "completed-root-validation-unavailable" });
+  }
+  completedRootValidation.checked = false;
+  completedRootValidation.dispatchEvent(new Event("change", { bubbles: true }));
   const saveButton = container?.querySelector(".pmi-progress-save button");
   if (!(saveButton instanceof HTMLButtonElement)) {
     return JSON.stringify({ setup: false, reason: "progress-save-unavailable" });
@@ -70,6 +78,8 @@ const evaluation = `(async () => {
   const savedAfterToggle =
     plugin.settings.deliveryProgress.stages.find((stage) => stage.id === developmentStage.id)
       ?.skipWhenEmpty;
+  const completedRootValidationSaved =
+    plugin.settings.deliveryProgress.validateCompletedRootPrerequisites === false;
   const rowText = document.querySelector(
     '.pmi-progress-row[data-stage-id="' + CSS.escape(developmentStage.id) + '"]'
   )?.innerText ?? "";
@@ -77,6 +87,8 @@ const evaluation = `(async () => {
   report = {
     setup: true,
     savedAfterToggle,
+    completedRootValidationAccessible: Boolean(completedRootValidation.getAttribute("aria-label")?.trim()),
+    completedRootValidationSaved,
     dashboardRefreshed: rowText.trim().length > 0,
     rowText
   };
@@ -99,9 +111,15 @@ const payload = output.match(/=>\s*(\{.*\})/u)?.[1];
 if (!payload) throw new Error(`Could not read Obsidian evaluation result:\n${output}`);
 
 const report = JSON.parse(payload);
-if (!report.setup || !report.savedAfterToggle || !report.dashboardRefreshed) {
-  console.error(`Progress skip checkbox did not save with the stage configuration: ${JSON.stringify(report)}`);
+if (
+  !report.setup ||
+  !report.savedAfterToggle ||
+  !report.completedRootValidationAccessible ||
+  !report.completedRootValidationSaved ||
+  !report.dashboardRefreshed
+) {
+  console.error(`Progress rule controls did not save with the stage configuration: ${JSON.stringify(report)}`);
   process.exitCode = 1;
 } else {
-  console.log("Progress skip checkbox saves with the stage configuration and refreshes the dashboard.");
+  console.log("Progress skip and completed-root validation controls save and refresh the dashboard.");
 }

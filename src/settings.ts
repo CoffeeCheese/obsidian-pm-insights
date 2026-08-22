@@ -203,6 +203,11 @@ export class InsightsSettingTab extends PluginSettingTab {
             this.progressStageDefinition(stage.id, t)
           ),
           {
+            name: t.validateCompletedRootPrerequisites,
+            desc: t.validateCompletedRootPrerequisitesDesc,
+            render: (setting) => this.renderCompletedRootValidation(setting, t)
+          },
+          {
             name: t.acceptanceWeight,
             desc: t.acceptanceWeightDesc,
             render: (setting) => this.renderAcceptanceWeight(setting, t)
@@ -328,6 +333,12 @@ export class InsightsSettingTab extends PluginSettingTab {
     }
     new Setting(containerEl).addButton((button) =>
       button.setButtonText(t.addDeliveryStage).onClick(() => this.addProgressStage(t))
+    );
+    this.renderCompletedRootValidation(
+      new Setting(containerEl)
+        .setName(t.validateCompletedRootPrerequisites)
+        .setDesc(t.validateCompletedRootPrerequisitesDesc),
+      t
     );
     this.renderAcceptanceWeight(
       new Setting(containerEl).setName(t.acceptanceWeight).setDesc(t.acceptanceWeightDesc),
@@ -513,6 +524,22 @@ export class InsightsSettingTab extends PluginSettingTab {
         this.progressDraft.acceptanceWeight = value;
       }
     );
+  }
+
+  private renderCompletedRootValidation(setting: Setting, t: Translations): void {
+    setting.settingEl.addClass("pmi-completed-root-validation");
+    setting.addToggle((toggle) => {
+      toggle
+        .setValue(this.progressDraft.validateCompletedRootPrerequisites)
+        .onChange((value) => {
+          this.progressDraft.validateCompletedRootPrerequisites = value;
+        });
+      toggle.toggleEl.setAttribute("aria-label", t.validateCompletedRootPrerequisites);
+      toggle.toggleEl.querySelector("input")?.setAttribute(
+        "aria-label",
+        t.validateCompletedRootPrerequisites
+      );
+    });
   }
 
   private addWeightInput(
