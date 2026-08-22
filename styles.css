@@ -1035,6 +1035,7 @@ body .modal-container .modal.pmi-delivery-issues-modal .modal-content {
   gap: 6px;
   padding: 11px 20px;
   overflow-x: auto;
+  overflow-y: hidden;
   border-block-end: 1px solid var(--pmi-issue-edge);
   background: color-mix(in srgb, var(--background-secondary) 58%, var(--background-primary));
   scrollbar-width: thin;
@@ -1055,26 +1056,53 @@ body .modal-container .modal.pmi-delivery-issues-modal button.pmi-issue-filter {
   font-weight: var(--font-medium);
   white-space: nowrap;
   box-shadow: none;
+  transform: none;
   transition:
     color 140ms ease,
     border-color 140ms ease,
     background-color 140ms ease,
-    transform 140ms ease;
+    box-shadow 160ms ease;
 }
 
-body .modal-container .modal.pmi-delivery-issues-modal button.pmi-issue-filter:hover {
+body .modal-container .modal.pmi-delivery-issues-modal
+  .modal-content
+  button.pmi-issue-filter:hover {
   color: var(--text-normal);
-  border-color: color-mix(in srgb, var(--pmi-issue-accent) 22%, transparent);
-  background: color-mix(in srgb, var(--pmi-issue-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--pmi-issue-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--pmi-issue-accent) 6%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pmi-issue-accent) 34%, transparent);
+  transform: none;
 }
 
 body .modal-container .modal.pmi-delivery-issues-modal button.pmi-issue-filter.is-active {
   color: color-mix(in srgb, var(--pmi-issue-accent) 82%, var(--text-normal));
-  border-color: color-mix(in srgb, var(--pmi-issue-accent) 30%, transparent);
-  background: color-mix(in srgb, var(--pmi-issue-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pmi-issue-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--pmi-issue-accent) 10%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pmi-issue-accent) 54%, transparent);
+  transform: none;
 }
 
-body .modal-container .modal.pmi-delivery-issues-modal button.pmi-issue-filter:focus-visible,
+body .modal-container .modal.pmi-delivery-issues-modal
+  .modal-content
+  button.pmi-issue-filter:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 2px var(--interactive-accent),
+    inset 0 -2px 0 color-mix(in srgb, var(--pmi-issue-accent) 54%, transparent);
+}
+
+body .modal-container .modal.pmi-delivery-issues-modal
+  .modal-content
+  button.pmi-issue-filter.is-active:hover {
+  color: color-mix(in srgb, var(--pmi-issue-accent) 82%, var(--text-normal));
+  border-color: color-mix(in srgb, var(--pmi-issue-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--pmi-issue-accent) 10%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--pmi-issue-accent) 18%, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--pmi-issue-accent) 54%, transparent);
+  transform: none;
+}
+
 body .modal-container .modal.pmi-delivery-issues-modal button.pmi-issue-row:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;

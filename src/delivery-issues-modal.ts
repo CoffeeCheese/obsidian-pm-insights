@@ -14,6 +14,8 @@ const ISSUE_KIND_ORDER: DeliveryProgressIssueKind[] = [
   "unlinked"
 ];
 
+let nextModalLabelId = 0;
+
 interface DeliveryIssuesModalOptions {
   issues: DeliveryProgressIssue[];
   projects: ProjectRecord[];
@@ -23,6 +25,9 @@ interface DeliveryIssuesModalOptions {
 
 export class DeliveryIssuesModal extends Modal {
   private filter: IssueFilter = "all";
+  private readonly labelId = ++nextModalLabelId;
+  private readonly filterLabelId = `pmi-issue-filter-label-${this.labelId}`;
+  private readonly titleLabelId = `pmi-issue-title-label-${this.labelId}`;
 
   constructor(app: App, private readonly options: DeliveryIssuesModalOptions) {
     super(app);
@@ -30,7 +35,7 @@ export class DeliveryIssuesModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("pmi-delivery-issues-modal");
-    this.modalEl.setAttribute("aria-label", this.options.translations.deliveryIssuesTitle);
+    this.modalEl.setAttribute("aria-labelledby", this.titleLabelId);
     this.render();
   }
 
@@ -47,13 +52,21 @@ export class DeliveryIssuesModal extends Modal {
     setIcon(signal, "circle-alert");
     const copy = lead.createDiv("pmi-issue-lead-copy");
     const heading = copy.createDiv("pmi-issue-lead-heading");
-    heading.createEl("h2", { text: t.deliveryIssuesTitle });
+    heading.createEl("h2", {
+      text: t.deliveryIssuesTitle,
+      attr: { id: this.titleLabelId }
+    });
     heading.createSpan({ text: t.deliveryIssuesCount(issues.length) });
     copy.createEl("p", { text: t.deliveryIssuesSubtitle });
 
     const filters = this.contentEl.createDiv({
       cls: "pmi-issue-filters",
-      attr: { role: "group", "aria-label": t.deliveryIssuesFilter }
+      attr: { role: "group", "aria-labelledby": this.filterLabelId }
+    });
+    filters.createSpan({
+      cls: "pmi-sr-only",
+      text: t.deliveryIssuesFilter,
+      attr: { id: this.filterLabelId }
     });
     this.renderFilter(filters, "all", t.deliveryIssuesAll, issues.length);
     for (const kind of ISSUE_KIND_ORDER) {
@@ -89,13 +102,16 @@ export class DeliveryIssuesModal extends Modal {
     });
     button.createSpan({ text: label });
     button.createSpan({ cls: "pmi-issue-filter-count", text: String(count) });
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
       if (this.filter === filter) return;
+      const restoreKeyboardFocus = event.detail === 0;
       this.filter = filter;
       this.render();
-      this.contentEl.querySelector<HTMLButtonElement>(
-        `.pmi-issue-filter[aria-pressed="true"]`
-      )?.focus();
+      if (restoreKeyboardFocus) {
+        this.contentEl.querySelector<HTMLButtonElement>(
+          `.pmi-issue-filter[aria-pressed="true"]`
+        )?.focus();
+      }
     });
   }
 
