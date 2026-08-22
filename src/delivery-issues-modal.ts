@@ -161,7 +161,6 @@ export class DeliveryIssuesModal extends Modal {
       setIcon(arrow, "arrow-up-right");
       row.addEventListener("click", () => {
         if (!project) return;
-        this.close();
         void this.options.openTask(issue.task.id, project.path);
       });
     }
