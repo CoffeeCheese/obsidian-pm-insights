@@ -1176,7 +1176,34 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
 }
 
 .pmi-risk-unconfigured > span svg { width: 24px; height: 24px; }
-.pmi-risk-unconfigured p { margin: 4px 0 12px; }
+.pmi-risk-unconfigured p { margin: 4px 0 0; }
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-configure {
+  display: inline-flex;
+  grid-column: 2;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  height: auto;
+  justify-self: start;
+  align-items: center;
+  margin-block-start: 2px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 32%, var(--background-modifier-border));
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--interactive-accent) 5%, transparent);
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-configure:is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--interactive-accent) 55%, var(--background-modifier-border));
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 9%, transparent);
+}
 
 body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
   display: flex;
