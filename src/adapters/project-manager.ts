@@ -168,8 +168,7 @@ function task(
     estimate: number(frontmatter.timeEstimate),
     logged: loggedHours(frontmatter.timeLogs),
     progress,
-    completed:
-      Boolean(optionalText(frontmatter.completed)) || progress >= 100 || completeStatuses.has(status),
+    completed: Boolean(optionalText(frontmatter.completed)) || completeStatuses.has(status),
     archived: truthy(frontmatter.archived)
   };
 }

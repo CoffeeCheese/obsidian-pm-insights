@@ -108,6 +108,56 @@ describe("ProjectManagerCatalog", () => {
     ]);
   });
 
+  it("does not infer completion from progress when the configured status is incomplete", async () => {
+    const source = new MemorySource({
+      documents: [
+        document("Projects/example_tasks/review.md", {
+          "pm-task": true,
+          id: "review",
+          projectId: "p1",
+          type: "task",
+          status: "review",
+          progress: 100,
+          completed: ""
+        }),
+        document("Projects/example_tasks/done.md", {
+          "pm-task": true,
+          id: "done",
+          projectId: "p1",
+          type: "task",
+          status: "done",
+          progress: 0
+        }),
+        document("Projects/example_tasks/completed-at.md", {
+          "pm-task": true,
+          id: "completed-at",
+          projectId: "p1",
+          type: "task",
+          status: "review",
+          progress: 100,
+          completed: "2026-08-22T09:30:00+08:00"
+        })
+      ],
+      settings: {
+        statuses: [
+          { id: "review", complete: false },
+          { id: "done", complete: true }
+        ]
+      }
+    });
+
+    const snapshot = await new ProjectManagerCatalog(source).snapshot();
+    const completionById = Object.fromEntries(
+      snapshot.tasks.map((task) => [task.id, task.completed])
+    );
+
+    expect(completionById).toEqual({
+      review: false,
+      done: true,
+      "completed-at": true
+    });
+  });
+
   it("updates one document without rescanning and ignores semantic no-ops", async () => {
     const taskPath = "Projects/example_tasks/task.md";
     const initial = document(taskPath, {
