@@ -60,6 +60,7 @@ export interface InsightSettings {
   selectedProjectIds: string[];
   includeArchived: boolean;
   countParentTasks: boolean;
+  showDeliveryProgress: boolean;
   deliveryProgress: DeliveryProgressSettings;
 }
 
@@ -131,6 +132,7 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   selectedProjectIds: [],
   includeArchived: false,
   countParentTasks: false,
+  showDeliveryProgress: true,
   deliveryProgress: {
     stages: {
       design: {

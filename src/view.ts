@@ -25,6 +25,7 @@ export interface InsightsViewHost {
   readProjectManager(): Promise<ProjectManagerSnapshot>;
   reconcileProjectManager(): Promise<ProjectManagerSnapshot>;
   saveSettings(): Promise<void>;
+  refreshInsights(): Promise<void>;
   openSettings(): void;
   openTask(taskId: string, projectPath: string): Promise<void>;
   openProject(projectPath: string): Promise<void>;
@@ -299,12 +300,16 @@ export class InsightsView extends ItemView {
     });
 
     this.renderTeamStrip(dashboard, insights.team, t);
-    const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
-      projectIds: selectedIds,
-      includeArchived: this.host.settings.includeArchived,
-      settings: this.host.settings.deliveryProgress
-    });
-    this.renderDeliveryProgress(dashboard, deliveryProgress, t);
+    if (this.host.settings.showDeliveryProgress) {
+      const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
+        projectIds: selectedIds,
+        includeArchived: this.host.settings.includeArchived,
+        settings: this.host.settings.deliveryProgress
+      });
+      this.renderDeliveryProgress(dashboard, deliveryProgress, t);
+    } else {
+      this.renderDeliveryProgressCollapsed(dashboard, t);
+    }
     const quality = dashboard.createDiv("pmi-quality-strip");
     setIcon(quality.createSpan(), "scan-search");
     quality.createEl("strong", { text: `${t.qualityTitle}:` });
@@ -364,7 +369,9 @@ export class InsightsView extends ItemView {
       cls: "pmi-delivery-progress",
       attr: { role: "region", "aria-label": t.deliveryProgress }
     });
-    this.renderTotalProgress(section, progress, t);
+    this.renderTotalProgress(section, progress, t, () => {
+      void this.setDeliveryProgressVisible(false);
+    });
 
     const rails = section.createDiv("pmi-progress-rails");
     const stageDefinitions: Array<{
@@ -406,6 +413,32 @@ export class InsightsView extends ItemView {
         )
       });
     }
+  }
+
+  private renderDeliveryProgressCollapsed(root: HTMLElement, t: Translations): void {
+    const section = root.createDiv({
+      cls: "pmi-delivery-progress-collapsed",
+      attr: { role: "region", "aria-label": t.deliveryProgressHidden }
+    });
+    const status = section.createDiv("pmi-delivery-progress-collapsed-status");
+    setIcon(status.createSpan(), "route");
+    status.createSpan({ text: t.deliveryProgressHidden });
+    const show = section.createEl("button", {
+      cls: "pmi-delivery-progress-show",
+      attr: { type: "button", "aria-label": t.showDeliveryProgress }
+    });
+    setIcon(show.createSpan(), "eye");
+    show.createSpan({ text: t.showDeliveryProgressAction });
+    show.addEventListener("click", () => {
+      void this.setDeliveryProgressVisible(true);
+    });
+  }
+
+  private async setDeliveryProgressVisible(visible: boolean): Promise<void> {
+    if (this.host.settings.showDeliveryProgress === visible) return;
+    this.host.settings.showDeliveryProgress = visible;
+    await this.host.saveSettings();
+    await this.host.refreshInsights();
   }
 
   private renderStageProgress(
@@ -515,7 +548,8 @@ export class InsightsView extends ItemView {
   private renderTotalProgress(
     root: HTMLElement,
     progress: DeliveryProgressSnapshot,
-    t: Translations
+    t: Translations,
+    onHide: () => void
   ): void {
     const percentage = progress.totalPercentage;
     const row = root.createDiv("pmi-progress-row pmi-progress-row--total");
@@ -525,9 +559,20 @@ export class InsightsView extends ItemView {
     const label = name.createDiv("pmi-progress-overview-label");
     label.createSpan({ text: t.deliveryProgress });
     label.createEl("small", { text: t.totalProgress });
-    heading.createEl("strong", {
+    const actions = heading.createDiv("pmi-progress-heading-actions");
+    actions.createEl("strong", {
       text: percentage === null ? t.ratioUnavailable : t.percentage(percentage)
     });
+    const hide = actions.createEl("button", {
+      cls: "clickable-icon pmi-delivery-progress-hide",
+      attr: {
+        type: "button",
+        "aria-label": t.hideDeliveryProgress,
+        "data-tooltip-position": "top"
+      }
+    });
+    setIcon(hide, "eye-off");
+    hide.addEventListener("click", onHide);
     const track = row.createDiv({
       cls: "pmi-progress-track pmi-progress-track--total",
       attr: percentage === null

@@ -183,6 +183,14 @@ export class InsightsSettingTab extends PluginSettingTab {
         type: "group",
         heading: t.progressSettingsHeading,
         items: [
+          {
+            name: t.showDeliveryProgress,
+            desc: t.showDeliveryProgressDesc,
+            control: {
+              type: "toggle",
+              key: "showDeliveryProgress"
+            }
+          },
           this.progressStageDefinition("design", t.designStage, t),
           this.progressStageDefinition("development", t.developmentStage, t),
           this.progressStageDefinition("testing", t.testingStage, t),
@@ -224,15 +232,23 @@ export class InsightsSettingTab extends PluginSettingTab {
   }
 
   getControlValue(key: string): unknown {
-    return key === "locale" ? this.host.settings.locale : undefined;
+    if (key === "locale") return this.host.settings.locale;
+    if (key === "showDeliveryProgress") return this.host.settings.showDeliveryProgress;
+    return undefined;
   }
 
   async setControlValue(key: string, value: unknown): Promise<void> {
-    if (key !== "locale" || !this.isLocale(value)) return;
-    this.host.settings.locale = value;
+    if (key === "locale" && this.isLocale(value)) {
+      this.host.settings.locale = value;
+      await this.host.saveSettings();
+      await this.host.refreshInsights();
+      this.updateDefinitions();
+      return;
+    }
+    if (key !== "showDeliveryProgress" || typeof value !== "boolean") return;
+    this.host.settings.showDeliveryProgress = value;
     await this.host.saveSettings();
     await this.host.refreshInsights();
-    this.updateDefinitions();
   }
 
   // Obsidian versions before 1.13 use this imperative fallback.
@@ -283,6 +299,18 @@ export class InsightsSettingTab extends PluginSettingTab {
       .setName(t.progressSettingsHeading)
       .setDesc(t.progressSettingsDesc)
       .setHeading();
+    new Setting(containerEl)
+      .setName(t.showDeliveryProgress)
+      .setDesc(t.showDeliveryProgressDesc)
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.host.settings.showDeliveryProgress)
+          .onChange(async (value) => {
+            this.host.settings.showDeliveryProgress = value;
+            await this.host.saveSettings();
+            await this.host.refreshInsights();
+          })
+      );
     this.renderProgressStage(
       new Setting(containerEl).setName(t.designStage),
       "design",
