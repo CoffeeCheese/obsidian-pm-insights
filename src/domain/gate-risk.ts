@@ -34,6 +34,26 @@ export interface GateDataQuality {
   unassigned: number;
 }
 
+export type GateTaskRiskKind =
+  | "task-overdue"
+  | "task-after-gate"
+  | "missing-due"
+  | "unestimated"
+  | "unassigned"
+  | "acceptance-blocker"
+  | "awaiting-acceptance"
+  | "acceptance-incomplete"
+  | "gate-overdue"
+  | "gate-today"
+  | "schedule-gap"
+  | "window-closing"
+  | "unfinished";
+
+export interface GateTaskRiskSignal {
+  kind: GateTaskRiskKind;
+  days?: number;
+}
+
 export interface GateRiskMetric {
   id: string;
   name: string;
@@ -113,6 +133,57 @@ function dataQuality(tasks: TaskRecord[]): GateDataQuality {
     unestimated: tasks.filter((task) => task.hierarchy !== "root" && task.estimate <= 0).length,
     unassigned: tasks.filter((task) => task.assignees.length === 0).length
   };
+}
+
+export function gateTaskRiskSignals(
+  task: TaskRecord,
+  gate: GateRiskMetric,
+  today: string,
+  acceptanceBlocker = false
+): GateTaskRiskSignal[] {
+  const signals: GateTaskRiskSignal[] = [];
+  const due = taskDate(task.dueDate);
+  let hasTaskScheduleRisk = false;
+
+  if (due === null) {
+    signals.push({ kind: "missing-due" });
+  } else {
+    if (due < today) {
+      signals.push({ kind: "task-overdue", days: daysBetween(due, today) });
+      hasTaskScheduleRisk = true;
+    }
+    if (due > gate.gateDate) {
+      signals.push({ kind: "task-after-gate", days: daysBetween(gate.gateDate, due) });
+      hasTaskScheduleRisk = true;
+    }
+  }
+
+  if (!hasTaskScheduleRisk) {
+    if (gate.state === "overdue") {
+      signals.push({ kind: "gate-overdue", days: Math.abs(gate.daysRemaining) });
+    } else if (gate.reasons.includes("gate-today")) {
+      signals.push({ kind: "gate-today" });
+    } else if (gate.reasons.includes("schedule-gap")) {
+      signals.push({ kind: "schedule-gap" });
+    } else if (gate.reasons.includes("window-closing")) {
+      signals.push({ kind: "window-closing" });
+    }
+  }
+
+  if (acceptanceBlocker) {
+    signals.push({ kind: "acceptance-blocker" });
+  } else if (gate.kind === "acceptance" && task.hierarchy === "root") {
+    signals.push({ kind: "awaiting-acceptance" });
+  } else if (gate.kind === "launch" && task.hierarchy === "root") {
+    signals.push({ kind: "acceptance-incomplete" });
+  }
+
+  if (task.hierarchy !== "root" && task.estimate <= 0) {
+    signals.push({ kind: "unestimated" });
+  }
+  if (task.assignees.length === 0) signals.push({ kind: "unassigned" });
+  if (signals.length === 0) signals.push({ kind: "unfinished" });
+  return signals;
 }
 
 function uniqueTasks(tasks: TaskRecord[]): TaskRecord[] {

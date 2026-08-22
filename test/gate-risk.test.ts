@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateGateRisk } from "../src/domain/gate-risk";
+import { aggregateGateRisk, gateTaskRiskSignals } from "../src/domain/gate-risk";
 import type {
   DeliveryProgressSettings,
   ProjectGateSchedule,
@@ -192,6 +192,38 @@ describe("aggregateGateRisk", () => {
 
     expect(stage?.state).toBe("normal");
     expect(stage?.quality).toEqual({ missingDue: 1, unestimated: 1, unassigned: 1 });
+  });
+
+  it("describes each task's direct schedule and planning risks", () => {
+    const candidate = task({
+      id: "multi-risk",
+      dueDate: "2026-08-12",
+      estimate: 0,
+      assignees: []
+    });
+    const gate = risk([root(), candidate], "2026-08-08").projects[0]?.gates[0];
+    if (!gate) throw new Error("Missing delivery gate");
+
+    expect(gateTaskRiskSignals(candidate, gate, "2026-08-08")).toEqual([
+      { kind: "task-after-gate", days: 1 },
+      { kind: "unestimated" },
+      { kind: "unassigned" }
+    ]);
+  });
+
+  it("distinguishes acceptance blockers from requirement estimates", () => {
+    const requirement = root({ estimate: 0 });
+    const blocker = task({ id: "blocked" });
+    const acceptance = risk([requirement, blocker], "2026-08-12")
+      .projects[0]?.gates.find((gate) => gate.id === "acceptance");
+    if (!acceptance) throw new Error("Missing acceptance gate");
+
+    expect(gateTaskRiskSignals(requirement, acceptance, "2026-08-12"))
+      .toContainEqual({ kind: "awaiting-acceptance" });
+    expect(gateTaskRiskSignals(requirement, acceptance, "2026-08-12"))
+      .not.toContainEqual({ kind: "unestimated" });
+    expect(gateTaskRiskSignals(blocker, acceptance, "2026-08-12", true))
+      .toContainEqual({ kind: "acceptance-blocker" });
   });
 
   it("describes work before its planned window as ahead instead of not started", () => {

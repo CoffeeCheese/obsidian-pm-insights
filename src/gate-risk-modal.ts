@@ -4,8 +4,11 @@ import type {
   GateRiskReason,
   GateRiskSnapshot,
   GateRiskState,
+  GateTaskRiskKind,
+  GateTaskRiskSignal,
   ProjectGateRisk
 } from "./domain/gate-risk";
+import { gateTaskRiskSignals } from "./domain/gate-risk";
 import type { Translations } from "./i18n";
 import type { PriorityRecord, ProjectRecord, TaskRecord } from "./model";
 import { deliveryStageLabel } from "./delivery-stage-label";
@@ -31,6 +34,8 @@ const STATE_ORDER: Record<GateRiskState, number> = {
   "not-started": 1,
   passed: 0
 };
+
+type GateTaskRiskTone = "critical" | "warning" | "quality" | "context";
 
 export class GateRiskModal extends Modal {
   private activeProjectId: string;
@@ -236,7 +241,7 @@ export class GateRiskModal extends Modal {
     }
     this.renderTaskGroup(body, project, t.gateRiskTasks, gate.tasks, gate, t);
     if (gate.blockingTasks.length > 0) {
-      this.renderTaskGroup(body, project, t.gateBlockingTasks, gate.blockingTasks, gate, t);
+      this.renderTaskGroup(body, project, t.gateBlockingTasks, gate.blockingTasks, gate, t, true);
     }
     if (gate.tasks.length === 0 && gate.blockingTasks.length === 0) {
       body.createDiv({ cls: "pmi-risk-no-tasks", text: t.gateNoRiskTasks });
@@ -249,7 +254,8 @@ export class GateRiskModal extends Modal {
     label: string,
     tasks: TaskRecord[],
     gate: GateRiskMetric,
-    t: Translations
+    t: Translations,
+    acceptanceBlockers = false
   ): void {
     const unique = [...new Map(tasks.map((task) => [task.id, task])).values()];
     if (unique.length === 0) return;
@@ -257,13 +263,37 @@ export class GateRiskModal extends Modal {
     group.createEl("h4", { text: `${label} ${unique.length}` });
     const list = group.createDiv("pmi-risk-task-list");
     for (const task of this.sortTasks(unique, gate)) {
+      const signals = this.sortTaskRiskSignals(gateTaskRiskSignals(
+        task,
+        gate,
+        this.options.snapshot.today,
+        acceptanceBlockers
+      ));
+      const labels = signals.map((signal) => this.taskRiskLabel(signal, t));
+      const primaryTone = this.primaryTaskRiskTone(signals);
       const button = list.createEl("button", {
-        cls: "pmi-risk-task",
-        attr: { type: "button", "aria-label": `${t.openTask}: ${task.title}` }
+        cls: `pmi-risk-task is-risk-${primaryTone}`,
+        attr: {
+          type: "button",
+          "aria-label": `${t.openTask}: ${task.title}. ${t.gateTaskRiskReasons}: ${labels.join(", ")}`
+        }
       });
       const copy = button.createDiv();
       copy.createEl("strong", { text: task.title });
-      copy.createSpan({
+      const evidence = copy.createDiv({
+        cls: "pmi-risk-task-evidence",
+        attr: { "aria-hidden": "true" }
+      });
+      for (const [index, signal] of signals.entries()) {
+        const label = labels[index] ?? this.taskRiskLabel(signal, t);
+        evidence.createSpan({
+          cls: `pmi-risk-task-signal is-${this.taskRiskTone(signal.kind)}${index === 0 ? " is-primary" : ""}`,
+          text: label,
+          attr: { "data-risk-kind": signal.kind }
+        });
+      }
+      evidence.createSpan({
+        cls: "pmi-risk-task-date",
         text: task.dueDate ? t.gateTaskDue(task.dueDate.slice(0, 10)) : t.gateTaskNoDue
       });
       setIcon(button.createSpan(), "arrow-up-right");
@@ -290,6 +320,64 @@ export class GateRiskModal extends Modal {
           - (priority.get(right.priority ?? "") ?? priority.size)
         || left.title.localeCompare(right.title)
     );
+  }
+
+  private primaryTaskRiskTone(signals: GateTaskRiskSignal[]): GateTaskRiskTone {
+    const order: GateTaskRiskTone[] = ["critical", "warning", "quality", "context"];
+    return order.find((tone) => signals.some((signal) => this.taskRiskTone(signal.kind) === tone))
+      ?? "context";
+  }
+
+  private sortTaskRiskSignals(signals: GateTaskRiskSignal[]): GateTaskRiskSignal[] {
+    const order: Record<GateTaskRiskTone, number> = {
+      critical: 0,
+      warning: 1,
+      quality: 2,
+      context: 3
+    };
+    return [...signals].sort((left, right) =>
+      order[this.taskRiskTone(left.kind)] - order[this.taskRiskTone(right.kind)]
+    );
+  }
+
+  private taskRiskTone(kind: GateTaskRiskKind): GateTaskRiskTone {
+    switch (kind) {
+      case "task-overdue":
+      case "gate-overdue":
+      case "acceptance-blocker":
+        return "critical";
+      case "task-after-gate":
+      case "gate-today":
+      case "schedule-gap":
+      case "window-closing":
+      case "acceptance-incomplete":
+        return "warning";
+      case "missing-due":
+      case "unestimated":
+      case "unassigned":
+        return "quality";
+      case "awaiting-acceptance":
+      case "unfinished":
+        return "context";
+    }
+  }
+
+  private taskRiskLabel(signal: GateTaskRiskSignal, t: Translations): string {
+    switch (signal.kind) {
+      case "task-overdue": return t.gateTaskRiskOverdue(signal.days ?? 0);
+      case "task-after-gate": return t.gateTaskRiskAfterGate(signal.days ?? 0);
+      case "missing-due": return t.gateTaskRiskMissingDue;
+      case "unestimated": return t.gateTaskRiskUnestimated;
+      case "unassigned": return t.gateTaskRiskUnassigned;
+      case "acceptance-blocker": return t.gateTaskRiskAcceptanceBlocker;
+      case "awaiting-acceptance": return t.gateTaskRiskAwaitingAcceptance;
+      case "acceptance-incomplete": return t.gateTaskRiskAcceptanceIncomplete;
+      case "gate-overdue": return t.gateTaskRiskGateOverdue(signal.days ?? 0);
+      case "gate-today": return t.gateTaskRiskGateToday;
+      case "schedule-gap": return t.gateTaskRiskScheduleGap;
+      case "window-closing": return t.gateTaskRiskWindowClosing;
+      case "unfinished": return t.gateTaskRiskUnfinished;
+    }
   }
 
   private activateProject(projectId: string): void {

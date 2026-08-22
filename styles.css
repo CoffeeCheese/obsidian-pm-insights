@@ -1116,6 +1116,7 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 }
 
 body .modal.pmi-gate-risk-modal button.pmi-risk-task {
+  --pmi-task-risk-color: var(--text-muted);
   display: grid;
   width: 100%;
   grid-template-columns: minmax(0, 1fr) 18px;
@@ -1132,14 +1133,26 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task {
   transform: none;
 }
 
+body .modal.pmi-gate-risk-modal button.pmi-risk-task.is-risk-critical {
+  --pmi-task-risk-color: var(--color-red);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-task.is-risk-warning {
+  --pmi-task-risk-color: var(--color-orange);
+}
+
+body .modal.pmi-gate-risk-modal button.pmi-risk-task.is-risk-quality {
+  --pmi-task-risk-color: color-mix(in srgb, var(--interactive-accent) 62%, var(--text-muted));
+}
+
 body .modal.pmi-gate-risk-modal button.pmi-risk-task + button.pmi-risk-task {
   border-block-start: 1px solid var(--background-modifier-border);
 }
 
 body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) {
   color: var(--text-normal);
-  background: color-mix(in srgb, var(--interactive-accent) 6%, transparent);
-  box-shadow: inset 2px 0 0 var(--interactive-accent);
+  background: color-mix(in srgb, var(--pmi-task-risk-color) 5%, transparent);
+  box-shadow: inset 2px 0 0 var(--pmi-task-risk-color);
   transform: none;
 }
 
@@ -1154,9 +1167,78 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
   white-space: nowrap;
 }
 
-.pmi-risk-task > div > span {
+.pmi-risk-task-evidence {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 5px;
+  margin-block-start: 4px;
+}
+
+.pmi-risk-task-signal {
+  --pmi-task-signal-color: var(--text-muted);
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--pmi-task-signal-color) 24%, transparent);
+  border-radius: 4px;
+  color: var(--pmi-task-signal-color);
+  background: color-mix(in srgb, var(--pmi-task-signal-color) 5%, transparent);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.pmi-risk-task-signal::before {
+  content: "";
+  flex: 0 0 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  opacity: 0.72;
+  background: currentColor;
+}
+
+.pmi-risk-task-signal.is-primary {
+  border-color: color-mix(in srgb, var(--pmi-task-signal-color) 38%, transparent);
+  background: color-mix(in srgb, var(--pmi-task-signal-color) 8%, transparent);
+}
+
+.pmi-risk-task-signal.is-critical {
+  --pmi-task-signal-color: var(--color-red);
+}
+
+.pmi-risk-task-signal.is-warning {
+  --pmi-task-signal-color: var(--color-orange);
+}
+
+.pmi-risk-task-signal.is-quality {
+  --pmi-task-signal-color: color-mix(in srgb, var(--interactive-accent) 62%, var(--text-muted));
+}
+
+.pmi-risk-task-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: 2px;
   color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pmi-risk-task-date::before {
+  content: "";
+  width: 1px;
+  height: 10px;
+  background: var(--background-modifier-border);
 }
 
 .pmi-risk-task > span:last-child svg {
