@@ -921,6 +921,12 @@ body .modal-container .modal.pmi-confirm-action-modal
   background: color-mix(in srgb, var(--color-red) 10%, transparent);
 }
 
+.pmi-risk-gate.is-normal .pmi-risk-state.is-progress-ahead,
+.pmi-risk-gate.is-normal .pmi-risk-state.is-progress-parallel {
+  color: color-mix(in srgb, var(--interactive-accent) 76%, var(--text-normal));
+  background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+}
+
 .pmi-risk-project-panel {
   padding: 18px 22px 20px;
 }

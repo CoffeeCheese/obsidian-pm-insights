@@ -75,9 +75,15 @@ const en = {
   riskStateOverdue: "Overdue",
   riskStatePassed: "Passed",
   riskStateSkipped: "Skipped",
+  riskStateAhead: "Ahead",
+  riskStateParallel: "Cross-stage",
   gateRiskProjects: "Projects in risk analysis",
-  gateProgressComparison: (actual: number, expected: number) =>
-    `${actual}% complete · ${expected}% expected`,
+  gateProgressExpected: (expected: number) => `${expected}% expected`,
+  gateProgressPlannedStart: (date: string) => `Planned to start ${date}`,
+  gateProgressAhead: (date: string) => `Started ahead · planned from ${date}`,
+  gateProgressParallelStart: (date: string) => `Cross-stage progress · planned from ${date}`,
+  gateProgressParallel: (expected: number | null) =>
+    expected === null ? "Cross-stage progress" : `Cross-stage progress · ${expected}% expected`,
   gateDaysRemaining: (days: number) =>
     days === 0 ? "Gate is today" : `${days} day${days === 1 ? "" : "s"} remaining`,
   gateDaysOverdue: (days: number) => `${days} day${days === 1 ? "" : "s"} overdue`,
@@ -348,9 +354,15 @@ const zh: typeof en = {
   riskStateOverdue: "已逾期",
   riskStatePassed: "已通过",
   riskStateSkipped: "已跳过",
+  riskStateAhead: "提前推进",
+  riskStateParallel: "跨阶段推进",
   gateRiskProjects: "参与风险分析的项目",
-  gateProgressComparison: (actual: number, expected: number) =>
-    `已完成 ${actual}% · 计划应达 ${expected}%`,
+  gateProgressExpected: (expected: number) => `计划应达 ${expected}%`,
+  gateProgressPlannedStart: (date: string) => `计划于 ${date} 启动`,
+  gateProgressAhead: (date: string) => `提前推进 · 计划于 ${date} 启动`,
+  gateProgressParallelStart: (date: string) => `跨阶段推进 · 计划于 ${date} 启动`,
+  gateProgressParallel: (expected: number | null) =>
+    expected === null ? "跨阶段推进" : `跨阶段推进 · 计划应达 ${expected}%`,
   gateDaysRemaining: (days: number) => days === 0 ? "门禁就在今天" : `剩余 ${days} 天`,
   gateDaysOverdue: (days: number) => `已逾期 ${days} 天`,
   gateReasonScheduleGap: (gap: number) => `进度落后 ${gap} 个百分点`,

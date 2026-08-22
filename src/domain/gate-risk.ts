@@ -26,6 +26,8 @@ export type GateRiskReason =
 
 export type GateTiming = "early" | "on-time" | "late" | "unknown";
 
+export type GateProgressSignal = "scheduled" | "planned" | "ahead" | "parallel";
+
 export interface GateDataQuality {
   missingDue: number;
   unestimated: number;
@@ -41,6 +43,7 @@ export interface GateRiskMetric {
   progress: number;
   expectedProgress: number | null;
   progressGap: number | null;
+  progressSignal: GateProgressSignal;
   daysRemaining: number;
   state: Exclude<GateRiskState, "unconfigured">;
   skipped: boolean;
@@ -137,6 +140,7 @@ function assessGate(input: {
   blockingTasks?: TaskRecord[];
   passed: boolean;
   skipped?: boolean;
+  previousGatesPassed?: boolean;
 }): GateRiskMetric {
   const unfinished = input.tasks.filter((task) => !task.completed);
   const expected = expectedProgress(input.windowStart, input.gateDate, input.today);
@@ -153,6 +157,18 @@ function assessGate(input: {
   const reasons: GateRiskReason[] = [];
   if (taskOverdue) reasons.push("task-overdue");
   if (taskAfterGate) reasons.push("task-after-gate");
+
+  const beforeWindow = input.today < input.windowStart;
+  const hasProgress = input.progress > 0;
+  const progressSignal: GateProgressSignal = input.passed || input.kind === "launch"
+    ? "scheduled"
+    : !hasProgress && beforeWindow
+      ? "planned"
+      : hasProgress && input.previousGatesPassed === false
+        ? "parallel"
+        : hasProgress && beforeWindow
+          ? "ahead"
+          : "scheduled";
 
   let state: GateRiskMetric["state"];
   let timing: GateTiming | null = null;
@@ -173,7 +189,7 @@ function assessGate(input: {
       state = "attention";
       if ((gap ?? 0) >= 10) reasons.push("schedule-gap");
       if (windowClosing) reasons.push("window-closing");
-    } else if (input.today < input.windowStart) {
+    } else if (beforeWindow && !hasProgress) {
       state = "not-started";
     } else {
       state = "normal";
@@ -189,6 +205,7 @@ function assessGate(input: {
     progress: input.progress,
     expectedProgress: expected,
     progressGap: gap,
+    progressSignal,
     daysRemaining,
     state,
     skipped: input.skipped ?? false,
@@ -232,12 +249,13 @@ function projectRisk(
   });
   const gates: GateRiskMetric[] = [];
   let windowStart = schedule.startDate;
+  let previousGatesPassed = true;
   for (const [index, stage] of options.settings.stages.entries()) {
     const metric = progress.stages[index];
     if (!metric) continue;
     const gateDate = schedule.stageGates[stage.id] ?? "";
     const progressValue = metric.state === "skipped" ? 100 : metric.percentage ?? 0;
-    gates.push(assessGate({
+    const gate = assessGate({
       id: stage.id,
       name: stage.name,
       kind: "stage",
@@ -247,8 +265,11 @@ function projectRisk(
       progress: progressValue,
       tasks: metric.tasks,
       passed: metric.state === "skipped" || progressValue === 100,
-      skipped: metric.state === "skipped"
-    }));
+      skipped: metric.state === "skipped",
+      previousGatesPassed
+    });
+    gates.push(gate);
+    previousGatesPassed = previousGatesPassed && gate.state === "passed";
     windowStart = gateDate;
   }
 
@@ -271,7 +292,8 @@ function projectRisk(
     progress: acceptanceProgress,
     tasks: acceptanceRiskTasks,
     blockingTasks: acceptanceBlockers,
-    passed: progress.acceptance.total > 0 && acceptanceProgress === 100
+    passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
+    previousGatesPassed
   });
   acceptance.tasks = acceptanceTasks;
   gates.push(acceptance);
@@ -286,7 +308,8 @@ function projectRisk(
     progress: acceptanceProgress,
     tasks: acceptanceRiskTasks,
     blockingTasks: acceptanceBlockers,
-    passed: progress.acceptance.total > 0 && acceptanceProgress === 100
+    passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
+    previousGatesPassed: acceptance.state === "passed"
   });
   launch.tasks = acceptanceTasks;
   gates.push(launch);

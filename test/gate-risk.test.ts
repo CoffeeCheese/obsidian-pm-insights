@@ -173,4 +173,104 @@ describe("aggregateGateRisk", () => {
     expect(stage?.state).toBe("normal");
     expect(stage?.quality).toEqual({ missingDue: 1, unestimated: 1, unassigned: 1 });
   });
+
+  it("describes work before its planned window as ahead instead of not started", () => {
+    const futureSchedule: ProjectGateSchedule = {
+      ...schedule,
+      startDate: "2026-08-10",
+      stageGates: { delivery: "2026-08-15" }
+    };
+    const snapshot = risk([
+      root(),
+      task({ id: "done", completed: true, completedAt: "2026-08-07" }),
+      task({ id: "open" })
+    ], "2026-08-08", { p1: futureSchedule });
+
+    expect(snapshot.projects[0]?.gates[0]).toMatchObject({
+      state: "normal",
+      progress: 50,
+      expectedProgress: 0,
+      progressSignal: "ahead"
+    });
+  });
+
+  it("marks later work as cross-stage progress while an earlier gate remains incomplete", () => {
+    const multiStageSettings: DeliveryProgressSettings = {
+      ...settings,
+      stages: [
+        { ...settings.stages[0]!, id: "development", tags: ["type/development"], weight: 50 },
+        { ...settings.stages[0]!, id: "testing", tags: ["type/testing"], weight: 40 }
+      ]
+    };
+    const multiStageSchedule: ProjectGateSchedule = {
+      ...schedule,
+      stageGates: {
+        development: "2026-08-11",
+        testing: "2026-08-15"
+      }
+    };
+    const snapshot = aggregateGateRisk([project], [
+      root(),
+      task({ id: "development-open", tags: ["type/development"] }),
+      task({
+        id: "testing-done",
+        tags: ["type/testing"],
+        completed: true,
+        completedAt: "2026-08-07"
+      }),
+      task({ id: "testing-open", tags: ["type/testing"] })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings: multiStageSettings,
+      gateSchedules: { p1: multiStageSchedule },
+      today: "2026-08-08"
+    });
+
+    expect(snapshot.projects[0]?.gates[1]).toMatchObject({
+      state: "normal",
+      progress: 50,
+      expectedProgress: 0,
+      progressSignal: "parallel"
+    });
+  });
+
+  it("keeps pass timing as the primary signal after cross-stage work is completed", () => {
+    const multiStageSettings: DeliveryProgressSettings = {
+      ...settings,
+      stages: [
+        { ...settings.stages[0]!, id: "development", tags: ["type/development"], weight: 50 },
+        { ...settings.stages[0]!, id: "testing", tags: ["type/testing"], weight: 40 }
+      ]
+    };
+    const multiStageSchedule: ProjectGateSchedule = {
+      ...schedule,
+      stageGates: {
+        development: "2026-08-11",
+        testing: "2026-08-15"
+      }
+    };
+    const snapshot = aggregateGateRisk([project], [
+      root(),
+      task({ id: "development-open", tags: ["type/development"] }),
+      task({
+        id: "testing-done",
+        tags: ["type/testing"],
+        completed: true,
+        completedAt: "2026-08-07"
+      })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings: multiStageSettings,
+      gateSchedules: { p1: multiStageSchedule },
+      today: "2026-08-08"
+    });
+
+    expect(snapshot.projects[0]?.gates[1]).toMatchObject({
+      state: "passed",
+      progressSignal: "scheduled",
+      timing: "early"
+    });
+  });
 });

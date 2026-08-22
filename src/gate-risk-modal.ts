@@ -178,8 +178,8 @@ export class GateRiskModal extends Modal {
     heading.createEl("strong", { text: this.gateName(gate, t) });
     if (nearest) heading.createSpan({ cls: "pmi-risk-nearest", text: t.nearestGateBadge });
     heading.createSpan({
-      cls: "pmi-risk-state",
-      text: gate.skipped ? t.riskStateSkipped : this.stateLabel(gate.state, t)
+      cls: `pmi-risk-state is-progress-${gate.progressSignal}`,
+      text: gate.skipped ? t.riskStateSkipped : this.gateStateLabel(gate, t)
     });
     main.createSpan({
       cls: "pmi-risk-gate-date",
@@ -189,8 +189,18 @@ export class GateRiskModal extends Modal {
     progress.createEl("strong", { text: gate.skipped ? "—" : `${gate.progress}%` });
     if (gate.skipped) {
       progress.createSpan({ text: t.skippedStatistics });
+    } else if (gate.progressSignal === "planned") {
+      progress.createSpan({ text: t.gateProgressPlannedStart(gate.windowStart) });
+    } else if (gate.progressSignal === "ahead") {
+      progress.createSpan({ text: t.gateProgressAhead(gate.windowStart) });
+    } else if (gate.progressSignal === "parallel") {
+      progress.createSpan({
+        text: gate.expectedProgress === 0
+          ? t.gateProgressParallelStart(gate.windowStart)
+          : t.gateProgressParallel(gate.expectedProgress)
+      });
     } else if (gate.expectedProgress !== null && gate.state !== "passed") {
-      progress.createSpan({ text: t.gateProgressComparison(gate.progress, gate.expectedProgress) });
+      progress.createSpan({ text: t.gateProgressExpected(gate.expectedProgress) });
     } else if (gate.timing) {
       progress.createSpan({ text: this.timingLabel(gate.timing, t) });
     }
@@ -334,6 +344,16 @@ export class GateRiskModal extends Modal {
       case "overdue": return t.riskStateOverdue;
       case "passed": return t.riskStatePassed;
     }
+  }
+
+  private gateStateLabel(gate: GateRiskMetric, t: Translations): string {
+    if (gate.state === "normal" && gate.progressSignal === "parallel") {
+      return t.riskStateParallel;
+    }
+    if (gate.state === "normal" && gate.progressSignal === "ahead") {
+      return t.riskStateAhead;
+    }
+    return this.stateLabel(gate.state, t);
   }
 
   private reasonLabel(reason: GateRiskReason, gate: GateRiskMetric, t: Translations): string {
