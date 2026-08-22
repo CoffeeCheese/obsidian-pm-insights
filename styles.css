@@ -587,24 +587,146 @@
   gap: 8px;
 }
 
-.pmi-delivery-progress-hide {
-  width: 27px;
-  height: 27px;
-  padding: 5px;
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  min-block-size: 30px;
+  flex: 0 0 30px;
+  padding: 6px;
   border: 1px solid transparent;
-  border-radius: var(--radius-s);
+  border-radius: 50%;
+  place-items: center;
   color: var(--text-muted);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transition:
+    color 160ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 200ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.pmi-delivery-progress-hide:hover {
-  border-color: var(--pmi-edge);
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border: 1px solid var(--interactive-accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.42);
+  transition:
+    opacity 180ms ease,
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:hover,
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:focus-visible {
+  border-color: color-mix(in srgb, var(--interactive-accent) 44%, var(--pmi-edge));
   color: var(--text-accent);
-  background: var(--background-modifier-hover);
+  background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--interactive-accent) 9%, transparent);
+  transform: translateY(-1px);
 }
 
-.pmi-delivery-progress-hide svg {
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:hover::before,
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:focus-visible::before {
+  opacity: 0.46;
+  transform: scale(1);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:active {
+  border-color: color-mix(in srgb, var(--interactive-accent) 58%, var(--pmi-edge));
+  background: color-mix(in srgb, var(--interactive-accent) 19%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  transform: translateY(0) scale(0.92);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:active::before {
+  opacity: 0;
+  transform: scale(0.72);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide
+  svg {
+  position: relative;
+  z-index: 1;
   width: 14px;
   height: 14px;
+  inline-size: 14px;
+  block-size: 14px;
+  transform: none;
+  transform-origin: center;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:hover
+  svg,
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:focus-visible
+  svg {
+  transform: rotate(-7deg) scaleX(1.05) scaleY(0.78);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-delivery-progress
+  button.pmi-delivery-progress-hide:active
+  svg {
+  transform: rotate(-10deg) scaleX(0.94) scaleY(0.56);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-delivery-progress
+    button.pmi-delivery-progress-hide,
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-delivery-progress
+    button.pmi-delivery-progress-hide::before,
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-delivery-progress
+    button.pmi-delivery-progress-hide
+    svg {
+    transition: none;
+  }
+
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-delivery-progress
+    button.pmi-delivery-progress-hide:is(:hover, :focus-visible, :active),
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-delivery-progress
+    button.pmi-delivery-progress-hide:is(:hover, :focus-visible, :active)
+    svg {
+    transform: none;
+  }
 }
 
 .pmi-progress-track {
