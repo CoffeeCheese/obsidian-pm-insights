@@ -21,6 +21,7 @@
     "test:ui:task-filters": "node scripts/check-task-filters.mjs",
     "test:ui:task-filter-overflow": "node scripts/check-task-filter-overflow.mjs",
     "test:ui:task-navigation": "node scripts/check-task-navigation.mjs",
+    "test:ui:delivery-issue-filter-layering": "node scripts/check-delivery-issue-filter-layering.mjs",
     "test:ui:delivery-issue-return": "node scripts/check-delivery-issue-return.mjs",
     "test:official-review": "node scripts/check-official-review.mjs"
   },

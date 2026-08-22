@@ -1169,6 +1169,7 @@ body .modal-container .modal.pmi-delivery-issues-modal .modal-content {
 
 .pmi-issue-filters {
   display: flex;
+  flex: 0 0 auto;
   gap: 6px;
   padding: 11px 20px;
   overflow-x: auto;
