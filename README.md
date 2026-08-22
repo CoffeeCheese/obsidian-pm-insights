@@ -19,13 +19,13 @@
   <p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 </div>
 
-![Project Manager Insights dashboard showing cross-project workload, member ratios, data quality, and task filters with synthetic demo data](docs/assets/pm-insights-overview.png)
+![Project Manager Insights 0.3.0 dashboard showing weighted delivery progress, workload, member ratios, task filters, and a five-row task detail list with isolated English demo data](docs/assets/pm-insights-overview.png)
 
-<p align="center"><sub>The v0.2 dashboard in one frame: cross-project totals, data-quality signals, a compact six-ratio ledger, and composable task filters. Captured with the Pixel theme and synthetic data; no real project information is shown.</sub></p>
+<p align="center"><sub>The v0.3 dashboard in one frame: weighted delivery progress, cross-project totals, a compact six-ratio ledger, composable task filters, and the complete five-task detail list for the selected assignee. Captured in the <code>dev-test</code> Vault with an isolated English fixture: 2 projects, 3 root tasks, 12 subtasks, and 3 assignees. No real project information is shown.</sub></p>
 
 ## 🫧 One calm view for all those moving parts
 
-Project Manager Insights gathers notes created by [Project Manager](https://github.com/stepankropachev/obsidian-pm) into one friendly, cross-project workload view. See how planned and logged hours are distributed, spot fuzzy data, then trace every number back to its task.
+Project Manager Insights gathers notes created by [Project Manager](https://github.com/stepankropachev/obsidian-pm) into one friendly, cross-project workload and delivery view. See how work moves through design, development, testing, and acceptance; compare planned and logged hours; then trace every number back to its task.
 
 ```text
 PROJECTS  ──→  TEAM SNAPSHOT  ──→  ASSIGNEE  ──→  TASKS
@@ -45,6 +45,7 @@ PROJECTS  ──→  TEAM SNAPSHOT  ──→  ASSIGNEE  ──→  TASKS
 | Inside the observatory | What you can see |
 | --- | --- |
 | 🛰️ **Team snapshot** | Combined planned, logged, remaining, and overrun hours for the selected projects. |
+| 🛤️ **Delivery progress** | Weighted design, development, testing, and acceptance rails calculated from complete task trees. |
 | 👤 **Assignee cards** | Each person's task count and workload rails, with personal and shared work kept separate. |
 | 🧭 **Delivery ledger** | Six personal ratios grouped by delivery, time, and data foundation. |
 | 🔎 **Task drawer** | Search plus multi-select project and status filters, with resizable task columns. |

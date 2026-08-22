@@ -20,13 +20,13 @@
   <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
 </div>
 
-![使用虚构演示数据展示跨项目工作量、个人比率、数据质量与任务筛选的 Project Manager Insights 面板](docs/assets/pm-insights-overview.png)
+![使用隔离的中文演示数据展示加权交付进度、跨项目工作量、个人比率、任务筛选和五行任务详情的 Project Manager Insights 0.3.0 面板](docs/assets/pm-insights-overview.zh-CN.png)
 
-<p align="center"><sub>一张图看完 v0.2 面板：跨项目汇总、数据质量提示、紧凑的六项个人比率，以及可组合的任务筛选。使用 Pixel 主题和虚构数据拍摄，不含任何真实项目信息。</sub></p>
+<p align="center"><sub>一张图看完 v0.3 面板：加权交付进度、跨项目汇总、紧凑的六项个人比率、可组合的任务筛选，以及当前成员完整的 5 条任务详情。</sub></p>
 
 ## 🫧 把忙碌的项目装进一个安静窗口
 
-Project Manager Insights 会将 [Project Manager](https://github.com/stepankropachev/obsidian-pm) 创建的笔记整理成友好的跨项目工作量视图。看看计划与已登记工时如何分布，找出模糊的数据，再顺着每个数字回到具体任务。
+Project Manager Insights 会将 [Project Manager](https://github.com/stepankropachev/obsidian-pm) 创建的笔记整理成友好的跨项目工作量与交付视图。看看工作如何经过设计、开发、测试和验收阶段，对比计划与已登记工时，再顺着每个数字回到具体任务。
 
 ```text
 项目  ──→  团队快照  ──→  成员  ──→  任务
@@ -46,6 +46,7 @@ Project Manager Insights 会将 [Project Manager](https://github.com/stepankropa
 | 观测站里有什么 | 你能看到什么 |
 | --- | --- |
 | 🛰️ **团队快照** | 汇总所选项目的计划、已登记、剩余和超出工时。 |
+| 🛤️ **交付进度** | 根据完整任务树计算设计、开发、测试与验收阶段的加权进度。 |
 | 👤 **成员卡片** | 展示每个人的任务数量和工作量轨道，并分开统计个人与共享工作。 |
 | 🧭 **个人交付账本** | 按交付、工时和数据基础分组展示六项个人比率。 |
 | 🔎 **任务抽屉** | 支持搜索、多选项目与状态筛选，以及手动调整任务列宽。 |
