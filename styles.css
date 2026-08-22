@@ -427,12 +427,22 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 7px;
-  padding: 5px 10px 5px 8px;
+  padding: 4px 6px 4px 8px;
   border: 1px solid var(--pmi-edge-strong);
   border-radius: var(--radius-s);
   box-shadow: inset 2px 0 0 color-mix(in srgb, var(--interactive-accent) 58%, transparent);
   background: var(--background-primary);
   font-size: var(--font-ui-small);
+  transform: translateX(0);
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+.pmi-project-scope-token.is-removing {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(3px);
 }
 
 .pmi-project-scope-project-icon {
@@ -442,10 +452,94 @@
 }
 
 .pmi-project-scope-project-name {
+  min-width: 0;
   overflow: hidden;
   font-weight: var(--font-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove {
+  appearance: none;
+  position: relative;
+  display: grid;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+  margin: 0 -2px 0 1px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: calc(var(--radius-s) - 1px);
+  box-shadow: none;
+  color: var(--text-faint);
+  background: transparent;
+  cursor: pointer;
+  transform: none;
+  transition:
+    color 110ms ease,
+    background-color 110ms ease;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-root
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove:not(.clickable-icon)[type="button"] {
+  box-shadow: none;
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token:hover
+  button.pmi-project-scope-remove {
+  color: var(--text-muted);
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove:is(:hover, :focus-visible) {
+  color: var(--text-accent);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--interactive-accent) 42%, transparent);
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove:active {
+  color: var(--text-accent);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  transform: none;
+}
+
+.workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+  .pmi-project-scope-token
+  button.pmi-project-scope-remove svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmi-project-scope-token,
+  .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"]
+    .pmi-project-scope-token
+    button.pmi-project-scope-remove {
+    transition: none;
+  }
 }
 
 .pmi-project-scope-empty-icon,

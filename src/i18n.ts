@@ -17,6 +17,7 @@ const en = {
       ? `All ${total} project${total === 1 ? "" : "s"}`
       : `${count} of ${total} project${total === 1 ? "" : "s"}`,
   projectScopeEmpty: "Choose projects to populate this view",
+  removeProjectFromScope: (title: string) => `Remove ${title} from the current scope`,
   selectAll: "Select all",
   clear: "Clear",
   includeArchived: "Include archived",
@@ -210,6 +211,7 @@ const zh: typeof en = {
   projectScopeSummary: (count: number, total: number) =>
     count === total ? `全部 ${total} 个项目` : `${count} / ${total} 个项目`,
   projectScopeEmpty: "选择项目后将在这里持续显示",
+  removeProjectFromScope: (title: string) => `从当前范围中移除${title}`,
   selectAll: "全选",
   clear: "清空",
   includeArchived: "包含已归档",

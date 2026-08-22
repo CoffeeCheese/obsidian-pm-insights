@@ -70,6 +70,18 @@ const evaluation = `(async () => {
     );
     scope.style.width = originalWidth;
 
+    const removeButton = scope.querySelector(".pmi-project-scope-remove");
+    const removeToken = removeButton?.closest(".pmi-project-scope-token");
+    const removedProjectId = removeToken?.getAttribute("data-project-id") ?? "";
+    const selectedCountBeforeRemove = plugin.settings.selectedProjectIds.length;
+    removeButton?.click();
+    const removalFeedbackStarted = removeToken?.classList.contains("is-removing") === true;
+    const removeButtonRect = removeButton?.getBoundingClientRect();
+    const removeTokenRect = removeToken?.getBoundingClientRect();
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    const removedCheckbox = checkboxes.find((checkbox) => checkbox.dataset.projectId === removedProjectId);
+    const persistedSettings = await plugin.loadData();
+
     report = {
       setup: true,
       initialNamesMatch,
@@ -83,6 +95,27 @@ const evaluation = `(async () => {
       leadContained: Boolean(leadRect && leadRect.left >= scopeRect.left && leadRect.right <= scopeRect.right),
       trackContained: Boolean(trackRect && trackRect.left >= scopeRect.left && trackRect.right <= scopeRect.right),
       narrowLayoutContained,
+      hasRemoveButton: removeButton instanceof HTMLButtonElement,
+      removeButtonAccessible: Boolean(removeButton?.getAttribute("aria-label")?.trim()),
+      removeButtonContained: Boolean(
+        removeButtonRect &&
+        removeTokenRect &&
+        removeButtonRect.left >= removeTokenRect.left &&
+        removeButtonRect.right <= removeTokenRect.right &&
+        removeButtonRect.top >= removeTokenRect.top &&
+        removeButtonRect.bottom <= removeTokenRect.bottom
+      ),
+      removalFeedbackStarted,
+      selectionRemoved:
+        Boolean(removedProjectId) &&
+        plugin.settings.selectedProjectIds.length === selectedCountBeforeRemove - 1 &&
+        !plugin.settings.selectedProjectIds.includes(removedProjectId),
+      removalPersisted:
+        Boolean(removedProjectId) &&
+        !persistedSettings?.selectedProjectIds?.includes(removedProjectId),
+      pickerSynchronized: removedCheckbox?.checked === false,
+      scopeSynchronizedAfterRemove:
+        !scope.querySelector('[data-project-id="' + CSS.escape(removedProjectId) + '"]') && sameNames(),
       pageHasNoHorizontalOverflow: scope.closest(".pmi-root")?.scrollWidth <= scope.closest(".pmi-root")?.clientWidth + 1
     };
   } finally {
@@ -125,6 +158,14 @@ if (
   !report.leadContained ||
   !report.trackContained ||
   !report.narrowLayoutContained ||
+  !report.hasRemoveButton ||
+  !report.removeButtonAccessible ||
+  !report.removeButtonContained ||
+  !report.removalFeedbackStarted ||
+  !report.selectionRemoved ||
+  !report.removalPersisted ||
+  !report.pickerSynchronized ||
+  !report.scopeSynchronizedAfterRemove ||
   !report.pageHasNoHorizontalOverflow
 ) {
   console.error(`Project scope rail failed: ${JSON.stringify(report)}`);

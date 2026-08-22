@@ -191,6 +191,7 @@ export class InsightsView extends ItemView {
         if (query && !project.title.normalize("NFKC").toLocaleLowerCase().includes(query)) continue;
         const row = list.createEl("label", { cls: "pmi-project-option" });
         const checkbox = row.createEl("input", { type: "checkbox" });
+        checkbox.dataset.projectId = project.id;
         checkbox.checked = this.host.settings.selectedProjectIds.includes(project.id);
         row.createSpan({ cls: "pmi-project-icon", text: project.icon });
         row.createSpan({ text: project.title });
@@ -318,12 +319,58 @@ export class InsightsView extends ItemView {
     }
 
     for (const project of selectedProjects) {
-      const token = track.createSpan({
+      const token = track.createDiv({
         cls: "pmi-project-scope-token",
-        attr: { title: project.title }
+        attr: { title: project.title, "data-project-id": project.id }
       });
       token.createSpan({ cls: "pmi-project-scope-project-icon", text: project.icon });
       token.createSpan({ cls: "pmi-project-scope-project-name", text: project.title });
+      const remove = token.createEl("button", {
+        cls: "pmi-project-scope-remove",
+        attr: {
+          type: "button",
+          "aria-label": t.removeProjectFromScope(project.title),
+          title: t.removeProjectFromScope(project.title),
+          "data-tooltip-position": "top"
+        }
+      });
+      setIcon(remove, "x");
+      remove.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const preserveKeyboardFocus = event.detail === 0;
+        const remainingProjects = selectedProjects.filter((candidate) => candidate.id !== project.id);
+        const removedIndex = selectedProjects.findIndex((candidate) => candidate.id === project.id);
+        const focusProjectId = remainingProjects[Math.min(removedIndex, remainingProjects.length - 1)]?.id;
+        token.classList.add("is-removing");
+        remove.disabled = true;
+        void (async () => {
+          this.host.settings.selectedProjectIds = this.host.settings.selectedProjectIds.filter(
+            (id) => id !== project.id
+          );
+          this.selectedMemberKey = null;
+          const removalDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => window.setTimeout(resolve, 100));
+          await Promise.all([this.host.saveSettings(), removalDelay]);
+          this.updateProjectSummary(t);
+          for (const checkbox of this.contentEl.querySelectorAll<HTMLInputElement>(
+            '.pmi-project-option input[type="checkbox"]'
+          )) {
+            if (checkbox.dataset.projectId === project.id) checkbox.checked = false;
+          }
+          this.updateProjectScope(snapshot, t);
+          this.renderDashboard(snapshot, t);
+          if (preserveKeyboardFocus) {
+            const focusTarget = focusProjectId
+              ? [...this.contentEl.querySelectorAll<HTMLElement>(".pmi-project-scope-token")]
+                  .find((candidate) => candidate.dataset.projectId === focusProjectId)
+                  ?.querySelector<HTMLButtonElement>(".pmi-project-scope-remove")
+              : this.contentEl.querySelector<HTMLElement>(".pmi-project-picker > summary");
+            focusTarget?.focus();
+          }
+        })();
+      });
     }
   }
 
