@@ -25,6 +25,7 @@ export interface InsightsViewHost {
   readProjectManager(): Promise<ProjectManagerSnapshot>;
   reconcileProjectManager(): Promise<ProjectManagerSnapshot>;
   saveSettings(): Promise<void>;
+  openSettings(): void;
   openTask(taskId: string, projectPath: string): Promise<void>;
   openProject(projectPath: string): Promise<void>;
 }
@@ -130,9 +131,20 @@ export class InsightsView extends ItemView {
     copy.createDiv({ cls: "pmi-eyebrow", text: t.eyebrow });
     copy.createEl("h1", { text: t.heading });
     copy.createEl("p", { text: t.intro });
-    const stamp = header.createDiv("pmi-snapshot-stamp");
+    const tools = header.createDiv("pmi-header-tools");
+    const stamp = tools.createDiv("pmi-snapshot-stamp");
     setIcon(stamp.createSpan("pmi-snapshot-icon"), "scan-line");
     stamp.createSpan({ text: new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date()) });
+    const settings = tools.createEl("button", {
+      cls: "pmi-header-settings clickable-icon",
+      attr: {
+        type: "button",
+        "aria-label": t.openSettings,
+        "data-tooltip-position": "top"
+      }
+    });
+    setIcon(settings, "settings-2");
+    settings.addEventListener("click", () => this.host.openSettings());
   }
 
   private renderControls(

@@ -90,6 +90,14 @@
   font-size: var(--font-ui-medium);
 }
 
+.pmi-header-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
 .pmi-snapshot-stamp {
   display: flex;
   flex: 0 0 auto;
@@ -102,6 +110,37 @@
   background: var(--background-primary);
   font-family: var(--font-monospace);
   font-size: var(--font-ui-smaller);
+}
+
+.pmi-header-settings {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 7px;
+  border: 1px solid var(--pmi-edge);
+  border-radius: var(--radius-s);
+  place-items: center;
+  color: var(--text-muted);
+  background: var(--background-primary);
+}
+
+.pmi-header-settings:hover {
+  border-color: color-mix(in srgb, var(--interactive-accent) 54%, var(--pmi-edge));
+  color: var(--text-accent);
+  background: var(--pmi-accent-soft);
+}
+
+.pmi-header-settings:focus-visible {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--pmi-accent-soft);
+  outline: none;
+}
+
+.pmi-header-settings svg {
+  width: 16px;
+  height: 16px;
 }
 
 .pmi-snapshot-icon,

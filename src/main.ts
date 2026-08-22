@@ -112,6 +112,22 @@ export default class ProjectManagerInsightsPlugin
     }
   }
 
+  openSettings(): void {
+    const commands = Reflect.get(this.app, "commands") as unknown;
+    if (!commands || typeof commands !== "object") return;
+    const executeCommandById = Reflect.get(commands, "executeCommandById") as unknown;
+    if (typeof executeCommandById !== "function") return;
+    executeCommandById.call(commands, "app:open-settings");
+    window.setTimeout(() => {
+      const setting = Reflect.get(this.app, "setting") as unknown;
+      if (!setting || typeof setting !== "object") return;
+      const openTabById = Reflect.get(setting, "openTabById") as unknown;
+      if (typeof openTabById === "function") {
+        openTabById.call(setting, this.manifest.id);
+      }
+    }, 0);
+  }
+
   async openTask(taskId: string, projectPath: string): Promise<void> {
     try {
       await this.navigator.editTask({ taskId, projectPath });
