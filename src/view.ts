@@ -50,6 +50,7 @@ export class InsightsView extends ItemView {
   private taskPrioritySort: TaskPrioritySort = "none";
   private dashboardEl: HTMLElement | null = null;
   private projectSummaryEl: HTMLElement | null = null;
+  private projectScopeEl: HTMLElement | null = null;
   private taskColumnWidths: number[] | null = null;
   private renderVersion = 0;
 
@@ -201,6 +202,7 @@ export class InsightsView extends ItemView {
             this.selectedMemberKey = null;
             await this.host.saveSettings();
             this.updateProjectSummary(t);
+            this.updateProjectScope(snapshot, t);
             this.renderDashboard(snapshot, t);
           })();
         });
@@ -215,6 +217,7 @@ export class InsightsView extends ItemView {
         this.selectedMemberKey = null;
         await this.host.saveSettings();
         this.updateProjectSummary(t);
+        this.updateProjectScope(snapshot, t);
         renderProjects();
         this.renderDashboard(snapshot, t);
       })();
@@ -226,6 +229,7 @@ export class InsightsView extends ItemView {
         this.selectedMemberKey = null;
         await this.host.saveSettings();
         this.updateProjectSummary(t);
+        this.updateProjectScope(snapshot, t);
         renderProjects();
         this.renderDashboard(snapshot, t);
       })();
@@ -270,6 +274,12 @@ export class InsightsView extends ItemView {
     });
     setIcon(refresh, "refresh-cw");
     refresh.addEventListener("click", () => void this.reconcileAndRender());
+
+    this.projectScopeEl = root.createDiv({
+      cls: "pmi-project-scope",
+      attr: { "aria-live": "polite", "aria-atomic": "true" }
+    });
+    this.updateProjectScope(snapshot, t);
   }
 
   private async reconcileAndRender(): Promise<void> {
@@ -279,6 +289,42 @@ export class InsightsView extends ItemView {
 
   private updateProjectSummary(t: Translations): void {
     this.projectSummaryEl?.setText(t.projectCount(this.host.settings.selectedProjectIds.length));
+  }
+
+  private updateProjectScope(snapshot: ProjectManagerSnapshot, t: Translations): void {
+    const scope = this.projectScopeEl;
+    if (!scope) return;
+
+    scope.empty();
+    const selectedIds = new Set(this.host.settings.selectedProjectIds);
+    const selectedProjects = snapshot.projects.filter((project) => selectedIds.has(project.id));
+    scope.toggleClass("is-empty", selectedProjects.length === 0);
+
+    const lead = scope.createDiv("pmi-project-scope-lead");
+    const signal = lead.createSpan("pmi-project-scope-signal");
+    setIcon(signal, "focus");
+    const copy = lead.createDiv("pmi-project-scope-copy");
+    copy.createSpan({ cls: "pmi-project-scope-label", text: t.projectScopeLabel });
+    copy.createSpan({
+      cls: "pmi-project-scope-summary",
+      text: t.projectScopeSummary(selectedProjects.length, snapshot.projects.length)
+    });
+
+    const track = scope.createDiv("pmi-project-scope-track");
+    if (selectedProjects.length === 0) {
+      setIcon(track.createSpan("pmi-project-scope-empty-icon"), "circle-dashed");
+      track.createSpan({ cls: "pmi-project-scope-empty", text: t.projectScopeEmpty });
+      return;
+    }
+
+    for (const project of selectedProjects) {
+      const token = track.createSpan({
+        cls: "pmi-project-scope-token",
+        attr: { title: project.title }
+      });
+      token.createSpan({ cls: "pmi-project-scope-project-icon", text: project.icon });
+      token.createSpan({ cls: "pmi-project-scope-project-name", text: project.title });
+    }
   }
 
   private renderDashboard(snapshot: ProjectManagerSnapshot, t: Translations): void {

@@ -151,6 +151,7 @@
 
 .pmi-header,
 .pmi-controls,
+.pmi-project-scope,
 .pmi-dashboard {
   width: 100%;
   max-width: var(--pmi-content-max);
@@ -163,7 +164,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-block-end: 14px;
+  margin-block-end: 10px;
 }
 
 .pmi-project-picker {
@@ -337,6 +338,142 @@
 
 .pmi-refresh {
   margin-inline-start: auto;
+}
+
+.pmi-project-scope {
+  display: grid;
+  grid-template-columns: minmax(148px, auto) minmax(0, 1fr);
+  min-height: 48px;
+  margin-block-end: 12px;
+  overflow: hidden;
+  border: 1px solid var(--pmi-edge-strong);
+  border-radius: var(--radius-m);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary)),
+      var(--background-primary) 28%
+    );
+}
+
+.pmi-project-scope-lead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+}
+
+.pmi-project-scope-signal {
+  display: grid;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 36%, var(--pmi-edge));
+  border-radius: 50%;
+  color: var(--text-accent);
+  background: var(--background-primary);
+}
+
+.pmi-project-scope-signal svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pmi-project-scope-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.pmi-project-scope-label {
+  color: var(--text-accent);
+  font-family: var(--font-monospace);
+  font-size: 9px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.pmi-project-scope-summary {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-project-scope-track {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 7px 12px;
+  border-inline-start: 1px solid var(--pmi-edge);
+  background:
+    linear-gradient(var(--pmi-edge), var(--pmi-edge)) center / calc(100% - 24px) 1px no-repeat;
+  scrollbar-width: thin;
+}
+
+.pmi-project-scope-token {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  max-width: min(360px, 52vw);
+  min-height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px 5px 8px;
+  border: 1px solid var(--pmi-edge-strong);
+  border-radius: var(--radius-s);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--interactive-accent) 58%, transparent);
+  background: var(--background-primary);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-project-scope-project-icon {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  line-height: 1;
+}
+
+.pmi-project-scope-project-name {
+  overflow: hidden;
+  font-weight: var(--font-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-project-scope-empty-icon,
+.pmi-project-scope-empty-icon svg {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.pmi-project-scope-empty-icon {
+  color: var(--text-faint);
+  background: var(--background-primary);
+}
+
+.pmi-project-scope-empty {
+  position: relative;
+  z-index: 1;
+  padding-inline-end: 8px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-project-scope.is-empty .pmi-project-scope-signal {
+  border-color: var(--pmi-edge);
+  color: var(--text-faint);
 }
 
 .pmi-team-strip {
@@ -3048,6 +3185,29 @@ body .modal.pmi-project-tag-modal input[type="text"].pmi-project-tag-search:focu
 
   .pmi-project-picker > summary {
     width: 100%;
+  }
+
+  .pmi-project-scope {
+    grid-template-columns: minmax(120px, 0.42fr) minmax(0, 1fr);
+  }
+
+  .pmi-project-scope-lead {
+    gap: 7px;
+    padding-inline: 9px;
+  }
+
+  .pmi-project-scope-signal {
+    flex-basis: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .pmi-project-scope-track {
+    padding-inline: 9px;
+  }
+
+  .pmi-project-scope-token {
+    max-width: min(280px, 64vw);
   }
 
   .pmi-refresh {

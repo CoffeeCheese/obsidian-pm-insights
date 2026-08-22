@@ -11,6 +11,12 @@ const en = {
   projects: "Projects",
   projectCount: (count: number) => `${count} selected`,
   projectSearch: "Find a project…",
+  projectScopeLabel: "Current scope",
+  projectScopeSummary: (count: number, total: number) =>
+    count === total
+      ? `All ${total} project${total === 1 ? "" : "s"}`
+      : `${count} of ${total} project${total === 1 ? "" : "s"}`,
+  projectScopeEmpty: "Choose projects to populate this view",
   selectAll: "Select all",
   clear: "Clear",
   includeArchived: "Include archived",
@@ -200,6 +206,10 @@ const zh: typeof en = {
   projects: "项目",
   projectCount: (count: number) => `已选择 ${count} 个`,
   projectSearch: "查找项目…",
+  projectScopeLabel: "当前范围",
+  projectScopeSummary: (count: number, total: number) =>
+    count === total ? `全部 ${total} 个项目` : `${count} / ${total} 个项目`,
+  projectScopeEmpty: "选择项目后将在这里持续显示",
   selectAll: "全选",
   clear: "清空",
   includeArchived: "包含已归档",
