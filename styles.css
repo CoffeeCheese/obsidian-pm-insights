@@ -1120,10 +1120,11 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task {
   display: grid;
   width: 100%;
   grid-template-columns: minmax(0, 1fr) 18px;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  min-height: 48px;
-  padding: 7px 10px;
+  height: auto;
+  min-height: 56px;
+  padding: 9px 12px 10px;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -1156,14 +1157,16 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
   transform: none;
 }
 
-.pmi-risk-task > div {
+.pmi-risk-task-copy {
   display: grid;
   min-width: 0;
+  gap: 5px;
 }
 
 .pmi-risk-task strong {
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.35;
   white-space: nowrap;
 }
 
@@ -1172,8 +1175,9 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px 5px;
-  margin-block-start: 4px;
+  gap: 3px 8px;
+  color: var(--text-muted);
+  line-height: 1.45;
 }
 
 .pmi-risk-task-signal {
@@ -1182,16 +1186,15 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
   min-width: 0;
   align-items: center;
   gap: 4px;
-  padding: 1px 5px;
-  border: 1px solid color-mix(in srgb, var(--pmi-task-signal-color) 24%, transparent);
-  border-radius: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: var(--pmi-task-signal-color);
-  background: color-mix(in srgb, var(--pmi-task-signal-color) 5%, transparent);
-  font-family: var(--font-monospace);
-  font-size: 10px;
+  background: transparent;
+  font-size: var(--font-ui-smaller);
   font-weight: var(--font-medium);
-  letter-spacing: -0.01em;
-  line-height: 1.45;
+  letter-spacing: 0;
+  line-height: inherit;
   white-space: nowrap;
 }
 
@@ -1206,8 +1209,7 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
 }
 
 .pmi-risk-task-signal.is-primary {
-  border-color: color-mix(in srgb, var(--pmi-task-signal-color) 38%, transparent);
-  background: color-mix(in srgb, var(--pmi-task-signal-color) 8%, transparent);
+  font-weight: var(--font-semibold);
 }
 
 .pmi-risk-task-signal.is-critical {
@@ -1226,11 +1228,12 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-task:is(:hover, :focus-visible) 
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-inline-start: 2px;
+  margin-inline-start: 1px;
   color: var(--text-muted);
   font-family: var(--font-monospace);
-  font-size: 10px;
+  font-size: var(--font-ui-smaller);
   font-variant-numeric: tabular-nums;
+  line-height: inherit;
   white-space: nowrap;
 }
 

@@ -278,7 +278,7 @@ export class GateRiskModal extends Modal {
           "aria-label": `${t.openTask}: ${task.title}. ${t.gateTaskRiskReasons}: ${labels.join(", ")}`
         }
       });
-      const copy = button.createDiv();
+      const copy = button.createDiv("pmi-risk-task-copy");
       copy.createEl("strong", { text: task.title });
       const evidence = copy.createDiv({
         cls: "pmi-risk-task-evidence",

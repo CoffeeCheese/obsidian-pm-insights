@@ -110,6 +110,15 @@ const evaluation = `(async () => {
     const nearestHighlighted = Boolean(
       riskModal?.querySelector(".pmi-risk-gate.is-nearest .pmi-risk-nearest")
     );
+    const taskRows = [...(riskModal?.querySelectorAll(".pmi-risk-task") ?? [])]
+      .filter((row) => row.getClientRects().length > 0);
+    const taskEvidenceClearances = taskRows.map((row) => {
+      const evidence = row.querySelector(".pmi-risk-task-evidence");
+      if (!(evidence instanceof HTMLElement)) return -1;
+      return row.getBoundingClientRect().bottom - evidence.getBoundingClientRect().bottom;
+    });
+    const taskEvidenceClearOfDivider = taskEvidenceClearances.length > 0 &&
+      taskEvidenceClearances.every((clearance) => clearance >= 6);
     const taskButton = riskModal?.querySelector(".pmi-risk-task");
     let taskReturnVerified = false;
     if (taskButton instanceof HTMLButtonElement) {
@@ -163,6 +172,9 @@ const evaluation = `(async () => {
       passedGatesAvoidOverdueLabel,
       skippedGatesUseSkipLanguage,
       nearestHighlighted,
+      taskEvidenceClearOfDivider,
+      visibleTaskRows: taskRows.length,
+      minimumTaskEvidenceClearance: Math.min(...taskEvidenceClearances),
       taskReturnVerified,
       editorAvailable: editor instanceof HTMLElement,
       dateFieldCountMatches: dateInputs.length === plugin.settings.deliveryProgress.stages.length + 3,
@@ -205,6 +217,7 @@ if (
   !report.passedGatesAvoidOverdueLabel ||
   !report.skippedGatesUseSkipLanguage ||
   !report.nearestHighlighted ||
+  !report.taskEvidenceClearOfDivider ||
   !report.taskReturnVerified ||
   !report.editorAvailable ||
   !report.dateFieldCountMatches ||
