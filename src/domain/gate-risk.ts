@@ -211,6 +211,7 @@ function assessGate(input: {
   progress: number;
   tasks: TaskRecord[];
   blockingTasks?: TaskRecord[];
+  timingTasks?: TaskRecord[];
   passed: boolean;
   skipped?: boolean;
   previousGatesPassed?: boolean;
@@ -247,7 +248,7 @@ function assessGate(input: {
   let timing: GateTiming | null = null;
   if (input.passed) {
     state = "passed";
-    timing = input.skipped ? null : passTiming(input.tasks, input.gateDate);
+    timing = input.skipped ? null : passTiming(input.timingTasks ?? input.tasks, input.gateDate);
   } else if (input.today > input.gateDate) {
     state = "overdue";
     reasons.push("gate-overdue");
@@ -371,20 +372,23 @@ function projectRisk(
   acceptance.tasks = acceptanceTasks;
   gates.push(acceptance);
 
+  const projectRiskTasks = uniqueTasks([
+    ...progress.stages.flatMap((stage) => stage.tasks),
+    ...progress.acceptance.roots.map((root) => root.task)
+  ]);
   const launch = assessGate({
     id: "launch",
     name: "",
     kind: "launch",
-    windowStart: schedule.acceptanceGate,
+    windowStart: schedule.startDate,
     gateDate: schedule.launchDate,
     today: options.today,
-    progress: acceptanceProgress,
-    tasks: acceptanceRiskTasks,
+    progress: progress.totalPercentage ?? 0,
+    tasks: projectRiskTasks,
     blockingTasks: acceptanceBlockers,
+    timingTasks: acceptanceRiskTasks,
     passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
-    previousGatesPassed: acceptance.state === "passed"
   });
-  launch.tasks = acceptanceTasks;
   gates.push(launch);
 
   const nearestGate = gates

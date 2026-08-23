@@ -325,4 +325,99 @@ describe("aggregateGateRisk", () => {
       timing: "early"
     });
   });
+
+  it("assesses the launch reminder across the full project timeline and all stages", () => {
+    const projectSettings: DeliveryProgressSettings = {
+      ...settings,
+      stages: [
+        { ...settings.stages[0]!, id: "development", tags: ["type/development"], weight: 50 },
+        { ...settings.stages[0]!, id: "testing", tags: ["type/testing"], weight: 40 }
+      ]
+    };
+    const projectSchedule: ProjectGateSchedule = {
+      startDate: "2026-08-01",
+      stageGates: {
+        development: "2026-08-05",
+        testing: "2026-08-10"
+      },
+      acceptanceGate: "2026-08-15",
+      launchDate: "2026-08-21"
+    };
+    const snapshot = aggregateGateRisk([project], [
+      root(),
+      task({
+        id: "development-done",
+        tags: ["type/development"],
+        completed: true,
+        completedAt: "2026-08-04"
+      }),
+      task({
+        id: "testing-done",
+        tags: ["type/testing"],
+        completed: true,
+        completedAt: "2026-08-09"
+      }),
+      task({ id: "testing-open", tags: ["type/testing"], dueDate: "2026-08-20" })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings: projectSettings,
+      gateSchedules: { p1: projectSchedule },
+      today: "2026-08-11"
+    });
+    const launch = snapshot.projects[0]?.gates.find((gate) => gate.id === "launch");
+
+    expect(launch).toMatchObject({
+      windowStart: "2026-08-01",
+      progress: 70,
+      expectedProgress: 50,
+      progressGap: 0,
+      state: "normal"
+    });
+    expect(launch?.tasks.map((candidate) => candidate.id).sort()).toEqual([
+      "root",
+      "testing-open"
+    ]);
+  });
+
+  it("keeps acceptance as the launch standard while exposing optional unfinished work", () => {
+    const projectSettings: DeliveryProgressSettings = {
+      ...settings,
+      stages: [
+        {
+          ...settings.stages[0]!,
+          id: "discovery",
+          tags: ["type/discovery"],
+          weight: 10,
+          acceptancePrerequisite: false
+        },
+        { ...settings.stages[0]!, id: "delivery", weight: 80 }
+      ]
+    };
+    const projectSchedule: ProjectGateSchedule = {
+      startDate: "2026-08-01",
+      stageGates: { discovery: "2026-08-05", delivery: "2026-08-10" },
+      acceptanceGate: "2026-08-15",
+      launchDate: "2026-08-21"
+    };
+    const snapshot = aggregateGateRisk([project], [
+      root({ completed: true, completedAt: "2026-08-14" }),
+      task({ id: "discovery-open", tags: ["type/discovery"], dueDate: "2026-08-20" }),
+      task({
+        id: "delivery-done",
+        completed: true,
+        completedAt: "2026-08-14"
+      })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings: projectSettings,
+      gateSchedules: { p1: projectSchedule },
+      today: "2026-08-16"
+    });
+    const launch = snapshot.projects[0]?.gates.find((gate) => gate.id === "launch");
+
+    expect(launch).toMatchObject({ state: "passed", progress: 90, timing: "early" });
+    expect(launch?.tasks.map((candidate) => candidate.id)).toEqual(["discovery-open"]);
+  });
 });
