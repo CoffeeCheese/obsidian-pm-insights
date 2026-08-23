@@ -160,7 +160,7 @@ export class GateRiskModal extends Modal {
 
     const timeline = panel.createDiv("pmi-risk-timeline");
     for (const gate of risk.gates) {
-      this.renderGate(timeline, risk.project, gate, gate === risk.nearestGate, t);
+      this.renderGate(timeline, risk.project, gate, risk.gates, gate === risk.nearestGate, t);
     }
   }
 
@@ -168,6 +168,7 @@ export class GateRiskModal extends Modal {
     root: HTMLElement,
     project: ProjectRecord,
     gate: GateRiskMetric,
+    projectGates: GateRiskMetric[],
     nearest: boolean,
     t: Translations
   ): void {
@@ -240,6 +241,10 @@ export class GateRiskModal extends Modal {
         issues.addEventListener("click", () => this.options.openDeliveryIssues());
       }
     }
+    if (gate.kind === "launch") {
+      this.renderLaunchOverview(body, gate, projectGates, t);
+      return;
+    }
     this.renderTaskGroup(body, project, t.gateRiskTasks, gate.tasks, gate, t);
     if (gate.blockingTasks.length > 0) {
       this.renderTaskGroup(body, project, t.gateBlockingTasks, gate.blockingTasks, gate, t, true);
@@ -247,6 +252,41 @@ export class GateRiskModal extends Modal {
     if (gate.tasks.length === 0 && gate.blockingTasks.length === 0) {
       body.createDiv({ cls: "pmi-risk-no-tasks", text: t.gateNoRiskTasks });
     }
+  }
+
+  private renderLaunchOverview(
+    root: HTMLElement,
+    gate: GateRiskMetric,
+    projectGates: GateRiskMetric[],
+    t: Translations
+  ): void {
+    const upstream = projectGates.filter((candidate) => candidate.kind !== "launch");
+    const passed = upstream.filter((candidate) => candidate.state === "passed").length;
+    const risks = upstream.filter((candidate) =>
+      candidate.state === "attention" || candidate.state === "high" || candidate.state === "overdue"
+    ).length;
+    const openTasks = new Set(gate.tasks.map((task) => task.id)).size;
+    const blockers = new Set(gate.blockingTasks.map((task) => task.id)).size;
+    const overview = root.createDiv({
+      cls: "pmi-risk-launch-overview",
+      attr: { role: "group", "aria-label": t.launchOverviewTitle }
+    });
+    const heading = overview.createDiv("pmi-risk-launch-overview-heading");
+    setIcon(heading.createSpan(), "clipboard-check");
+    heading.createEl("strong", { text: t.launchOverviewTitle });
+    const stats = overview.createDiv("pmi-risk-launch-stats");
+    const summaryItems: Array<[string, string, string]> = [
+      ["passed", t.launchPassedGates, `${passed}/${upstream.length}`],
+      ["risk", t.launchRiskGates, String(risks)],
+      ["tasks", t.launchOpenTasks, String(openTasks)],
+      ["blockers", t.launchAcceptanceBlockers, String(blockers)]
+    ];
+    for (const [key, label, value] of summaryItems) {
+      const stat = stats.createDiv({ cls: "pmi-risk-launch-stat", attr: { "data-summary": key } });
+      stat.createSpan({ text: label });
+      stat.createEl("strong", { text: value });
+    }
+    overview.createDiv({ cls: "pmi-risk-launch-hint", text: t.launchOverviewHint });
   }
 
   private renderTaskGroup(

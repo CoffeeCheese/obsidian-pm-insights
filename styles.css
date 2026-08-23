@@ -1113,6 +1113,72 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
   background: color-mix(in srgb, var(--interactive-accent) 6%, transparent);
 }
 
+.pmi-risk-launch-overview {
+  overflow: hidden;
+  margin-block-start: 2px;
+  border-block: 1px solid color-mix(
+    in srgb,
+    var(--pmi-risk-color) 24%,
+    var(--background-modifier-border)
+  );
+  background: color-mix(in srgb, var(--pmi-risk-color) 2%, var(--background-primary));
+}
+
+.pmi-risk-launch-overview-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-risk-launch-overview-heading svg {
+  width: 14px;
+  height: 14px;
+  color: var(--pmi-risk-color);
+}
+
+.pmi-risk-launch-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+.pmi-risk-launch-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.pmi-risk-launch-stat + .pmi-risk-launch-stat {
+  border-inline-start: 1px solid var(--background-modifier-border);
+}
+
+.pmi-risk-launch-stat > span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-risk-launch-stat > strong {
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-risk-launch-hint {
+  padding: 7px 10px;
+  border-block-start: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.45;
+}
+
 .pmi-risk-task-group h4 {
   margin: 12px 0 6px;
   color: var(--text-muted);
@@ -1367,6 +1433,19 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
     grid-column: 2;
     justify-items: start;
     text-align: start;
+  }
+
+  .pmi-risk-launch-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmi-risk-launch-stat:nth-child(3) {
+    border-block-start: 1px solid var(--background-modifier-border);
+    border-inline-start: 0;
+  }
+
+  .pmi-risk-launch-stat:nth-child(4) {
+    border-block-start: 1px solid var(--background-modifier-border);
   }
 }
 

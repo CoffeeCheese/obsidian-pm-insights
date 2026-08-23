@@ -119,6 +119,12 @@ const evaluation = `(async () => {
     });
     const taskEvidenceClearOfDivider = taskEvidenceClearances.length > 0 &&
       taskEvidenceClearances.every((clearance) => clearance >= 6);
+    const launchGate = riskModal?.querySelector('[data-gate-id="launch"]');
+    const launchUsesProjectSummary = Boolean(
+      launchGate?.querySelector(".pmi-risk-launch-overview") &&
+      launchGate.querySelectorAll(".pmi-risk-launch-stat").length === 4 &&
+      !launchGate.querySelector(".pmi-risk-task-group")
+    );
     const taskButton = riskModal?.querySelector(".pmi-risk-task");
     let taskReturnVerified = false;
     if (taskButton instanceof HTMLButtonElement) {
@@ -175,6 +181,7 @@ const evaluation = `(async () => {
       taskEvidenceClearOfDivider,
       visibleTaskRows: taskRows.length,
       minimumTaskEvidenceClearance: Math.min(...taskEvidenceClearances),
+      launchUsesProjectSummary,
       taskReturnVerified,
       editorAvailable: editor instanceof HTMLElement,
       dateFieldCountMatches: dateInputs.length === plugin.settings.deliveryProgress.stages.length + 3,
@@ -218,6 +225,7 @@ if (
   !report.skippedGatesUseSkipLanguage ||
   !report.nearestHighlighted ||
   !report.taskEvidenceClearOfDivider ||
+  !report.launchUsesProjectSummary ||
   !report.taskReturnVerified ||
   !report.editorAvailable ||
   !report.dateFieldCountMatches ||
