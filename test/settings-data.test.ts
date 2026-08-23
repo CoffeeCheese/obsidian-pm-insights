@@ -12,6 +12,15 @@ describe("normalizeInsightSettings", () => {
     expect(normalizeInsightSettings({ showDeliveryProgress: false }).showDeliveryProgress).toBe(false);
   });
 
+  it("keeps task due-date checks enabled unless users disable them", () => {
+    expect(normalizeInsightSettings(null).gateRisk.checkTaskDueDates).toBe(true);
+    expect(normalizeInsightSettings({ gateRisk: { checkTaskDueDates: false } })
+      .gateRisk.checkTaskDueDates).toBe(false);
+    expect(normalizeInsightSettings({
+      gateRisk: { checkTaskDueDates: "sometimes" }
+    } as unknown as Partial<InsightSettings>).gateRisk.checkTaskDueDates).toBe(true);
+  });
+
   it("keeps completed-root prerequisite validation enabled unless users disable it", () => {
     expect(normalizeInsightSettings(null).deliveryProgress.validateCompletedRootPrerequisites)
       .toBe(true);

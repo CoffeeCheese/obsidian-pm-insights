@@ -221,6 +221,20 @@ export class InsightsSettingTab extends PluginSettingTab {
       },
       {
         type: "group",
+        heading: t.gateRiskSettingsHeading,
+        items: [
+          {
+            name: t.checkTaskDueDates,
+            desc: t.checkTaskDueDatesDesc,
+            control: {
+              type: "toggle",
+              key: "checkTaskDueDates"
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
         heading: t.aliases,
         cls: "pmi-alias-group",
         extraButtons: [
@@ -247,6 +261,7 @@ export class InsightsSettingTab extends PluginSettingTab {
   getControlValue(key: string): unknown {
     if (key === "locale") return this.host.settings.locale;
     if (key === "showDeliveryProgress") return this.host.settings.showDeliveryProgress;
+    if (key === "checkTaskDueDates") return this.host.settings.gateRisk.checkTaskDueDates;
     return undefined;
   }
 
@@ -256,6 +271,12 @@ export class InsightsSettingTab extends PluginSettingTab {
       await this.host.saveSettings();
       await this.host.refreshInsights();
       this.updateDefinitions();
+      return;
+    }
+    if (key === "checkTaskDueDates" && typeof value === "boolean") {
+      this.host.settings.gateRisk.checkTaskDueDates = value;
+      await this.host.saveSettings();
+      await this.host.refreshInsights();
       return;
     }
     if (key !== "showDeliveryProgress" || typeof value !== "boolean") return;
@@ -345,6 +366,20 @@ export class InsightsSettingTab extends PluginSettingTab {
       t
     );
     this.renderProgressSave(new Setting(containerEl).setName(t.saveProgressSettings), t);
+
+    new Setting(containerEl).setName(t.gateRiskSettingsHeading).setHeading();
+    new Setting(containerEl)
+      .setName(t.checkTaskDueDates)
+      .setDesc(t.checkTaskDueDatesDesc)
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.host.settings.gateRisk.checkTaskDueDates)
+          .onChange(async (value) => {
+            this.host.settings.gateRisk.checkTaskDueDates = value;
+            await this.host.saveSettings();
+            await this.host.refreshInsights();
+          })
+      );
   }
 
   private progressStageDefinition(

@@ -2,6 +2,7 @@ import {
   DEFAULT_SETTINGS,
   type DeliveryProgressSettings,
   type DeliveryStageSettings,
+  type GateRiskSettings,
   type InsightSettings,
   type ProjectGateSchedule
 } from "./model";
@@ -18,7 +19,18 @@ export function normalizeInsightSettings(
       ? saved.showDeliveryProgress
       : DEFAULT_SETTINGS.showDeliveryProgress,
     deliveryProgress: normalizeDeliveryProgressSettings(saved?.deliveryProgress),
+    gateRisk: normalizeGateRiskSettings(saved?.gateRisk),
     gateSchedules: normalizeGateSchedules(saved?.gateSchedules)
+  };
+}
+
+function normalizeGateRiskSettings(
+  saved: Partial<GateRiskSettings> | undefined
+): GateRiskSettings {
+  return {
+    checkTaskDueDates: typeof saved?.checkTaskDueDates === "boolean"
+      ? saved.checkTaskDueDates
+      : DEFAULT_SETTINGS.gateRisk.checkTaskDueDates
   };
 }
 

@@ -129,6 +129,32 @@ describe("aggregateGateRisk", () => {
     expect(stage?.reasons).toContain("task-after-gate");
   });
 
+  it("ignores every task due-date signal when users disable due-date checks", () => {
+    const late = task({ id: "late-plan", dueDate: "2026-08-12" });
+    const undated = task({ id: "undated", dueDate: null });
+    const snapshot = aggregateGateRisk([project], [root(), late, undated], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: schedule },
+      today: "2026-08-01",
+      checkTaskDueDates: false
+    });
+    const stage = snapshot.projects[0]?.gates[0];
+    if (!stage) throw new Error("Missing delivery gate");
+
+    expect(stage).toMatchObject({
+      state: "normal",
+      reasons: [],
+      quality: { missingDue: 0 },
+      dueDateChecksEnabled: false
+    });
+    expect(gateTaskRiskSignals(late, stage, "2026-08-01"))
+      .not.toContainEqual(expect.objectContaining({ kind: "task-after-gate" }));
+    expect(gateTaskRiskSignals(undated, stage, "2026-08-01"))
+      .not.toContainEqual({ kind: "missing-due" });
+  });
+
   it("marks an incomplete stage overdue only after its gate date", () => {
     expect(risk([root(), task({ id: "open" })], "2026-08-11").projects[0]?.gates[0]?.state)
       .toBe("high");

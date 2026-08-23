@@ -1,4 +1,4 @@
-import { Modal, setIcon, type App } from "obsidian";
+import { Modal, Notice, ToggleComponent, setIcon, type App } from "obsidian";
 import type {
   GateRiskMetric,
   GateRiskReason,
@@ -15,12 +15,14 @@ import { deliveryStageLabel } from "./delivery-stage-label";
 
 interface GateRiskModalOptions {
   snapshot: GateRiskSnapshot;
+  checkTaskDueDates: boolean;
   priorities: PriorityRecord[];
   translations: Translations;
   hasDeliveryIssues: boolean;
   openTask(taskId: string, projectPath: string): Promise<void> | void;
   openDeliveryIssues(): void;
   configureProject(project: ProjectRecord): void;
+  setTaskDueDateChecks(enabled: boolean): Promise<GateRiskSnapshot>;
 }
 
 let nextRiskModalId = 0;
@@ -39,11 +41,15 @@ type GateTaskRiskTone = "critical" | "warning" | "quality" | "context";
 
 export class GateRiskModal extends Modal {
   private activeProjectId: string;
+  private snapshot: GateRiskSnapshot;
+  private checkTaskDueDates: boolean;
   private readonly labelId = ++nextRiskModalId;
 
   constructor(app: App, private readonly options: GateRiskModalOptions) {
     super(app);
-    this.activeProjectId = [...options.snapshot.projects]
+    this.snapshot = options.snapshot;
+    this.checkTaskDueDates = options.checkTaskDueDates;
+    this.activeProjectId = [...this.snapshot.projects]
       .sort((left, right) => STATE_ORDER[right.state] - STATE_ORDER[left.state])[0]
       ?.project.id ?? "";
   }
@@ -58,7 +64,8 @@ export class GateRiskModal extends Modal {
   }
 
   private render(): void {
-    const { snapshot, translations: t } = this.options;
+    const { translations: t } = this.options;
+    const snapshot = this.snapshot;
     this.contentEl.empty();
     const state = gateRiskSummaryState(snapshot.counts);
     const lead = this.contentEl.createDiv(`pmi-risk-lead is-${state}`);
@@ -75,6 +82,7 @@ export class GateRiskModal extends Modal {
         snapshot.counts.unconfigured
       )
     });
+    this.renderDueDateRule(lead, t);
 
     const tabs = this.contentEl.createDiv({
       cls: "pmi-risk-project-tabs",
@@ -96,6 +104,57 @@ export class GateRiskModal extends Modal {
       link.createSpan({ text: t.viewDeliveryIssues });
       setIcon(link.createSpan(), "chevron-right");
       link.addEventListener("click", () => this.options.openDeliveryIssues());
+    }
+  }
+
+  private renderDueDateRule(root: HTMLElement, t: Translations): void {
+    const rule = root.createDiv({
+      cls: `pmi-risk-rule${this.checkTaskDueDates ? " is-enabled" : " is-disabled"}`,
+      attr: { title: t.checkTaskDueDatesDesc }
+    });
+    const icon = rule.createSpan("pmi-risk-rule-icon");
+    setIcon(icon, "calendar-clock");
+    const copy = rule.createDiv("pmi-risk-rule-copy");
+    copy.createSpan({ text: t.gateDueDateRule });
+    copy.createEl("small", {
+      text: this.checkTaskDueDates
+        ? t.gateDueDateRuleEnabled
+        : t.gateDueDateRuleDisabled,
+      attr: { "aria-live": "polite" }
+    });
+    const toggleHost = rule.createSpan("pmi-risk-rule-control");
+    const toggle = new ToggleComponent(toggleHost)
+      .setValue(this.checkTaskDueDates)
+      .onChange((enabled) => void this.updateDueDateRule(enabled, toggle));
+    toggle.toggleEl.addClass("pmi-risk-rule-toggle");
+    toggle.toggleEl.setAttribute("aria-label", t.checkTaskDueDates);
+    toggle.toggleEl.querySelector("input")?.setAttribute("aria-label", t.checkTaskDueDates);
+  }
+
+  private async updateDueDateRule(
+    enabled: boolean,
+    toggle: ToggleComponent
+  ): Promise<void> {
+    const previous = this.checkTaskDueDates;
+    const rule = toggle.toggleEl.closest<HTMLElement>(".pmi-risk-rule");
+    rule?.setAttribute("aria-busy", "true");
+    toggle.setDisabled(true);
+    try {
+      this.snapshot = await this.options.setTaskDueDateChecks(enabled);
+      this.checkTaskDueDates = enabled;
+      if (!this.snapshot.projects.some((risk) => risk.project.id === this.activeProjectId)) {
+        this.activeProjectId = this.snapshot.projects[0]?.project.id ?? "";
+      }
+      this.render();
+      window.setTimeout(() => {
+        this.contentEl.querySelector<HTMLElement>(".pmi-risk-rule-toggle")?.focus();
+      }, 0);
+    } catch {
+      this.checkTaskDueDates = previous;
+      toggle.setValue(previous);
+      toggle.setDisabled(false);
+      rule?.removeAttribute("aria-busy");
+      new Notice(this.options.translations.gateDueDateRuleUpdateFailed);
     }
   }
 
@@ -134,7 +193,7 @@ export class GateRiskModal extends Modal {
       attr: {
         role: "tabpanel",
         id: this.panelId,
-        "aria-labelledby": this.tabId(this.options.snapshot.projects.findIndex(
+        "aria-labelledby": this.tabId(this.snapshot.projects.findIndex(
           (candidate) => candidate.project.id === risk.project.id
         )),
         "data-project-id": risk.project.id
@@ -229,7 +288,8 @@ export class GateRiskModal extends Modal {
         text: t.gateQuality(
           gate.quality.missingDue,
           gate.quality.unestimated,
-          gate.quality.unassigned
+          gate.quality.unassigned,
+          gate.dueDateChecksEnabled
         )
       });
       if (this.options.hasDeliveryIssues) {
@@ -307,7 +367,7 @@ export class GateRiskModal extends Modal {
       const signals = this.sortTaskRiskSignals(gateTaskRiskSignals(
         task,
         gate,
-        this.options.snapshot.today,
+        this.snapshot.today,
         acceptanceBlockers
       ));
       const labels = signals.map((signal) => this.taskRiskLabel(signal, t));
@@ -333,10 +393,12 @@ export class GateRiskModal extends Modal {
           attr: { "data-risk-kind": signal.kind }
         });
       }
-      evidence.createSpan({
-        cls: "pmi-risk-task-date",
-        text: task.dueDate ? t.gateTaskDue(task.dueDate.slice(0, 10)) : t.gateTaskNoDue
-      });
+      if (task.dueDate || gate.dueDateChecksEnabled) {
+        evidence.createSpan({
+          cls: "pmi-risk-task-date",
+          text: task.dueDate ? t.gateTaskDue(task.dueDate.slice(0, 10)) : t.gateTaskNoDue
+        });
+      }
       setIcon(button.createSpan(), "arrow-up-right");
       button.addEventListener("click", () => {
         void this.options.openTask(task.id, project.path);
@@ -345,9 +407,10 @@ export class GateRiskModal extends Modal {
   }
 
   private sortTasks(tasks: TaskRecord[], gate: GateRiskMetric): TaskRecord[] {
-    const today = this.options.snapshot.today;
+    const today = this.snapshot.today;
     const priority = new Map(this.options.priorities.map((item, index) => [item.id, index]));
     const rank = (task: TaskRecord): number => {
+      if (!gate.dueDateChecksEnabled) return 0;
       const due = task.dueDate?.slice(0, 10) ?? "";
       if (due && due < today) return 0;
       if (due && due > gate.gateDate) return 1;
@@ -356,7 +419,9 @@ export class GateRiskModal extends Modal {
     };
     return [...tasks].sort((left, right) =>
       rank(left) - rank(right)
-        || (left.dueDate ?? "9999").localeCompare(right.dueDate ?? "9999")
+        || (gate.dueDateChecksEnabled
+          ? (left.dueDate ?? "9999").localeCompare(right.dueDate ?? "9999")
+          : 0)
         || (priority.get(left.priority ?? "") ?? priority.size)
           - (priority.get(right.priority ?? "") ?? priority.size)
         || left.title.localeCompare(right.title)
@@ -430,7 +495,7 @@ export class GateRiskModal extends Modal {
   }
 
   private handleProjectTabKey(event: KeyboardEvent, index: number): void {
-    const count = this.options.snapshot.projects.length;
+    const count = this.snapshot.projects.length;
     if (count === 0) return;
     let next = index;
     if (event.key === "ArrowRight") next = (index + 1) % count;
@@ -439,7 +504,7 @@ export class GateRiskModal extends Modal {
     else if (event.key === "End") next = count - 1;
     else return;
     event.preventDefault();
-    const project = this.options.snapshot.projects[next];
+    const project = this.snapshot.projects[next];
     if (project) this.activateProject(project.project.id);
   }
 

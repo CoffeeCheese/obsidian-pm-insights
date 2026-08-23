@@ -67,6 +67,10 @@ export interface ProjectGateSchedule {
   launchDate: string;
 }
 
+export interface GateRiskSettings {
+  checkTaskDueDates: boolean;
+}
+
 export interface InsightSettings {
   locale: "auto" | "en" | "zh-cn";
   aliases: MemberAlias[];
@@ -75,6 +79,7 @@ export interface InsightSettings {
   countParentTasks: boolean;
   showDeliveryProgress: boolean;
   deliveryProgress: DeliveryProgressSettings;
+  gateRisk: GateRiskSettings;
   gateSchedules: Record<string, ProjectGateSchedule>;
 }
 
@@ -147,6 +152,9 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   includeArchived: false,
   countParentTasks: false,
   showDeliveryProgress: true,
+  gateRisk: {
+    checkTaskDueDates: true
+  },
   gateSchedules: {},
   deliveryProgress: {
     stages: [

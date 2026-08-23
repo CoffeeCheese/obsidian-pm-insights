@@ -784,7 +784,7 @@ body .modal-container .modal.pmi-gate-risk-modal .modal-content {
 .pmi-risk-lead {
   --pmi-risk-lead-color: var(--text-muted);
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   gap: 14px;
   padding: 24px 52px 20px 24px;
   border-block-end: 1px solid color-mix(
@@ -831,6 +831,75 @@ body .modal-container .modal.pmi-gate-risk-modal .modal-content {
 .pmi-risk-lead-copy > strong {
   color: var(--pmi-risk-lead-color);
   font-size: var(--font-ui-small);
+}
+
+.pmi-risk-rule {
+  display: grid;
+  min-width: 190px;
+  align-self: center;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 6px 16px;
+  border-inline-start: 1px solid color-mix(
+    in srgb,
+    var(--text-muted) 24%,
+    var(--background-modifier-border)
+  );
+  color: var(--text-muted);
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.pmi-risk-rule:hover,
+.pmi-risk-rule:focus-within {
+  border-inline-start-color: color-mix(
+    in srgb,
+    var(--interactive-accent) 42%,
+    var(--background-modifier-border)
+  );
+  color: var(--text-normal);
+}
+
+.pmi-risk-rule-icon {
+  display: grid;
+  place-items: center;
+  color: currentColor;
+  transition: color 120ms ease;
+}
+
+.pmi-risk-rule.is-enabled .pmi-risk-rule-icon {
+  color: var(--text-accent);
+}
+
+.pmi-risk-rule-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pmi-risk-rule-copy {
+  display: grid;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.pmi-risk-rule-copy > span {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+}
+
+.pmi-risk-rule-copy > small {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-risk-rule-control {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pmi-risk-rule-toggle {
+  margin: 0;
 }
 
 .pmi-risk-project-tabs {
@@ -1414,6 +1483,24 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
   .pmi-risk-lead {
     grid-template-columns: 38px minmax(0, 1fr);
     padding: 18px 44px 16px 16px;
+  }
+
+  .pmi-risk-rule {
+    min-width: 0;
+    grid-column: 2;
+    padding: 9px 0 0;
+    border-block-start: 1px solid var(--background-modifier-border);
+    border-inline-start: 0;
+  }
+
+  .pmi-risk-rule:hover,
+  .pmi-risk-rule:focus-within {
+    border-inline-start-color: transparent;
+    border-block-start-color: color-mix(
+      in srgb,
+      var(--interactive-accent) 36%,
+      var(--background-modifier-border)
+    );
   }
 
   .pmi-risk-lead-signal {
@@ -4443,6 +4530,11 @@ body .modal.pmi-project-gates-modal input[type="date"] {
 @media (prefers-reduced-motion: reduce) {
   .pmi-view * {
     scroll-behavior: auto;
+  }
+
+  .pmi-risk-rule,
+  .pmi-risk-rule-icon {
+    transition: none;
   }
 
   .mod-settings .setting-item.pmi-progress-save .setting-item-control > button.mod-cta:not(.clickable-icon) {

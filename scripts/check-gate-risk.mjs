@@ -29,6 +29,9 @@ const evaluation = `(async () => {
 
   const plugin = app.plugins.plugins["project-manager-insights"];
   if (!plugin) return JSON.stringify({ setup: false, reason: "plugin unavailable" });
+  for (const modal of [...document.querySelectorAll(".pmi-gate-risk-modal")]) {
+    modal.querySelector(".modal-close-button, .modal-header-button")?.click();
+  }
   const insightsLeaf = app.workspace.getLeavesOfType("project-manager-insights-view")[0];
   if (insightsLeaf && insightsLeaf.view?.host !== plugin) {
     await insightsLeaf.setViewState({ type: "empty" });
@@ -37,6 +40,7 @@ const evaluation = `(async () => {
   }
   const originalProjectIds = [...plugin.settings.selectedProjectIds];
   const originalSchedules = structuredClone(plugin.settings.gateSchedules ?? {});
+  const originalDueDateChecks = plugin.settings.gateRisk.checkTaskDueDates;
   const snapshot = await plugin.readProjectManager();
   const project = snapshot.projects.find((candidate) =>
     snapshot.tasks.some((task) =>
@@ -49,6 +53,7 @@ const evaluation = `(async () => {
   let report;
   try {
     plugin.settings.selectedProjectIds = [project.id];
+    plugin.settings.gateRisk.checkTaskDueDates = true;
     const stageGates = Object.fromEntries(
       plugin.settings.deliveryProgress.stages.map((stage, index, stages) => [
         stage.id,
@@ -90,6 +95,32 @@ const evaluation = `(async () => {
     activeDocument = document;
     summary.click();
     const riskModal = await waitFor(() => document.querySelector(".pmi-gate-risk-modal"));
+    const dueDateRule = riskModal?.querySelector(".pmi-risk-rule");
+    const dueDateToggle = dueDateRule?.querySelector(".pmi-risk-rule-toggle");
+    const dueDateRuleAccessible = Boolean(
+      dueDateToggle?.getAttribute("aria-label")?.trim()
+    );
+    dueDateToggle?.click();
+    const disabledDueDateRule = await waitFor(() => {
+      const current = document.querySelector(".pmi-gate-risk-modal .pmi-risk-rule.is-disabled");
+      return plugin.settings.gateRisk.checkTaskDueDates === false ? current : null;
+    });
+    const dueDateRuleUpdates = Boolean(disabledDueDateRule);
+    const disabledScheduleSignals = [
+      ...document.querySelectorAll(
+        '.pmi-gate-risk-modal [data-risk-kind="missing-due"], ' +
+        '.pmi-gate-risk-modal [data-risk-kind="task-overdue"], ' +
+        '.pmi-gate-risk-modal [data-risk-kind="task-after-gate"]'
+      )
+    ];
+    const disabledQualityMentionsDueDate = [
+      ...document.querySelectorAll(".pmi-gate-risk-modal .pmi-risk-quality")
+    ].some((item) => (item.textContent ?? "").includes("未设截止日") ||
+      (item.textContent ?? "").toLowerCase().includes("without due dates"));
+    const dueDateSignalsSuppressed = disabledScheduleSignals.length === 0 &&
+      !disabledQualityMentionsDueDate;
+    disabledDueDateRule?.querySelector(".pmi-risk-rule-toggle")?.click();
+    await waitFor(() => plugin.settings.gateRisk.checkTaskDueDates === true);
     const projectTab = riskModal?.querySelector('.pmi-risk-project-tab[aria-selected="true"]');
     const projectTabs = [...(riskModal?.querySelectorAll('.pmi-risk-project-tab[role="tab"]') ?? [])];
     const activePanel = riskModal?.querySelector('[role="tabpanel"]');
@@ -169,6 +200,10 @@ const evaluation = `(async () => {
       summaryAccessible: Boolean(summary.getAttribute("aria-label")?.trim()),
       narrowContained,
       riskModalAvailable: riskModal instanceof HTMLElement,
+      dueDateRuleAvailable: dueDateRule instanceof HTMLElement,
+      dueDateRuleAccessible,
+      dueDateRuleUpdates,
+      dueDateSignalsSuppressed,
       activeProjectPreserved: projectTab?.textContent?.includes(project.title) === true,
       projectTabsAccessible: projectTabs.filter((tab) => tab.tabIndex === 0).length === 1 &&
         projectTabs.every((tab) => tab.getAttribute("aria-controls") === activePanel?.id) &&
@@ -193,6 +228,7 @@ const evaluation = `(async () => {
     }
     plugin.settings.selectedProjectIds = originalProjectIds;
     plugin.settings.gateSchedules = originalSchedules;
+    plugin.settings.gateRisk.checkTaskDueDates = originalDueDateChecks;
     await plugin.saveSettings();
     await plugin.refreshInsights();
   }
@@ -217,6 +253,10 @@ if (
   !report.summaryAccessible ||
   !report.narrowContained ||
   !report.riskModalAvailable ||
+  !report.dueDateRuleAvailable ||
+  !report.dueDateRuleAccessible ||
+  !report.dueDateRuleUpdates ||
+  !report.dueDateSignalsSuppressed ||
   !report.activeProjectPreserved ||
   !report.projectTabsAccessible ||
   !report.gateCountMatches ||

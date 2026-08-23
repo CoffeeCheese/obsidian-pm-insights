@@ -422,13 +422,7 @@ export class InsightsView extends ItemView {
       includeArchived: this.host.settings.includeArchived,
       settings: this.host.settings.deliveryProgress
     });
-    const gateRisk = aggregateGateRisk(snapshot.projects, snapshot.tasks, {
-      projectIds: selectedIds,
-      includeArchived: this.host.settings.includeArchived,
-      settings: this.host.settings.deliveryProgress,
-      gateSchedules: this.host.settings.gateSchedules,
-      today: this.todayDate()
-    });
+    const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -538,6 +532,7 @@ export class InsightsView extends ItemView {
     summary.addEventListener("click", () => {
       new GateRiskModal(this.app, {
         snapshot: risk,
+        checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
         priorities: snapshot.priorities,
         translations: t,
         hasDeliveryIssues: delivery.quality.issues.length > 0,
@@ -550,8 +545,40 @@ export class InsightsView extends ItemView {
             openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath)
           }).open();
         },
-        configureProject: (project) => this.openProjectGates(project, snapshot, t)
+        configureProject: (project) => this.openProjectGates(project, snapshot, t),
+        setTaskDueDateChecks: async (enabled) => {
+          const previous = this.host.settings.gateRisk.checkTaskDueDates;
+          this.host.settings.gateRisk.checkTaskDueDates = enabled;
+          try {
+            await this.host.saveSettings();
+            await this.host.refreshInsights();
+            return this.calculateGateRisk(snapshot);
+          } catch (error) {
+            this.host.settings.gateRisk.checkTaskDueDates = previous;
+            try {
+              await this.host.saveSettings();
+              await this.host.refreshInsights();
+            } catch {
+              // Preserve the original update error shown by the modal.
+            }
+            throw error;
+          }
+        }
       }).open();
+    });
+  }
+
+  private calculateGateRisk(
+    snapshot: ProjectManagerSnapshot,
+    projectIds = new Set(this.host.settings.selectedProjectIds)
+  ): GateRiskSnapshot {
+    return aggregateGateRisk(snapshot.projects, snapshot.tasks, {
+      projectIds,
+      includeArchived: this.host.settings.includeArchived,
+      settings: this.host.settings.deliveryProgress,
+      gateSchedules: this.host.settings.gateSchedules,
+      checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
+      today: this.todayDate()
     });
   }
 
