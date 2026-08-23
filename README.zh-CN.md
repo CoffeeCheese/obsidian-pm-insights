@@ -1,51 +1,21 @@
-<div align="center">
+`OBSIDIAN · PROJECT MANAGER COMPANION`
 
-<sub>OBSIDIAN · PROJECT MANAGER COMPANION</sub>
+# 🫧 Project Manager Insights ✨
 
-<h1>Project Manager Insights</h1>
+**从个人执行到团队交付，让 Project Manager 数据形成可追溯的项目洞察。**
 
-<h3>从任务之间，读懂项目。</h3>
+作为 Project Manager 的只读数据增强层，基于其项目、任务、层级、标签与状态扩展跨项目工作量、交付进度和排期风险视角，不改变任何任务笔记。
 
-<p>从个人执行到团队交付，让 Project Manager 数据形成可追溯的项目洞察。<br>
-<sub>跨项目工作量 · 交付进度 · 排期风险 · 源任务追溯</sub></p>
+[![Obsidian 社区插件](https://img.shields.io/badge/Obsidian-社区插件-7C3AED?style=for-the-badge&logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/project-manager-insights)
+[![最新版本](https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=for-the-badge&label=Release&color=007ACC&logo=github)](https://github.com/CoffeeCheese/obsidian-pm-insights/releases)
+[![总下载量](https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=for-the-badge&color=2EA44F&logo=github)](https://github.com/CoffeeCheese/obsidian-pm-insights/releases)
+![只读访问 Vault 数据](https://img.shields.io/badge/Vault%20数据-只读-2F7D8C?style=for-the-badge&logo=markdown&logoColor=white)
 
-<p>
-  <a href="https://community.obsidian.md/plugins/project-manager-insights"><img src="https://img.shields.io/badge/Obsidian-社区插件-7C3AED?style=flat-square&amp;logo=obsidian&amp;logoColor=white" alt="Obsidian 社区插件"></a>
-  <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img src="https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=flat-square&amp;label=版本&amp;color=2F7D8C&amp;logo=github" alt="最新版本"></a>
-  <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img src="https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=flat-square&amp;label=下载&amp;color=3F8F68&amp;logo=github" alt="总下载量"></a>
-  <img src="https://img.shields.io/badge/Vault-只读分析-52677D?style=flat-square&amp;logo=markdown&amp;logoColor=white" alt="只读访问 Vault 数据">
-</p>
+[**从 Obsidian 安装**](https://community.obsidian.md/plugins/project-manager-insights) · [版本发布](https://github.com/CoffeeCheese/obsidian-pm-insights/releases) · [反馈问题](https://github.com/CoffeeCheese/obsidian-pm-insights/issues)
 
-<p><a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>在 Obsidian 中安装</strong></a> · <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases">查看版本</a> · <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/issues">反馈问题</a></p>
+[English](README.md) · **简体中文**
 
-<p><a href="README.md">English</a> · <strong>简体中文</strong></p>
-
-</div>
-
-<p align="center">
-  <img src="docs/assets/pm-insights-overview-0.3.1.zh-CN.png" width="100%" alt="Project Manager Insights 面板展示三个项目的当前范围、门禁风险、团队工时、加权交付进度、交付异常、数据质量、成员账本与任务列表">
-</p>
-<p align="center"><sub>一套项目范围，一套交付口径，每个信号都能追溯到 Project Manager 源任务。</sub></p>
-
-<table>
-  <tr>
-    <td width="20%" align="center"><sub>从这里开始</sub><br><strong>项目范围 →</strong></td>
-    <td width="20%" align="center"><sub>理解执行</sub><br><strong>团队工作 →</strong></td>
-    <td width="20%" align="center"><sub>衡量结果</sub><br><strong>交付进度 →</strong></td>
-    <td width="20%" align="center"><sub>提前发现</sub><br><strong>门禁风险 →</strong></td>
-    <td width="20%" align="center"><sub>回到现场</sub><br><strong>源任务</strong></td>
-  </tr>
-</table>
-
-<p align="center">
-  <a href="#一插件概述从个人执行看见团队交付">插件概述</a> ·
-  <a href="#二功能全景一眼看清能解决什么问题">功能全景</a> ·
-  <a href="#三设计逻辑如何从任务推导项目洞察">设计逻辑</a> ·
-  <a href="#四核心功能从范围确认到任务追溯">核心功能</a> ·
-  <a href="#六快速开始">快速开始</a>
-</p>
-
----
+![Project Manager Insights 面板展示三个项目的当前范围、门禁风险、团队工时、加权交付进度、交付异常、数据质量、成员账本与任务列表](docs/assets/pm-insights-overview-0.3.1.zh-CN.png)
 
 ## 一、插件概述：从个人执行看见团队交付
 
@@ -93,12 +63,19 @@ Project Manager 数据源
 > [!NOTE]
 > 请先安装并使用 Project Manager 建立项目和任务。Project Manager Insights 负责增强观察和判断，不会修改项目笔记、任务笔记或 Project Manager 的数据结构。
 
-<details>
-<summary><strong>这份文档如何阅读</strong></summary>
+本文按照由简入深的顺序展开：
 
-文档从插件定位与功能全景开始，逐步进入任务树设计、六项核心功能、统计边界和安装使用。第一次了解插件时可以顺序阅读；需要查找具体功能时，也可以通过上方导航直接进入对应章节。
-
-</details>
+```text
+插件定位
+   ↓
+功能全景
+   ↓
+数据与任务树的设计逻辑
+   ↓
+六项核心功能
+   ↓
+统计边界与快速上手
+```
 
 ## 二、功能全景：一眼看清能解决什么问题
 
@@ -250,10 +227,9 @@ Project Manager 项目
 
 #### 设置界面：把团队规则变成阶段模型
 
-<p align="center">
-  <img src="docs/assets/pm-insights-delivery-settings.zh-CN.png" width="96%" alt="PM Insights 交付进度设置页，展示设计、开发、测试阶段的名称、标签、权重、验收前置和空阶段规则">
-</p>
-<p align="center"><sub>配置 · 一张阶段卡片同时定义业务名称、标签入口、权重和验收意义；阶段顺序与规则对全部项目生效。</sub></p>
+![PM Insights 交付进度设置页，展示设计、开发、测试阶段的名称、标签、权重、验收前置和空阶段规则](docs/assets/pm-insights-delivery-settings.zh-CN.png)
+
+*同一张设置卡片同时定义阶段的业务名称、标签入口、权重和验收意义；阶段顺序与规则对全部项目生效。*
 
 #### 定义阶段顺序
 
@@ -356,10 +332,9 @@ Project Manager 项目
 
 成员或任务列表中的搜索和筛选不会改变交付进度，因为交付视图始终以当前选中项目的完整任务树为范围。你也可以直接在主面板中隐藏整块交付进度，保留团队工作量和成员视图；需要时再一键恢复。
 
-<p align="center">
-  <img src="docs/assets/pm-insights-delivery-progress.zh-CN.png" width="96%" alt="PM Insights 主面板展示两个虚构项目的当前范围、门禁风险、团队工时、设计开发测试验收进度和成员任务">
-</p>
-<p align="center"><sub>观察 · 设置中的标签与权重会落到主面板的阶段轨道中；进度、验收、门禁风险与数据质量共享同一项目范围。</sub></p>
+![PM Insights 主面板展示两个虚构项目的当前范围、门禁风险、团队工时、设计开发测试验收进度和成员任务](docs/assets/pm-insights-delivery-progress.zh-CN.png)
+
+*设置中的标签与权重会落到主面板的阶段轨道中；总进度、验收状态、门禁风险和数据质量共享同一组当前项目范围。*
 
 #### 在交付异常浮窗中解释进度缺口
 
@@ -381,10 +356,9 @@ Project Manager 项目
 - 所属项目与源任务路径；
 - 返回 Project Manager 的任务入口。
 
-<p align="center">
-  <img src="docs/assets/pm-insights-delivery-issues.zh-CN.png" width="96%" alt="PM Insights 交付异常浮窗，展示缺少前置、主任务提前完成、类型冲突、未分类和未关联主任务五类问题">
-</p>
-<p align="center"><sub>解释 · “纸飞机实验室 0.8”虚构数据集中展示五种任务树与阶段归类问题。</sub></p>
+![PM Insights 交付异常浮窗，展示缺少前置、主任务提前完成、类型冲突、未分类和未关联主任务五类问题](docs/assets/pm-insights-delivery-issues.zh-CN.png)
+
+*交付异常浮窗使用“纸飞机实验室 0.8”虚构数据，集中展示五种任务树与阶段归类问题。*
 
 你可以决定是否继续校验已经完成的主任务。开启后会审计完整交付模型；关闭后则以主任务的完成状态为准，不再因为缺少前置阶段而把它列为异常。
 
@@ -401,10 +375,9 @@ Project Manager 项目
 - 验收门禁日期
 - 最终上线提醒日期
 
-<p align="center">
-  <img src="docs/assets/pm-insights-gate-settings.zh-CN.png" width="96%" alt="PM Insights 项目交付门禁设置窗口，按顺序配置项目开始、设计、开发、测试、验收和上线日期">
-</p>
-<p align="center"><sub>计划 · 从项目标签旁的日历按钮进入设置；每个项目保存独立排期，日期顺序会在保存前校验。</sub></p>
+![PM Insights 项目交付门禁设置窗口，按顺序配置项目开始、设计、开发、测试、验收和上线日期](docs/assets/pm-insights-gate-settings.zh-CN.png)
+
+*从已选项目标签旁的日历按钮进入设置；每个项目保存独立排期，日期顺序会在保存前进行校验。*
 
 门禁风险会将实际完成比例与当前日期下的计划应达比例进行对比，目前统一按照自然日计算。如果下一个阶段已经提前或并行推进，面板会明确显示“提前推进”或“跨阶段推进”，而不是简单将其判断为异常。
 
@@ -412,10 +385,9 @@ Project Manager 项目
 
 上线日期只是项目节奏提醒，并不是另一套交付完成标准。项目是否达到最终交付标准，仍然以验收进度为准。
 
-<p align="center">
-  <img src="docs/assets/pm-insights-gate-summary.zh-CN.png" width="96%" alt="PM Insights 主面板在当前项目范围下汇总高风险、需关注数量和最近门禁">
-</p>
-<p align="center"><sub>扫视 · 主面板只保留重要的风险数量、关联项目和最近门禁；点击 Banner 进入完整时间线。</sub></p>
+![PM Insights 主面板在当前项目范围下汇总高风险、需关注数量和最近门禁](docs/assets/pm-insights-gate-summary.zh-CN.png)
+
+*主面板只保留最重要的风险数量、关联项目和最近门禁；点击 Banner 再进入完整风险时间线。*
 
 #### 是否检测截止时间，由用户决定
 
@@ -442,10 +414,9 @@ Project Manager 项目
 - 点击风险任务，在 Project Manager 中继续处理。
 - 在上线提醒中查看精简的项目收口概览，而不是重复的任务清单。
 
-<p align="center">
-  <img src="docs/assets/pm-insights-gate-risk.zh-CN.png" width="96%" alt="PM Insights 交付门禁风险浮窗，对比阶段实际进度与计划应达比例，并列出晚于门禁的具体任务">
-</p>
-<p align="center"><sub>诊断 · 已通过阶段保持中性；高风险阶段展开具体原因、任务证据与截止时间控制。</sub></p>
+![PM Insights 交付门禁风险浮窗，对比阶段实际进度与计划应达比例，并列出晚于门禁的具体任务](docs/assets/pm-insights-gate-risk.zh-CN.png)
+
+*详情浮窗按项目组织完整门禁时间线：已通过阶段保持中性，高风险阶段展开具体原因和任务证据，并在顶部提供截止时间检测开关。*
 
 正常和中性状态会使用克制的视觉表达，只有真正需要关注的风险才使用警告色。
 
@@ -468,10 +439,9 @@ Project Manager 项目
 
 PM Insights 不会复制或重建一份任务数据。点击列表中的任务标题后，插件会根据当前任务和所属项目直接调用 Project Manager 的任务详情窗口；任务类型、父任务、状态、优先级、日期、负责人、阶段标签、描述、子任务和工时记录仍然来自同一条 Project Manager 源任务。
 
-<p align="center">
-  <img src="docs/assets/pm-insights-task-detail.zh-CN.png" width="96%" alt="从 PM Insights 任务列表打开 Project Manager 任务详情窗口，展示任务层级、状态、日期、负责人、阶段标签、描述、工时和源文件路径">
-</p>
-<p align="center"><sub>处理 · 任务编辑与源文件路径均由 Project Manager 提供；关闭后返回原来的项目范围、成员和筛选上下文。</sub></p>
+![从 PM Insights 任务列表打开 Project Manager 任务详情窗口，展示任务层级、状态、日期、负责人、阶段标签、描述、工时和源文件路径](docs/assets/pm-insights-task-detail.zh-CN.png)
+
+*任务详情由 Project Manager 提供，底部源文件路径可以继续追溯到对应任务笔记；关闭窗口后会返回原来的 PM Insights 项目范围、成员和筛选上下文。*
 
 直接打开任务详情目前支持 Project Manager `1.8.x`。窗口内发生的修改由 Project Manager 负责，PM Insights 本身依旧不会写入任务笔记。
 
@@ -558,15 +528,8 @@ npm run check
 - 反馈真实使用场景，帮助完善统计口径和交付规则；
 - 参与新版本验证，并把发现的问题告诉我们。
 
-每一条 Issue、每一个使用建议和每一次分享，都会帮助这个项目继续变得更可靠。
-
----
+每一条 Issue、每一个使用建议和每一次分享，都会帮助这个项目继续变得更可靠。送给希望看清团队交付，又不想打扰现有工作流的你。☕
 
 ## 九、许可证
 
-<div align="center">
-<p><a href="LICENSE">MIT</a> · 送给希望看清团队交付，又不想打扰现有工作流的你。</p>
-
-<p><sub>Project Manager 数据进入，可解释的项目信号呈现。</sub></p>
-
-</div>
+[MIT](LICENSE)
