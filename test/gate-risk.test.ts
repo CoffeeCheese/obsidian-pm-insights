@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { aggregateGateRisk, gateTaskRiskSignals } from "../src/domain/gate-risk";
+import {
+  aggregateGateRisk,
+  gateRiskSummaryState,
+  gateTaskRiskSignals
+} from "../src/domain/gate-risk";
 import type {
   DeliveryProgressSettings,
   ProjectGateSchedule,
@@ -71,6 +75,27 @@ const risk = (
   settings,
   gateSchedules: schedules,
   today
+});
+
+describe("gateRiskSummaryState", () => {
+  const counts = {
+    unconfigured: 0,
+    normal: 0,
+    attention: 0,
+    high: 0,
+    overdue: 0,
+    passed: 0
+  };
+
+  it.each([
+    [{ ...counts, passed: 2 }, "normal"],
+    [{ ...counts, unconfigured: 1 }, "unconfigured"],
+    [{ ...counts, unconfigured: 1, attention: 1 }, "attention"],
+    [{ ...counts, attention: 1, high: 1 }, "high"],
+    [{ ...counts, high: 1, overdue: 1 }, "overdue"]
+  ] as const)("returns the highest summary state for %o", (input, expected) => {
+    expect(gateRiskSummaryState(input)).toBe(expected);
+  });
 });
 
 describe("aggregateGateRisk", () => {

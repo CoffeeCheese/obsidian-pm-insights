@@ -769,6 +769,7 @@
 }
 
 body .modal-container .modal.pmi-gate-risk-modal {
+  --pmi-stage-complete: #45a06b;
   width: min(980px, calc(100vw - 32px));
   max-height: min(900px, calc(100vh - 24px));
   overflow: hidden;
@@ -781,22 +782,34 @@ body .modal-container .modal.pmi-gate-risk-modal .modal-content {
 }
 
 .pmi-risk-lead {
+  --pmi-risk-lead-color: var(--text-muted);
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   gap: 14px;
   padding: 24px 52px 20px 24px;
-  border-block-end: 1px solid var(--background-modifier-border);
-  background: color-mix(in srgb, var(--color-orange) 5%, var(--background-primary));
+  border-block-end: 1px solid color-mix(
+    in srgb,
+    var(--pmi-risk-lead-color) 18%,
+    var(--background-modifier-border)
+  );
+  background: color-mix(in srgb, var(--pmi-risk-lead-color) 5%, var(--background-primary));
 }
+
+.pmi-risk-lead.is-normal { --pmi-risk-lead-color: var(--pmi-stage-complete); }
+.pmi-risk-lead.is-attention {
+  --pmi-risk-lead-color: color-mix(in srgb, var(--color-yellow) 78%, var(--text-normal));
+}
+.pmi-risk-lead.is-high { --pmi-risk-lead-color: var(--color-orange); }
+.pmi-risk-lead.is-overdue { --pmi-risk-lead-color: var(--color-red); }
 
 .pmi-risk-lead-signal {
   display: grid;
   width: 46px;
   height: 46px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--color-orange) 48%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pmi-risk-lead-color) 48%, transparent);
   border-radius: 50%;
-  color: var(--color-orange);
+  color: var(--pmi-risk-lead-color);
   background: var(--background-primary);
 }
 
@@ -816,7 +829,7 @@ body .modal-container .modal.pmi-gate-risk-modal .modal-content {
 }
 
 .pmi-risk-lead-copy > strong {
-  color: var(--color-orange);
+  color: var(--pmi-risk-lead-color);
   font-size: var(--font-ui-small);
 }
 

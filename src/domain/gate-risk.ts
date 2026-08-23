@@ -89,6 +89,16 @@ export interface GateRiskSnapshot {
   nearestGate: { project: ProjectRecord; gate: GateRiskMetric } | null;
 }
 
+export type GateRiskSummaryState = "unconfigured" | "normal" | "attention" | "high" | "overdue";
+
+export function gateRiskSummaryState(counts: GateRiskSnapshot["counts"]): GateRiskSummaryState {
+  if (counts.overdue > 0) return "overdue";
+  if (counts.high > 0) return "high";
+  if (counts.attention > 0) return "attention";
+  if (counts.unconfigured > 0) return "unconfigured";
+  return "normal";
+}
+
 export interface GateRiskOptions {
   projectIds: Set<string>;
   includeArchived: boolean;

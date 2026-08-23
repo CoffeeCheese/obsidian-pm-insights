@@ -8,7 +8,7 @@ import type {
   GateTaskRiskSignal,
   ProjectGateRisk
 } from "./domain/gate-risk";
-import { gateTaskRiskSignals } from "./domain/gate-risk";
+import { gateRiskSummaryState, gateTaskRiskSignals } from "./domain/gate-risk";
 import type { Translations } from "./i18n";
 import type { PriorityRecord, ProjectRecord, TaskRecord } from "./model";
 import { deliveryStageLabel } from "./delivery-stage-label";
@@ -60,9 +60,10 @@ export class GateRiskModal extends Modal {
   private render(): void {
     const { snapshot, translations: t } = this.options;
     this.contentEl.empty();
-    const lead = this.contentEl.createDiv("pmi-risk-lead");
+    const state = gateRiskSummaryState(snapshot.counts);
+    const lead = this.contentEl.createDiv(`pmi-risk-lead is-${state}`);
     const signal = lead.createSpan("pmi-risk-lead-signal");
-    setIcon(signal, "shield-alert");
+    setIcon(signal, state === "normal" ? "shield-check" : state === "unconfigured" ? "calendar-off" : "shield-alert");
     const copy = lead.createDiv("pmi-risk-lead-copy");
     copy.createEl("h2", { text: t.gateRiskDetailsTitle });
     copy.createEl("p", { text: t.gateRiskDetailsSubtitle });

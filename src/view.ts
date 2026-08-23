@@ -8,7 +8,7 @@ import {
 import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
 import { validateGateSchedule } from "./domain/gate-schedule";
-import { aggregateGateRisk, type GateRiskSnapshot } from "./domain/gate-risk";
+import { aggregateGateRisk, gateRiskSummaryState, type GateRiskSnapshot } from "./domain/gate-risk";
 import { GateRiskModal } from "./gate-risk-modal";
 import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
@@ -505,15 +505,7 @@ export class InsightsView extends ItemView {
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
-    const state = risk.counts.overdue > 0
-      ? "overdue"
-      : risk.counts.high > 0
-        ? "high"
-        : risk.counts.attention > 0
-          ? "attention"
-          : risk.counts.unconfigured > 0
-            ? "unconfigured"
-            : "normal";
+    const state = gateRiskSummaryState(risk.counts);
     const summary = root.createEl("button", {
       cls: `pmi-gate-risk-summary is-${state}`,
       attr: { type: "button", "aria-label": t.viewGateRisk }
