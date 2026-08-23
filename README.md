@@ -227,7 +227,7 @@ Delivery view in the dashboard
 
 #### Settings: turn team rules into a stage model
 
-![PM Insights delivery-progress settings showing design, development, and testing stage names, tag mappings, weights, acceptance prerequisites, and empty-stage rules](docs/assets/pm-insights-delivery-settings.png)
+![Focused PM Insights delivery-progress settings showing design, development, and testing stage names, tag mappings, weights, acceptance prerequisites, and empty-stage rules](docs/assets/pm-insights-delivery-settings-focused.png)
 
 *Each stage card defines its business name, tag entry point, weight, and acceptance meaning. Stage order and rules apply to every project.*
 
@@ -332,7 +332,7 @@ Business stages also distinguish three no-percentage states:
 
 Searches and filters in the member/task list do not affect delivery progress because delivery always uses complete task trees for the current project scope. The entire delivery-progress section can also be hidden from the dashboard and restored with one action when needed.
 
-![PM Insights dashboard showing two fictional projects, the current scope, gate risk, team hours, design/development/testing/acceptance progress, and member work](docs/assets/pm-insights-delivery-progress.png)
+![Focused PM Insights delivery-progress panel showing weighted total progress, design, development, testing, acceptance, and data-quality context](docs/assets/pm-insights-delivery-progress-focused.png)
 
 *Configured tags and weights become the stage rails in the dashboard. Total progress, acceptance, gate risk, and data quality share the same current project scope.*
 
@@ -356,7 +356,7 @@ The modal header shows the total and the count for each category. Select a categ
 - project and source-task path;
 - an entry point back into Project Manager.
 
-![PM Insights delivery-exceptions modal showing missing prerequisites, completed-too-early roots, type conflicts, unclassified work, and tasks without a root](docs/assets/pm-insights-delivery-issues.png)
+![Focused PM Insights delivery-exceptions modal showing missing prerequisites, completed-too-early roots, type conflicts, unclassified work, and tasks without a root](docs/assets/pm-insights-delivery-issues-focused.png)
 
 *The fictional “Paper Plane Lab 0.8” data intentionally demonstrates all five hierarchy and stage-classification problems.*
 
@@ -375,7 +375,7 @@ Each project can have its own delivery schedule:
 - acceptance gate date;
 - final launch reminder date.
 
-![PM Insights project delivery-gate modal with ordered project start, design, development, testing, acceptance, and launch dates](docs/assets/pm-insights-gate-settings.png)
+![Focused PM Insights project delivery-gate modal with ordered project start, design, development, testing, acceptance, and launch dates](docs/assets/pm-insights-gate-settings-focused.png)
 
 *Open gate settings from the calendar button in a selected project chip. Every project keeps an independent schedule, and date order is validated before saving.*
 
@@ -385,7 +385,7 @@ A stage gate evaluates its own stage. Acceptance additionally considers tasks th
 
 The launch date is a project-rhythm reminder, not a second definition of delivery completion. The acceptance result remains the final delivery standard.
 
-![PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope](docs/assets/pm-insights-gate-summary.png)
+![Focused PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope](docs/assets/pm-insights-gate-summary-focused.png)
 
 *The dashboard keeps only the most important counts, related project, and nearest gate. Select the banner to open the full risk timeline.*
 
@@ -414,7 +414,7 @@ The **Delivery gate risk** modal places project rhythm and supporting evidence i
 - open a risk task in Project Manager;
 - read a concise project-level wrap-up under the launch reminder instead of a repeated task list.
 
-![PM Insights delivery-gate risk modal comparing actual and expected stage progress and listing the tasks scheduled past a gate](docs/assets/pm-insights-gate-risk.png)
+![Focused PM Insights delivery-gate risk modal comparing actual and expected stage progress and listing the tasks scheduled past a gate](docs/assets/pm-insights-gate-risk-focused.png)
 
 *The modal organizes a complete gate timeline by project. Passed stages remain visually neutral, high-risk stages expand their reasons and task evidence, and the due-date switch remains available at the top.*
 
@@ -439,7 +439,7 @@ The member task list is an investigation surface rather than a static report:
 
 PM Insights never copies or rebuilds task data. It passes the current task and project to Project Manager's own task editor. Task type, parent, status, priority, dates, assignees, stage tags, description, subtasks, time logs, and source path still come from the same Project Manager task.
 
-![Project Manager task editor opened from PM Insights, showing hierarchy, status, dates, assignee, stage tags, description, time tracking, and the source-file path](docs/assets/pm-insights-task-detail.png)
+![Focused Project Manager task editor opened from PM Insights, showing hierarchy, status, dates, assignee, stage tags, description, time tracking, and the source-file path](docs/assets/pm-insights-task-detail-focused.png)
 
 *Project Manager provides the task editor, and the source path at the bottom continues to the underlying task note. Closing it returns to the same PM Insights project scope, member, and filter context.*
 

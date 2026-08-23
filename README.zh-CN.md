@@ -227,7 +227,7 @@ Project Manager 项目
 
 #### 设置界面：把团队规则变成阶段模型
 
-![PM Insights 交付进度设置页，展示设计、开发、测试阶段的名称、标签、权重、验收前置和空阶段规则](docs/assets/pm-insights-delivery-settings.zh-CN.png)
+![聚焦展示 PM Insights 交付进度设置，包括设计、开发、测试阶段的名称、标签、权重、验收前置和空阶段规则](docs/assets/pm-insights-delivery-settings-focused.zh-CN.png)
 
 *同一张设置卡片同时定义阶段的业务名称、标签入口、权重和验收意义；阶段顺序与规则对全部项目生效。*
 
@@ -332,7 +332,7 @@ Project Manager 项目
 
 成员或任务列表中的搜索和筛选不会改变交付进度，因为交付视图始终以当前选中项目的完整任务树为范围。你也可以直接在主面板中隐藏整块交付进度，保留团队工作量和成员视图；需要时再一键恢复。
 
-![PM Insights 主面板展示两个虚构项目的当前范围、门禁风险、团队工时、设计开发测试验收进度和成员任务](docs/assets/pm-insights-delivery-progress.zh-CN.png)
+![聚焦展示 PM Insights 交付进度区域，包括加权总进度、设计、开发、测试、验收和数据质量信息](docs/assets/pm-insights-delivery-progress-focused.zh-CN.png)
 
 *设置中的标签与权重会落到主面板的阶段轨道中；总进度、验收状态、门禁风险和数据质量共享同一组当前项目范围。*
 
@@ -356,7 +356,7 @@ Project Manager 项目
 - 所属项目与源任务路径；
 - 返回 Project Manager 的任务入口。
 
-![PM Insights 交付异常浮窗，展示缺少前置、主任务提前完成、类型冲突、未分类和未关联主任务五类问题](docs/assets/pm-insights-delivery-issues.zh-CN.png)
+![聚焦展示 PM Insights 交付异常浮窗，包括缺少前置、主任务提前完成、类型冲突、未分类和未关联主任务五类问题](docs/assets/pm-insights-delivery-issues-focused.zh-CN.png)
 
 *交付异常浮窗使用“纸飞机实验室 0.8”虚构数据，集中展示五种任务树与阶段归类问题。*
 
@@ -375,7 +375,7 @@ Project Manager 项目
 - 验收门禁日期
 - 最终上线提醒日期
 
-![PM Insights 项目交付门禁设置窗口，按顺序配置项目开始、设计、开发、测试、验收和上线日期](docs/assets/pm-insights-gate-settings.zh-CN.png)
+![聚焦展示 PM Insights 项目交付门禁设置窗口，按顺序配置项目开始、设计、开发、测试、验收和上线日期](docs/assets/pm-insights-gate-settings-focused.zh-CN.png)
 
 *从已选项目标签旁的日历按钮进入设置；每个项目保存独立排期，日期顺序会在保存前进行校验。*
 
@@ -385,7 +385,7 @@ Project Manager 项目
 
 上线日期只是项目节奏提醒，并不是另一套交付完成标准。项目是否达到最终交付标准，仍然以验收进度为准。
 
-![PM Insights 主面板在当前项目范围下汇总高风险、需关注数量和最近门禁](docs/assets/pm-insights-gate-summary.zh-CN.png)
+![聚焦展示 PM Insights 门禁风险摘要，汇总当前项目范围下的高风险、需关注数量和最近门禁](docs/assets/pm-insights-gate-summary-focused.zh-CN.png)
 
 *主面板只保留最重要的风险数量、关联项目和最近门禁；点击 Banner 再进入完整风险时间线。*
 
@@ -414,7 +414,7 @@ Project Manager 项目
 - 点击风险任务，在 Project Manager 中继续处理。
 - 在上线提醒中查看精简的项目收口概览，而不是重复的任务清单。
 
-![PM Insights 交付门禁风险浮窗，对比阶段实际进度与计划应达比例，并列出晚于门禁的具体任务](docs/assets/pm-insights-gate-risk.zh-CN.png)
+![聚焦展示 PM Insights 交付门禁风险浮窗，对比阶段实际进度与计划应达比例，并列出晚于门禁的具体任务](docs/assets/pm-insights-gate-risk-focused.zh-CN.png)
 
 *详情浮窗按项目组织完整门禁时间线：已通过阶段保持中性，高风险阶段展开具体原因和任务证据，并在顶部提供截止时间检测开关。*
 
@@ -439,7 +439,7 @@ Project Manager 项目
 
 PM Insights 不会复制或重建一份任务数据。点击列表中的任务标题后，插件会根据当前任务和所属项目直接调用 Project Manager 的任务详情窗口；任务类型、父任务、状态、优先级、日期、负责人、阶段标签、描述、子任务和工时记录仍然来自同一条 Project Manager 源任务。
 
-![从 PM Insights 任务列表打开 Project Manager 任务详情窗口，展示任务层级、状态、日期、负责人、阶段标签、描述、工时和源文件路径](docs/assets/pm-insights-task-detail.zh-CN.png)
+![聚焦展示从 PM Insights 打开的 Project Manager 任务详情窗口，包括任务层级、状态、日期、负责人、阶段标签、描述、工时和源文件路径](docs/assets/pm-insights-task-detail-focused.zh-CN.png)
 
 *任务详情由 Project Manager 提供，底部源文件路径可以继续追溯到对应任务笔记；关闭窗口后会返回原来的 PM Insights 项目范围、成员和筛选上下文。*
 
