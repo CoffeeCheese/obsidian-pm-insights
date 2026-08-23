@@ -1,21 +1,51 @@
-`OBSIDIAN · PROJECT MANAGER COMPANION`
+<div align="center">
 
-# 🫧 Project Manager Insights ✨
+<sub>OBSIDIAN · PROJECT MANAGER COMPANION</sub>
 
-**Turn individual execution into traceable team-delivery insight with Project Manager data.**
+<h1>Project Manager Insights</h1>
 
-A read-only insight layer for Project Manager that extends its projects, tasks, hierarchy, tags, and statuses into cross-project workload, delivery progress, and schedule-risk views—without changing task notes.
+<h3>Read the project between the tasks.</h3>
 
-[![Obsidian Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-7C3AED?style=for-the-badge&logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/project-manager-insights)
-[![Latest release](https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=for-the-badge&label=Release&color=007ACC&logo=github)](https://github.com/CoffeeCheese/obsidian-pm-insights/releases)
-[![Total downloads](https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=for-the-badge&color=2EA44F&logo=github)](https://github.com/CoffeeCheese/obsidian-pm-insights/releases)
-![Read-only Vault access](https://img.shields.io/badge/Vault%20Data-Read%20Only-2F7D8C?style=for-the-badge&logo=markdown&logoColor=white)
+<p>Turn individual execution into traceable team-delivery insight with Project Manager data.<br>
+<sub>Cross-project workload · delivery progress · schedule risk · source traceability</sub></p>
 
-[**Install from Obsidian**](https://community.obsidian.md/plugins/project-manager-insights) · [Releases](https://github.com/CoffeeCheese/obsidian-pm-insights/releases) · [Report an issue](https://github.com/CoffeeCheese/obsidian-pm-insights/issues)
+<p>
+  <a href="https://community.obsidian.md/plugins/project-manager-insights"><img src="https://img.shields.io/badge/Obsidian-Community_Plugin-7C3AED?style=flat-square&amp;logo=obsidian&amp;logoColor=white" alt="Obsidian Community Plugin"></a>
+  <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img src="https://img.shields.io/github/v/release/CoffeeCheese/obsidian-pm-insights?style=flat-square&amp;label=release&amp;color=2F7D8C&amp;logo=github" alt="Latest release"></a>
+  <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases"><img src="https://img.shields.io/github/downloads/CoffeeCheese/obsidian-pm-insights/total?style=flat-square&amp;label=downloads&amp;color=3F8F68&amp;logo=github" alt="Total downloads"></a>
+  <img src="https://img.shields.io/badge/vault-read_only-52677D?style=flat-square&amp;logo=markdown&amp;logoColor=white" alt="Read-only Vault access">
+</p>
 
-**English** · [简体中文](README.zh-CN.md)
+<p><a href="https://community.obsidian.md/plugins/project-manager-insights"><strong>Install in Obsidian</strong></a> · <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/releases">View releases</a> · <a href="https://github.com/CoffeeCheese/obsidian-pm-insights/issues">Report an issue</a></p>
 
-![Project Manager Insights dashboard showing three projects, current scope, gate risk, team hours, weighted delivery progress, delivery exceptions, data quality, member ledgers, filters, and task rows](docs/assets/pm-insights-overview-0.3.1.png)
+<p><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+
+</div>
+
+<p align="center">
+  <img src="docs/assets/pm-insights-overview-0.3.1.png" width="100%" alt="Project Manager Insights dashboard showing three projects, current scope, gate risk, team hours, weighted delivery progress, delivery exceptions, data quality, member ledgers, filters, and task rows">
+</p>
+<p align="center"><sub>One scope, one delivery model, every signal traceable to its Project Manager source task.</sub></p>
+
+<table>
+  <tr>
+    <td width="20%" align="center"><sub>START WITH</sub><br><strong>Project scope →</strong></td>
+    <td width="20%" align="center"><sub>UNDERSTAND</sub><br><strong>Team execution →</strong></td>
+    <td width="20%" align="center"><sub>MEASURE</sub><br><strong>Delivery →</strong></td>
+    <td width="20%" align="center"><sub>ANTICIPATE</sub><br><strong>Gate risk →</strong></td>
+    <td width="20%" align="center"><sub>ACT IN</sub><br><strong>Source tasks</strong></td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="#i-plugin-overview-from-individual-execution-to-team-delivery">Overview</a> ·
+  <a href="#ii-feature-map-the-questions-you-can-answer-at-a-glance">Feature map</a> ·
+  <a href="#iii-design-logic-deriving-project-insight-from-tasks">Design logic</a> ·
+  <a href="#iv-core-capabilities-from-scope-confirmation-to-source-task-traceability">Core capabilities</a> ·
+  <a href="#vi-getting-started">Get started</a>
+</p>
+
+---
 
 ## I. Plugin overview: from individual execution to team delivery
 
@@ -63,19 +93,12 @@ All of these views share the same local Project Manager data. Every number and w
 > [!NOTE]
 > Install Project Manager and create your projects and tasks there first. Project Manager Insights adds observation and interpretation; it does not modify project notes, task notes, or Project Manager's data model.
 
-This README moves from overview to detail:
+<details>
+<summary><strong>How this guide is organized</strong></summary>
 
-```text
-Plugin position
-   ↓
-Feature map
-   ↓
-Task-tree design logic
-   ↓
-Six core capabilities
-   ↓
-Statistical boundaries and getting started
-```
+The guide moves from plugin position and feature map into task-tree design, six core capabilities, statistical boundaries, and finally setup. Read straight through for the complete model, or use the navigation above to jump to the part you need.
+
+</details>
 
 ## II. Feature map: the questions you can answer at a glance
 
@@ -227,9 +250,10 @@ Delivery view in the dashboard
 
 #### Settings: turn team rules into a stage model
 
-![PM Insights delivery-progress settings showing design, development, and testing stage names, tag mappings, weights, acceptance prerequisites, and empty-stage rules](docs/assets/pm-insights-delivery-settings.png)
-
-*Each stage card defines its business name, tag entry point, weight, and acceptance meaning. Stage order and rules apply to every project.*
+<p align="center">
+  <img src="docs/assets/pm-insights-delivery-settings.png" width="96%" alt="PM Insights delivery-progress settings showing design, development, and testing stage names, tag mappings, weights, acceptance prerequisites, and empty-stage rules">
+</p>
+<p align="center"><sub>CONFIGURE · Each stage card defines its business name, tag entry point, weight, and acceptance meaning. Stage order and rules apply to every project.</sub></p>
 
 #### Define stage order
 
@@ -332,9 +356,10 @@ Business stages also distinguish three no-percentage states:
 
 Searches and filters in the member/task list do not affect delivery progress because delivery always uses complete task trees for the current project scope. The entire delivery-progress section can also be hidden from the dashboard and restored with one action when needed.
 
-![PM Insights dashboard showing two fictional projects, the current scope, gate risk, team hours, design/development/testing/acceptance progress, and member work](docs/assets/pm-insights-delivery-progress.png)
-
-*Configured tags and weights become the stage rails in the dashboard. Total progress, acceptance, gate risk, and data quality share the same current project scope.*
+<p align="center">
+  <img src="docs/assets/pm-insights-delivery-progress.png" width="96%" alt="PM Insights dashboard showing two fictional projects, the current scope, gate risk, team hours, design, development, testing, acceptance progress, and member work">
+</p>
+<p align="center"><sub>OBSERVE · Configured tags and weights become stage rails in the dashboard. Progress, acceptance, gate risk, and data quality share one project scope.</sub></p>
 
 #### Explain progress gaps in the delivery-exceptions modal
 
@@ -356,9 +381,10 @@ The modal header shows the total and the count for each category. Select a categ
 - project and source-task path;
 - an entry point back into Project Manager.
 
-![PM Insights delivery-exceptions modal showing missing prerequisites, completed-too-early roots, type conflicts, unclassified work, and tasks without a root](docs/assets/pm-insights-delivery-issues.png)
-
-*The fictional “Paper Plane Lab 0.8” data intentionally demonstrates all five hierarchy and stage-classification problems.*
+<p align="center">
+  <img src="docs/assets/pm-insights-delivery-issues.png" width="96%" alt="PM Insights delivery-exceptions modal showing missing prerequisites, completed-too-early roots, type conflicts, unclassified work, and tasks without a root">
+</p>
+<p align="center"><sub>EXPLAIN · The fictional “Paper Plane Lab 0.8” data demonstrates all five hierarchy and stage-classification problems.</sub></p>
 
 You decide whether completed root tasks still receive full prerequisite validation. When enabled, the complete delivery model is audited. When disabled, root completion is authoritative and a completed root is no longer reported because a prerequisite stage is missing.
 
@@ -375,9 +401,10 @@ Each project can have its own delivery schedule:
 - acceptance gate date;
 - final launch reminder date.
 
-![PM Insights project delivery-gate modal with ordered project start, design, development, testing, acceptance, and launch dates](docs/assets/pm-insights-gate-settings.png)
-
-*Open gate settings from the calendar button in a selected project chip. Every project keeps an independent schedule, and date order is validated before saving.*
+<p align="center">
+  <img src="docs/assets/pm-insights-gate-settings.png" width="96%" alt="PM Insights project delivery-gate modal with ordered project start, design, development, testing, acceptance, and launch dates">
+</p>
+<p align="center"><sub>PLAN · Open gate settings from a selected project's calendar button. Every project keeps an independent, validated schedule.</sub></p>
 
 Gate risk compares actual completion with the expected percentage for the current calendar date. When work has started early or several stages are progressing in parallel, the timeline shows **Ahead** or **Cross-stage** instead of treating that movement as a failure.
 
@@ -385,9 +412,10 @@ A stage gate evaluates its own stage. Acceptance additionally considers tasks th
 
 The launch date is a project-rhythm reminder, not a second definition of delivery completion. The acceptance result remains the final delivery standard.
 
-![PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope](docs/assets/pm-insights-gate-summary.png)
-
-*The dashboard keeps only the most important counts, related project, and nearest gate. Select the banner to open the full risk timeline.*
+<p align="center">
+  <img src="docs/assets/pm-insights-gate-summary.png" width="96%" alt="PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope">
+</p>
+<p align="center"><sub>SCAN · The dashboard keeps only the important counts, related project, and nearest gate. Select the banner for the full timeline.</sub></p>
 
 #### Let the user decide whether due dates are checked
 
@@ -414,9 +442,10 @@ The **Delivery gate risk** modal places project rhythm and supporting evidence i
 - open a risk task in Project Manager;
 - read a concise project-level wrap-up under the launch reminder instead of a repeated task list.
 
-![PM Insights delivery-gate risk modal comparing actual and expected stage progress and listing the tasks scheduled past a gate](docs/assets/pm-insights-gate-risk.png)
-
-*The modal organizes a complete gate timeline by project. Passed stages remain visually neutral, high-risk stages expand their reasons and task evidence, and the due-date switch remains available at the top.*
+<p align="center">
+  <img src="docs/assets/pm-insights-gate-risk.png" width="96%" alt="PM Insights delivery-gate risk modal comparing actual and expected stage progress and listing the tasks scheduled past a gate">
+</p>
+<p align="center"><sub>DIAGNOSE · Passed stages stay neutral; high-risk stages reveal the reason, task evidence, and due-date control.</sub></p>
 
 Neutral and healthy states use restrained colors. Warning color is reserved for conditions that actually need attention.
 
@@ -439,9 +468,10 @@ The member task list is an investigation surface rather than a static report:
 
 PM Insights never copies or rebuilds task data. It passes the current task and project to Project Manager's own task editor. Task type, parent, status, priority, dates, assignees, stage tags, description, subtasks, time logs, and source path still come from the same Project Manager task.
 
-![Project Manager task editor opened from PM Insights, showing hierarchy, status, dates, assignee, stage tags, description, time tracking, and the source-file path](docs/assets/pm-insights-task-detail.png)
-
-*Project Manager provides the task editor, and the source path at the bottom continues to the underlying task note. Closing it returns to the same PM Insights project scope, member, and filter context.*
+<p align="center">
+  <img src="docs/assets/pm-insights-task-detail.png" width="96%" alt="Project Manager task editor opened from PM Insights, showing hierarchy, status, dates, assignee, stage tags, description, time tracking, and the source-file path">
+</p>
+<p align="center"><sub>ACT · Project Manager provides the editor and source path. Closing it returns to the same PM Insights scope, member, and filters.</sub></p>
 
 Opening task details directly is currently supported with Project Manager `1.8.x`. Any edits inside that window are handled by Project Manager; PM Insights itself still performs no task-note writes.
 
@@ -526,8 +556,15 @@ If PM Insights helps you understand team workload and delivery more clearly, you
 - describing real workflows that can improve the statistical model and delivery rules;
 - testing new releases and reporting what you find.
 
-Every issue, use case, and recommendation helps make this project more dependable. Made for people who want to see team delivery clearly without disturbing the workflow that already works. ☕
+Every issue, use case, and recommendation helps make this project more dependable.
+
+---
 
 ## IX. License
 
-[MIT](LICENSE)
+<div align="center">
+<p><a href="LICENSE">MIT</a> · Built for teams that want clearer delivery without disturbing the workflow that already works.</p>
+
+<p><sub>Project Manager data in. Explainable project signals out.</sub></p>
+
+</div>
