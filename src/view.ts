@@ -861,7 +861,8 @@ export class InsightsView extends ItemView {
       cls: `pmi-progress-schedule is-${schedule.state}`,
       attr: {
         "data-schedule-state": schedule.state,
-        title: accessibleLabel
+        role: "note",
+        tabindex: "0"
       }
     });
     comparison.createSpan({ cls: "pmi-sr-only", text: accessibleLabel });
@@ -871,14 +872,29 @@ export class InsightsView extends ItemView {
         text: "— / —",
         attr: { "aria-hidden": "true" }
       });
+      comparison.createSpan({
+        cls: "pmi-progress-schedule-tooltip is-message",
+        text: accessibleLabel,
+        attr: { "aria-hidden": "true" }
+      });
       return;
     }
 
+    const expectedValue = `${(schedule.expectedPercentage ?? 0).toLocaleString(undefined, {
+      maximumFractionDigits: 1
+    })}%`;
+    const varianceValue = schedule.state === "ahead"
+      ? `+${(schedule.variance ?? 0).toLocaleString(undefined, {
+          maximumFractionDigits: 1
+        })}%`
+      : schedule.state === "behind"
+        ? `−${Math.abs(schedule.variance ?? 0).toLocaleString(undefined, {
+            maximumFractionDigits: 1
+          })}%`
+        : "±0%";
     comparison.createSpan({
       cls: "pmi-progress-expected-copy",
-      text: `${schedule.expectedPercentage?.toLocaleString(undefined, {
-        maximumFractionDigits: 1
-      })}%`,
+      text: expectedValue,
       attr: { "aria-hidden": "true" }
     });
     comparison.createSpan({
@@ -888,15 +904,25 @@ export class InsightsView extends ItemView {
     });
     comparison.createEl("strong", {
       cls: "pmi-progress-variance",
-      text: schedule.state === "ahead"
-        ? `+${schedule.variance?.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`
-        : schedule.state === "behind"
-          ? `−${Math.abs(schedule.variance ?? 0).toLocaleString(undefined, {
-              maximumFractionDigits: 1
-            })}%`
-          : "±0%",
+      text: varianceValue,
       attr: { "aria-hidden": "true" }
     });
+    const tooltip = comparison.createSpan({
+      cls: "pmi-progress-schedule-tooltip",
+      attr: { "aria-hidden": "true" }
+    });
+    const expectedMetric = tooltip.createSpan("pmi-progress-schedule-tooltip-metric");
+    expectedMetric.createSpan({
+      cls: "pmi-progress-schedule-tooltip-label",
+      text: t.expectedProgressLabel
+    });
+    expectedMetric.createEl("strong", { text: expectedValue });
+    const varianceMetric = tooltip.createSpan("pmi-progress-schedule-tooltip-metric is-variance");
+    varianceMetric.createSpan({
+      cls: "pmi-progress-schedule-tooltip-label",
+      text: t.progressVarianceLabel
+    });
+    varianceMetric.createEl("strong", { text: varianceValue });
   }
 
   private renderProgressWeight(

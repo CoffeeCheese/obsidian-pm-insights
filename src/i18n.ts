@@ -141,13 +141,15 @@ const en = {
   acceptanceTaskProgress: (accepted: number, total: number, pending: number) =>
     `${accepted} of ${total} accepted · ${pending} pending acceptance`,
   noRootTasks: "No root tasks",
+  expectedProgressLabel: "Expected",
+  progressVarianceLabel: "Variance",
   expectedProgress: (value: number) =>
     `Expected ${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceAhead: (value: number) =>
-    `Ahead +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
+    `Ahead +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceBehind: (value: number) =>
-    `Behind −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
-  progressVarianceOnPlan: "On plan · 0pp",
+    `Behind −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
+  progressVarianceOnPlan: "On plan · ±0%",
   progressVarianceNeedsGates: (configured: number, total: number) =>
     configured === 0
       ? "Set project gates to compare with plan"
@@ -461,13 +463,15 @@ const zh: typeof en = {
   acceptanceTaskProgress: (accepted: number, total: number, pending: number) =>
     `已验收 ${accepted} / ${total} · 待验收 ${pending}`,
   noRootTasks: "暂无主任务",
+  expectedProgressLabel: "预计",
+  progressVarianceLabel: "偏移",
   expectedProgress: (value: number) =>
     `预计 ${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceAhead: (value: number) =>
-    `领先 +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
+    `领先 +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceBehind: (value: number) =>
-    `落后 −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
-  progressVarianceOnPlan: "符合计划 · 0pp",
+    `落后 −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
+  progressVarianceOnPlan: "符合计划 · ±0%",
   progressVarianceNeedsGates: (configured: number, total: number) =>
     configured === 0
       ? "配置项目门禁后显示进度偏移"

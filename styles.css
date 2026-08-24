@@ -2023,6 +2023,7 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
 
 .pmi-progress-schedule {
   --pmi-schedule-color: var(--text-muted);
+  position: relative;
   display: inline-flex;
   min-width: max-content;
   flex: 0 0 auto;
@@ -2033,8 +2034,15 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
   border: 0;
   color: var(--text-muted);
   background: transparent;
+  cursor: help;
   font-size: calc(var(--font-ui-smaller) - 1px);
   line-height: 1;
+}
+
+.pmi-progress-schedule:focus-visible {
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pmi-schedule-color) 20%, transparent);
+  outline: none;
 }
 
 .pmi-progress-schedule.is-ahead {
@@ -2078,6 +2086,95 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-normal);
   white-space: nowrap;
+}
+
+.pmi-progress-schedule-tooltip {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  padding: 7px 9px 8px;
+  border: 1px solid var(--pmi-edge-strong);
+  border-block-start: 2px solid var(--pmi-schedule-color);
+  border-radius: var(--radius-s);
+  visibility: hidden;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px) scale(0.98);
+  transform-origin: bottom center;
+  transition:
+    opacity 120ms ease,
+    transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 150ms;
+}
+
+.pmi-progress-schedule-tooltip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-inline-end: 1px solid var(--pmi-edge-strong);
+  border-block-end: 1px solid var(--pmi-edge-strong);
+  background: var(--background-primary);
+  content: "";
+  transform: translate(-50%, -4px) rotate(45deg);
+}
+
+.pmi-progress-schedule:is(:hover, :focus) .pmi-progress-schedule-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-delay: 0s;
+}
+
+.pmi-progress-schedule-tooltip-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-inline: 3px 10px;
+  white-space: nowrap;
+}
+
+.pmi-progress-schedule-tooltip-metric + .pmi-progress-schedule-tooltip-metric {
+  padding-inline: 10px 3px;
+  border-inline-start: 1px solid var(--pmi-edge);
+}
+
+.pmi-progress-schedule-tooltip-label {
+  color: var(--text-muted);
+  font-family: var(--font-interface);
+  font-size: calc(var(--font-ui-smaller) - 1px);
+  font-weight: var(--font-normal);
+}
+
+.pmi-progress-schedule-tooltip-metric strong {
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-semibold);
+}
+
+.pmi-progress-schedule-tooltip-metric.is-variance strong {
+  color: color-mix(in srgb, var(--pmi-schedule-color) 88%, var(--text-normal));
+}
+
+.pmi-progress-schedule-tooltip.is-message {
+  display: block;
+  width: max-content;
+  max-width: 220px;
+  color: var(--text-muted);
+  font-family: var(--font-interface);
+  font-size: calc(var(--font-ui-smaller) - 1px);
+  font-weight: var(--font-normal);
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .pmi-progress-caption {
@@ -4664,8 +4761,14 @@ body .modal.pmi-project-gates-modal input[type="date"] {
 
   .pmi-progress-fill,
   .pmi-progress-acceptance-complete,
-  .pmi-progress-acceptance-pending {
+  .pmi-progress-acceptance-pending,
+  .pmi-progress-schedule-tooltip {
     animation: none;
+    transition: none;
+  }
+
+  .pmi-progress-schedule:is(:hover, :focus) .pmi-progress-schedule-tooltip {
+    transform: translate(-50%, 0);
   }
 
   .pmi-delivery-progress-quality,
