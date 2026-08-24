@@ -49,6 +49,7 @@ const TASK_COLUMN_MIN_WIDTHS = [180, 120, 92, 80, 64, 64, 72] as const;
 const TASK_COLUMN_GAP = 10;
 const TASK_TABLE_INLINE_PADDING = 22;
 const TASK_COLUMN_KEYBOARD_STEP = 12;
+let nextDeliveryProgressLabelId = 0;
 
 export class InsightsView extends ItemView {
   private selectedMemberKey: string | null = null;
@@ -63,6 +64,8 @@ export class InsightsView extends ItemView {
   private projectScopeEl: HTMLElement | null = null;
   private taskColumnWidths: number[] | null = null;
   private renderVersion = 0;
+  private readonly deliveryProgressLabelId =
+    `pmi-delivery-progress-label-${++nextDeliveryProgressLabelId}`;
 
   constructor(leaf: WorkspaceLeaf, private readonly host: InsightsViewHost) {
     super(leaf);
@@ -618,9 +621,9 @@ export class InsightsView extends ItemView {
   ): void {
     const section = root.createDiv({
       cls: "pmi-delivery-progress",
-      attr: { role: "region", "aria-label": t.deliveryProgress }
+      attr: { role: "region", "aria-labelledby": this.deliveryProgressLabelId }
     });
-    this.renderTotalProgress(section, progress, t, () => {
+    this.renderTotalProgress(section, progress, t, this.deliveryProgressLabelId, () => {
       void this.setDeliveryProgressVisible(false);
     });
 
@@ -681,11 +684,14 @@ export class InsightsView extends ItemView {
   private renderDeliveryProgressCollapsed(root: HTMLElement, t: Translations): void {
     const section = root.createDiv({
       cls: "pmi-delivery-progress-collapsed",
-      attr: { role: "region", "aria-label": t.deliveryProgressHidden }
+      attr: { role: "region", "aria-labelledby": this.deliveryProgressLabelId }
     });
     const status = section.createDiv("pmi-delivery-progress-collapsed-status");
     setIcon(status.createSpan(), "route");
-    status.createSpan({ text: t.deliveryProgressHidden });
+    status.createSpan({
+      text: t.deliveryProgressHidden,
+      attr: { id: this.deliveryProgressLabelId }
+    });
     const show = section.createEl("button", {
       cls: "pmi-delivery-progress-show",
       attr: { type: "button", "aria-label": t.showDeliveryProgress }
@@ -941,6 +947,7 @@ export class InsightsView extends ItemView {
     root: HTMLElement,
     progress: DeliveryProgressSnapshot,
     t: Translations,
+    labelId: string,
     onHide: () => void
   ): void {
     const percentage = progress.totalPercentage;
@@ -949,7 +956,7 @@ export class InsightsView extends ItemView {
     const name = heading.createDiv("pmi-progress-name");
     setIcon(name.createSpan(), "route");
     const label = name.createDiv("pmi-progress-overview-label");
-    label.createSpan({ text: t.deliveryProgress });
+    label.createSpan({ text: t.deliveryProgress, attr: { id: labelId } });
     label.createEl("small", { text: t.totalProgress });
     const actions = heading.createDiv("pmi-progress-heading-actions");
     actions.createEl("strong", {
