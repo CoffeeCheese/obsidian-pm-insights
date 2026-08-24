@@ -5,6 +5,11 @@ import {
   type DeliveryProgressSnapshot,
   type StageProgressMetric
 } from "./domain/delivery-progress";
+import {
+  compareAcceptanceSchedule,
+  compareStageSchedule,
+  type DeliveryScheduleComparison
+} from "./domain/delivery-schedule";
 import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
 import { validateGateSchedule } from "./domain/gate-schedule";
@@ -426,7 +431,7 @@ export class InsightsView extends ItemView {
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
-      this.renderDeliveryProgress(dashboard, deliveryProgress, snapshot.projects, t);
+      this.renderDeliveryProgress(dashboard, deliveryProgress, gateRisk, snapshot.projects, t);
     } else {
       this.renderDeliveryProgressCollapsed(dashboard, t);
     }
@@ -607,6 +612,7 @@ export class InsightsView extends ItemView {
   private renderDeliveryProgress(
     root: HTMLElement,
     progress: DeliveryProgressSnapshot,
+    gateRisk: GateRiskSnapshot,
     projects: ProjectRecord[],
     t: Translations
   ): void {
@@ -625,11 +631,17 @@ export class InsightsView extends ItemView {
         this.deliveryStageLabel(metric.id, metric.name, t),
         this.deliveryStageIcon(metric.id, index),
         metric,
+        compareStageSchedule(metric, gateRisk),
         index,
         t
       );
     }
-    this.renderAcceptanceProgress(rails, progress, t);
+    this.renderAcceptanceProgress(
+      rails,
+      progress,
+      compareAcceptanceSchedule(progress.acceptance, gateRisk),
+      t
+    );
 
     const issueCount = progress.quality.issues.length;
     if (issueCount > 0) {
@@ -697,6 +709,7 @@ export class InsightsView extends ItemView {
     label: string,
     icon: string,
     metric: StageProgressMetric,
+    schedule: DeliveryScheduleComparison,
     index: number,
     t: Translations
   ): void {
@@ -714,7 +727,8 @@ export class InsightsView extends ItemView {
         : t.percentage(metric.percentage ?? 0);
     heading.createEl("strong", { text: value });
 
-    const track = row.createDiv({
+    const trackShell = row.createDiv("pmi-progress-track-shell");
+    const track = trackShell.createDiv({
       cls: `pmi-progress-track pmi-progress-track--${metric.state}`,
       attr: metric.percentage === null
         ? { "aria-label": `${label}: ${value}` }
@@ -731,6 +745,8 @@ export class InsightsView extends ItemView {
       const fill = track.createDiv("pmi-progress-fill");
       fill.style.width = `${metric.percentage ?? 0}%`;
     }
+    this.renderExpectedMarker(trackShell, schedule);
+    this.renderScheduleComparison(row, schedule, t);
     const caption = row.createDiv("pmi-progress-caption");
     caption.createSpan({
       text: metric.state === "progress"
@@ -759,6 +775,7 @@ export class InsightsView extends ItemView {
   private renderAcceptanceProgress(
     root: HTMLElement,
     progress: DeliveryProgressSnapshot,
+    schedule: DeliveryScheduleComparison,
     t: Translations
   ): void {
     const metric = progress.acceptance;
@@ -770,7 +787,8 @@ export class InsightsView extends ItemView {
     heading.createEl("strong", {
       text: metric.percentage === null ? t.ratioUnavailable : t.percentage(metric.percentage)
     });
-    const track = row.createDiv({
+    const trackShell = row.createDiv("pmi-progress-track-shell");
+    const track = trackShell.createDiv({
       cls: "pmi-progress-track pmi-progress-track--acceptance",
       attr: metric.percentage === null
         ? { "aria-label": `${t.acceptanceProgress}: ${t.noRootTasks}` }
@@ -793,6 +811,8 @@ export class InsightsView extends ItemView {
       const pending = track.createDiv("pmi-progress-acceptance-pending");
       pending.style.width = `${(metric.pending / metric.total) * 100}%`;
     }
+    this.renderExpectedMarker(trackShell, schedule);
+    this.renderScheduleComparison(row, schedule, t);
     const caption = row.createDiv("pmi-progress-caption");
     caption.createSpan({
       text: metric.total > 0
@@ -800,6 +820,54 @@ export class InsightsView extends ItemView {
         : t.noRootTasks
     });
     this.renderProgressWeight(caption, metric.weight, t);
+  }
+
+  private renderExpectedMarker(
+    root: HTMLElement,
+    schedule: DeliveryScheduleComparison
+  ): void {
+    if (schedule.expectedPercentage === null) return;
+    const marker = root.createSpan({
+      cls: "pmi-progress-expected-marker",
+      attr: { "aria-hidden": "true" }
+    });
+    marker.style.left = `${schedule.expectedPercentage}%`;
+  }
+
+  private renderScheduleComparison(
+    root: HTMLElement,
+    schedule: DeliveryScheduleComparison,
+    t: Translations
+  ): void {
+    const comparison = root.createDiv({
+      cls: `pmi-progress-schedule is-${schedule.state}`,
+      attr: { "data-schedule-state": schedule.state }
+    });
+    if (schedule.expectedPercentage === null || schedule.variance === null) {
+      setIcon(comparison.createSpan("pmi-progress-schedule-icon"), "calendar-clock");
+      comparison.createSpan({
+        text: schedule.state === "unconfigured"
+          ? t.progressVarianceNeedsGates(
+              schedule.configuredProjectCount,
+              schedule.relevantProjectCount
+            )
+          : t.progressVarianceUnavailable
+      });
+      return;
+    }
+
+    comparison.createSpan({
+      cls: "pmi-progress-expected-copy",
+      text: t.expectedProgress(schedule.expectedPercentage)
+    });
+    comparison.createEl("strong", {
+      cls: "pmi-progress-variance",
+      text: schedule.state === "ahead"
+        ? t.progressVarianceAhead(schedule.variance)
+        : schedule.state === "behind"
+          ? t.progressVarianceBehind(Math.abs(schedule.variance))
+          : t.progressVarianceOnPlan
+    });
   }
 
   private renderProgressWeight(

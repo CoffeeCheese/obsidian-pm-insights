@@ -190,6 +190,8 @@ An em dash `—` means there is no valid sample yet; it does not mean the result
 
 Delivery progress is not a single completion percentage across every task. It starts from the complete task trees in the selected projects, uses subtasks to observe each business stage, uses root tasks to decide whether a requirement is ready for acceptance, and finally combines the configured stage weights into total delivery progress.
 
+Each stage card also compares actual progress with the progress expected from its configured project gates. A marker pins the expected position directly to the progress rail, while the card reports the exact lead or lag in percentage points. Across projects, expected stage progress is weighted by the number of relevant tasks, and acceptance is weighted by root-task count; if any relevant project is missing gate dates, PM Insights asks for complete scheduling instead of showing a partial, misleading variance.
+
 This view answers four questions:
 
 - How far have design, development, testing, or other custom stages progressed?
