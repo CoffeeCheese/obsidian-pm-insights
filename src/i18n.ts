@@ -87,7 +87,7 @@ const en = {
   gateDaysRemaining: (days: number) =>
     days === 0 ? "Gate is today" : `${days} day${days === 1 ? "" : "s"} remaining`,
   gateDaysOverdue: (days: number) => `${days} day${days === 1 ? "" : "s"} overdue`,
-  gateReasonScheduleGap: (gap: number) => `${gap}-point schedule gap`,
+  gateReasonScheduleGap: (gap: number) => `${gap}pp schedule gap`,
   gateReasonWindowClosing: "Final 20% of the stage window",
   gateReasonTaskOverdue: "Contains overdue tasks",
   gateReasonTaskAfterGate: "A task is planned after this gate",
@@ -144,10 +144,10 @@ const en = {
   expectedProgress: (value: number) =>
     `Expected ${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceAhead: (value: number) =>
-    `Ahead +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} pts`,
+    `Ahead +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
   progressVarianceBehind: (value: number) =>
-    `Behind −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} pts`,
-  progressVarianceOnPlan: "On plan · 0 pts",
+    `Behind −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
+  progressVarianceOnPlan: "On plan · 0pp",
   progressVarianceNeedsGates: (configured: number, total: number) =>
     configured === 0
       ? "Set project gates to compare with plan"
@@ -407,7 +407,7 @@ const zh: typeof en = {
     expected === null ? "跨阶段推进" : `跨阶段推进 · 计划应达 ${expected}%`,
   gateDaysRemaining: (days: number) => days === 0 ? "门禁就在今天" : `剩余 ${days} 天`,
   gateDaysOverdue: (days: number) => `已逾期 ${days} 天`,
-  gateReasonScheduleGap: (gap: number) => `进度落后 ${gap} 个百分点`,
+  gateReasonScheduleGap: (gap: number) => `进度落后 ${gap}pp`,
   gateReasonWindowClosing: "已进入阶段窗口最后 20%",
   gateReasonTaskOverdue: "存在已逾期任务",
   gateReasonTaskAfterGate: "存在计划晚于门禁的任务",
@@ -464,10 +464,10 @@ const zh: typeof en = {
   expectedProgress: (value: number) =>
     `预计 ${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
   progressVarianceAhead: (value: number) =>
-    `领先 +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} 个百分点`,
+    `领先 +${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
   progressVarianceBehind: (value: number) =>
-    `落后 −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} 个百分点`,
-  progressVarianceOnPlan: "符合计划 · 偏移 0 个百分点",
+    `落后 −${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}pp`,
+  progressVarianceOnPlan: "符合计划 · 0pp",
   progressVarianceNeedsGates: (configured: number, total: number) =>
     configured === 0
       ? "配置项目门禁后显示进度偏移"

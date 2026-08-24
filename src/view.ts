@@ -719,7 +719,8 @@ export class InsightsView extends ItemView {
     const heading = row.createDiv("pmi-progress-row-heading");
     const name = heading.createDiv("pmi-progress-name");
     setIcon(name.createSpan(), icon);
-    name.createSpan({ text: label });
+    name.createSpan({ cls: "pmi-progress-name-label", text: label });
+    this.renderScheduleComparison(name, schedule, t);
     const value = metric.state === "skipped"
       ? t.skippedStatistics
       : metric.state === "missing"
@@ -746,8 +747,8 @@ export class InsightsView extends ItemView {
       fill.style.width = `${metric.percentage ?? 0}%`;
     }
     this.renderExpectedMarker(trackShell, schedule);
-    this.renderScheduleComparison(row, schedule, t);
-    const caption = row.createDiv("pmi-progress-caption");
+    const context = row.createDiv("pmi-progress-context");
+    const caption = context.createDiv("pmi-progress-caption");
     caption.createSpan({
       text: metric.state === "progress"
         ? t.stageTaskProgress(metric.completed, metric.total)
@@ -783,7 +784,8 @@ export class InsightsView extends ItemView {
     const heading = row.createDiv("pmi-progress-row-heading");
     const name = heading.createDiv("pmi-progress-name");
     setIcon(name.createSpan(), "badge-check");
-    name.createSpan({ text: t.acceptanceProgress });
+    name.createSpan({ cls: "pmi-progress-name-label", text: t.acceptanceProgress });
+    this.renderScheduleComparison(name, schedule, t);
     heading.createEl("strong", {
       text: metric.percentage === null ? t.ratioUnavailable : t.percentage(metric.percentage)
     });
@@ -812,8 +814,8 @@ export class InsightsView extends ItemView {
       pending.style.width = `${(metric.pending / metric.total) * 100}%`;
     }
     this.renderExpectedMarker(trackShell, schedule);
-    this.renderScheduleComparison(row, schedule, t);
-    const caption = row.createDiv("pmi-progress-caption");
+    const context = row.createDiv("pmi-progress-context");
+    const caption = context.createDiv("pmi-progress-caption");
     caption.createSpan({
       text: metric.total > 0
         ? t.acceptanceTaskProgress(metric.accepted, metric.total, metric.pending)
@@ -839,34 +841,61 @@ export class InsightsView extends ItemView {
     schedule: DeliveryScheduleComparison,
     t: Translations
   ): void {
-    const comparison = root.createDiv({
+    const hasComparison = schedule.expectedPercentage !== null && schedule.variance !== null;
+    const varianceLabel = !hasComparison
+      ? schedule.state === "unconfigured"
+        ? t.progressVarianceNeedsGates(
+            schedule.configuredProjectCount,
+            schedule.relevantProjectCount
+          )
+        : t.progressVarianceUnavailable
+      : schedule.state === "ahead"
+        ? t.progressVarianceAhead(schedule.variance ?? 0)
+        : schedule.state === "behind"
+          ? t.progressVarianceBehind(Math.abs(schedule.variance ?? 0))
+          : t.progressVarianceOnPlan;
+    const accessibleLabel = hasComparison
+      ? `${t.expectedProgress(schedule.expectedPercentage ?? 0)} · ${varianceLabel}`
+      : varianceLabel;
+    const comparison = root.createSpan({
       cls: `pmi-progress-schedule is-${schedule.state}`,
-      attr: { "data-schedule-state": schedule.state }
+      attr: {
+        "data-schedule-state": schedule.state,
+        title: accessibleLabel
+      }
     });
-    if (schedule.expectedPercentage === null || schedule.variance === null) {
-      setIcon(comparison.createSpan("pmi-progress-schedule-icon"), "calendar-clock");
+    comparison.createSpan({ cls: "pmi-sr-only", text: accessibleLabel });
+    if (!hasComparison) {
       comparison.createSpan({
-        text: schedule.state === "unconfigured"
-          ? t.progressVarianceNeedsGates(
-              schedule.configuredProjectCount,
-              schedule.relevantProjectCount
-            )
-          : t.progressVarianceUnavailable
+        cls: "pmi-progress-schedule-placeholder",
+        text: "— / —",
+        attr: { "aria-hidden": "true" }
       });
       return;
     }
 
     comparison.createSpan({
       cls: "pmi-progress-expected-copy",
-      text: t.expectedProgress(schedule.expectedPercentage)
+      text: `${schedule.expectedPercentage?.toLocaleString(undefined, {
+        maximumFractionDigits: 1
+      })}%`,
+      attr: { "aria-hidden": "true" }
+    });
+    comparison.createSpan({
+      cls: "pmi-progress-schedule-separator",
+      text: "/",
+      attr: { "aria-hidden": "true" }
     });
     comparison.createEl("strong", {
       cls: "pmi-progress-variance",
       text: schedule.state === "ahead"
-        ? t.progressVarianceAhead(schedule.variance)
+        ? `+${schedule.variance?.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`
         : schedule.state === "behind"
-          ? t.progressVarianceBehind(Math.abs(schedule.variance))
-          : t.progressVarianceOnPlan
+          ? `−${Math.abs(schedule.variance ?? 0).toLocaleString(undefined, {
+              maximumFractionDigits: 1
+            })}%`
+          : "±0%",
+      attr: { "aria-hidden": "true" }
     });
   }
 
