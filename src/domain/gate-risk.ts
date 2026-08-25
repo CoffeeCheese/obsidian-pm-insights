@@ -1,8 +1,18 @@
 import { aggregateDeliveryProgress } from "./delivery-progress";
 import { isDateOnly, validateGateSchedule } from "./gate-schedule";
 import { scheduleDaysBetween } from "./schedule-calendar";
+import {
+  actualGateDelayDays,
+  effectiveGateSchedule,
+  forecastVarianceDays,
+  gateDelayDays,
+  gateForecastDate
+} from "./gate-delay";
 import type {
   DeliveryProgressSettings,
+  GateDelayStatus,
+  ProjectGateActualState,
+  ProjectGateDelayPlan,
   ProjectGateSchedule,
   ProjectRecord,
   TaskRecord
@@ -75,6 +85,15 @@ export interface GateRiskMetric {
   timing: GateTiming | null;
   dueDateChecksEnabled: boolean;
   includeWeekends: boolean;
+  baselineDate?: string;
+  forecastDate?: string | null;
+  actualDate?: string | null;
+  scheduleSource?: "baseline" | "delay";
+  delayStatus?: GateDelayStatus | null;
+  delayDays?: number | null;
+  actualDelayDays?: number | null;
+  forecastVarianceDays?: number | null;
+  forecastMissed?: boolean;
 }
 
 export interface ProjectGateRisk {
@@ -107,6 +126,8 @@ export interface GateRiskOptions {
   includeArchived: boolean;
   settings: DeliveryProgressSettings;
   gateSchedules: Record<string, ProjectGateSchedule>;
+  gateDelays?: Record<string, ProjectGateDelayPlan>;
+  gateActuals?: Record<string, ProjectGateActualState>;
   today: string;
   checkTaskDueDates?: boolean;
 }
@@ -220,6 +241,12 @@ function passTiming(tasks: TaskRecord[], gateDate: string): GateTiming {
   return "late";
 }
 
+function passTimingFromDate(date: string, gateDate: string): GateTiming {
+  if (date < gateDate) return "early";
+  if (date === gateDate) return "on-time";
+  return "late";
+}
+
 function assessGate(input: {
   id: string;
   name: string;
@@ -232,6 +259,7 @@ function assessGate(input: {
   blockingTasks?: TaskRecord[];
   timingTasks?: TaskRecord[];
   passed: boolean;
+  actualDate?: string | null;
   skipped?: boolean;
   previousGatesPassed?: boolean;
   checkTaskDueDates: boolean;
@@ -278,7 +306,11 @@ function assessGate(input: {
   let timing: GateTiming | null = null;
   if (input.passed) {
     state = "passed";
-    timing = input.skipped ? null : passTiming(input.timingTasks ?? input.tasks, input.gateDate);
+    timing = input.skipped
+      ? null
+      : input.actualDate
+        ? passTimingFromDate(input.actualDate, input.gateDate)
+        : passTiming(input.timingTasks ?? input.tasks, input.gateDate);
   } else if (input.today > input.gateDate) {
     state = "overdue";
     reasons.push("gate-overdue");
@@ -323,8 +355,54 @@ function assessGate(input: {
     quality: dataQuality(unfinished, input.checkTaskDueDates),
     timing,
     dueDateChecksEnabled: input.checkTaskDueDates,
-    includeWeekends: input.includeWeekends
+    includeWeekends: input.includeWeekends,
+    baselineDate: input.gateDate,
+    forecastDate: null,
+    actualDate: input.actualDate ?? null,
+    scheduleSource: "baseline",
+    delayStatus: null,
+    delayDays: null,
+    actualDelayDays: null,
+    forecastVarianceDays: null,
+    forecastMissed: false
   };
+}
+
+function applyDelayContext(
+  gate: GateRiskMetric,
+  gateId: string,
+  baseline: ProjectGateSchedule,
+  plan: ProjectGateDelayPlan | undefined,
+  actuals: ProjectGateActualState | undefined,
+  today: string
+): void {
+  const visibleForecast = plan?.draft ?? plan?.confirmed;
+  const actualDate = gateId === "launch"
+    ? actuals?.launchDate ?? null
+    : actuals?.gates[gateId]?.open === false
+      ? actuals.gates[gateId]?.date ?? null
+      : null;
+  gate.baselineDate = gateId === "acceptance"
+    ? baseline.acceptanceGate
+    : gateId === "launch"
+      ? baseline.launchDate
+      : baseline.stageGates[gateId] ?? gate.gateDate;
+  gate.forecastDate = visibleForecast ? gateForecastDate(visibleForecast, gateId) : null;
+  gate.actualDate = actualDate;
+  gate.scheduleSource = plan?.confirmed ? "delay" : "baseline";
+  gate.delayStatus = plan?.status ?? null;
+  gate.delayDays = visibleForecast ? gateDelayDays(baseline, visibleForecast, gateId) : null;
+  gate.actualDelayDays = actualDate
+    ? actualGateDelayDays(baseline, actualDate, gateId)
+    : null;
+  gate.forecastVarianceDays = actualDate && visibleForecast
+    ? forecastVarianceDays(baseline, visibleForecast, actualDate, gateId)
+    : null;
+  gate.forecastMissed = Boolean(
+    plan?.confirmed
+    && !actualDate
+    && today > gateForecastDate(plan.confirmed, gateId)
+  );
 }
 
 const ACTIVE_SEVERITY: Record<GateRiskMetric["state"], number> = {
@@ -348,10 +426,13 @@ function projectRisk(
   options: GateRiskOptions
 ): ProjectGateRisk {
   const stageIds = options.settings.stages.map((stage) => stage.id);
-  const schedule = options.gateSchedules[project.id];
-  if (!validateGateSchedule(schedule, stageIds).valid || !schedule) {
+  const baseline = options.gateSchedules[project.id];
+  if (!validateGateSchedule(baseline, stageIds).valid || !baseline) {
     return { project, configured: false, state: "unconfigured", gates: [], nearestGate: null };
   }
+  const plan = options.gateDelays?.[project.id];
+  const actuals = options.gateActuals?.[project.id];
+  const schedule = effectiveGateSchedule(baseline, plan);
   const progress = aggregateDeliveryProgress(tasks, {
     projectIds: new Set([project.id]),
     includeArchived: options.includeArchived,
@@ -367,6 +448,9 @@ function projectRisk(
     if (!metric) continue;
     const gateDate = schedule.stageGates[stage.id] ?? "";
     const progressValue = metric.state === "skipped" ? 100 : metric.percentage ?? 0;
+    const actualDate = actuals?.gates[stage.id]?.open === false
+      ? actuals.gates[stage.id]?.date ?? null
+      : null;
     const gate = assessGate({
       id: stage.id,
       name: stage.name,
@@ -376,12 +460,14 @@ function projectRisk(
       today: options.today,
       progress: progressValue,
       tasks: metric.tasks,
-      passed: metric.state === "skipped" || progressValue === 100,
+      passed: metric.state === "skipped" || (progressValue === 100 && previousGatesPassed),
+      actualDate,
       skipped: metric.state === "skipped",
       previousGatesPassed,
       checkTaskDueDates,
       includeWeekends
     });
+    applyDelayContext(gate, stage.id, baseline, plan, actuals, options.today);
     gates.push(gate);
     previousGatesPassed = previousGatesPassed && gate.state === "passed";
     windowStart = gateDate;
@@ -396,6 +482,9 @@ function projectRisk(
     ...root.prerequisites
   ]));
   const acceptanceProgress = progress.acceptance.percentage ?? 0;
+  const acceptanceActual = actuals?.gates.acceptance?.open === false
+    ? actuals.gates.acceptance.date
+    : null;
   const acceptance = assessGate({
     id: "acceptance",
     name: "",
@@ -406,11 +495,13 @@ function projectRisk(
     progress: acceptanceProgress,
     tasks: acceptanceRiskTasks,
     blockingTasks: acceptanceBlockers,
-    passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
+    passed: progress.acceptance.total > 0 && acceptanceProgress === 100 && previousGatesPassed,
+    actualDate: acceptanceActual,
     previousGatesPassed,
     checkTaskDueDates,
     includeWeekends
   });
+  applyDelayContext(acceptance, "acceptance", baseline, plan, actuals, options.today);
   acceptance.tasks = acceptanceTasks;
   gates.push(acceptance);
 
@@ -418,6 +509,7 @@ function projectRisk(
     ...progress.stages.flatMap((stage) => stage.tasks),
     ...progress.acceptance.roots.map((root) => root.task)
   ]);
+  const requiresLaunchConfirmation = (plan?.revisions.length ?? 0) > 0;
   const launch = assessGate({
     id: "launch",
     name: "",
@@ -429,10 +521,14 @@ function projectRisk(
     tasks: projectRiskTasks,
     blockingTasks: acceptanceBlockers,
     timingTasks: acceptanceRiskTasks,
-    passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
+    passed: requiresLaunchConfirmation
+      ? Boolean(actuals?.launchDate)
+      : progress.acceptance.total > 0 && acceptanceProgress === 100,
+    actualDate: actuals?.launchDate ?? null,
     checkTaskDueDates,
     includeWeekends
   });
+  applyDelayContext(launch, "launch", baseline, plan, actuals, options.today);
   gates.push(launch);
 
   const nearestGate = gates

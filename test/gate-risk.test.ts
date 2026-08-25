@@ -100,6 +100,46 @@ describe("gateRiskSummaryState", () => {
 });
 
 describe("aggregateGateRisk", () => {
+  it("keeps evaluations on the baseline and switches only confirmed delay plans", () => {
+    const forecast = {
+      stageGates: { delivery: "2026-08-14" },
+      acceptanceGate: "2026-08-18",
+      launchDate: "2026-08-21"
+    };
+    const input = {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: schedule },
+      today: "2026-08-08"
+    };
+    const evaluating = aggregateGateRisk([project], [root(), task({ id: "open" })], {
+      ...input,
+      gateDelays: {
+        p1: { status: "evaluating", draft: forecast, revisions: [] }
+      }
+    }).projects[0]?.gates[0];
+    const confirmed = aggregateGateRisk([project], [root(), task({ id: "open" })], {
+      ...input,
+      gateDelays: {
+        p1: { status: "confirmed", confirmed: forecast, revisions: [] }
+      }
+    }).projects[0]?.gates[0];
+
+    expect(evaluating).toMatchObject({
+      gateDate: "2026-08-11",
+      scheduleSource: "baseline",
+      forecastDate: "2026-08-14",
+      delayDays: 3
+    });
+    expect(confirmed).toMatchObject({
+      gateDate: "2026-08-14",
+      scheduleSource: "delay",
+      forecastDate: "2026-08-14",
+      delayDays: 3
+    });
+  });
+
   it("marks a stage attention when its shared completion ratio trails time by 20 points", () => {
     const snapshot = risk([
       root(),
@@ -396,7 +436,7 @@ describe("aggregateGateRisk", () => {
     });
   });
 
-  it("keeps pass timing as the primary signal after cross-stage work is completed", () => {
+  it("keeps completed downstream work parallel until its upstream gate passes", () => {
     const multiStageSettings: DeliveryProgressSettings = {
       ...settings,
       stages: [
@@ -429,9 +469,9 @@ describe("aggregateGateRisk", () => {
     });
 
     expect(snapshot.projects[0]?.gates[1]).toMatchObject({
-      state: "passed",
-      progressSignal: "scheduled",
-      timing: "early"
+      state: "normal",
+      progressSignal: "parallel",
+      timing: null
     });
   });
 
