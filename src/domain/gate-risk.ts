@@ -1,5 +1,6 @@
 import { aggregateDeliveryProgress } from "./delivery-progress";
 import { isDateOnly, validateGateSchedule } from "./gate-schedule";
+import { scheduleDaysBetween } from "./schedule-calendar";
 import type {
   DeliveryProgressSettings,
   ProjectGateSchedule,
@@ -73,6 +74,7 @@ export interface GateRiskMetric {
   quality: GateDataQuality;
   timing: GateTiming | null;
   dueDateChecksEnabled: boolean;
+  includeWeekends: boolean;
 }
 
 export interface ProjectGateRisk {
@@ -109,26 +111,21 @@ export interface GateRiskOptions {
   checkTaskDueDates?: boolean;
 }
 
-const DAY_MS = 86_400_000;
-
-function dateValue(value: string): number {
-  const [year = 0, month = 1, day = 1] = value.split("-").map(Number);
-  return Date.UTC(year, month - 1, day);
-}
-
-function daysBetween(from: string, to: string): number {
-  return Math.round((dateValue(to) - dateValue(from)) / DAY_MS);
-}
-
 function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function expectedProgress(windowStart: string, gateDate: string, today: string): number | null {
+function expectedProgress(
+  windowStart: string,
+  gateDate: string,
+  today: string,
+  includeWeekends: boolean
+): number | null {
   if (today < windowStart) return 0;
-  const duration = daysBetween(windowStart, gateDate);
+  const duration = scheduleDaysBetween(windowStart, gateDate, includeWeekends);
   if (duration === 0) return today >= gateDate ? 100 : 0;
-  return round(Math.max(0, Math.min(100, (daysBetween(windowStart, today) / duration) * 100)));
+  const elapsed = scheduleDaysBetween(windowStart, today, includeWeekends);
+  return round(Math.max(0, Math.min(100, (elapsed / duration) * 100)));
 }
 
 function taskDate(value: string | null | undefined): string | null {
@@ -164,11 +161,17 @@ export function gateTaskRiskSignals(
       signals.push({ kind: "missing-due" });
     } else {
       if (due < today) {
-        signals.push({ kind: "task-overdue", days: daysBetween(due, today) });
+        signals.push({
+          kind: "task-overdue",
+          days: scheduleDaysBetween(due, today, gate.includeWeekends)
+        });
         hasTaskScheduleRisk = true;
       }
       if (due > gate.gateDate) {
-        signals.push({ kind: "task-after-gate", days: daysBetween(gate.gateDate, due) });
+        signals.push({
+          kind: "task-after-gate",
+          days: scheduleDaysBetween(gate.gateDate, due, gate.includeWeekends)
+        });
         hasTaskScheduleRisk = true;
       }
     }
@@ -232,11 +235,21 @@ function assessGate(input: {
   skipped?: boolean;
   previousGatesPassed?: boolean;
   checkTaskDueDates: boolean;
+  includeWeekends: boolean;
 }): GateRiskMetric {
   const unfinished = input.tasks.filter((task) => !task.completed);
-  const expected = expectedProgress(input.windowStart, input.gateDate, input.today);
+  const expected = expectedProgress(
+    input.windowStart,
+    input.gateDate,
+    input.today,
+    input.includeWeekends
+  );
   const gap = expected === null ? null : round(Math.max(0, expected - input.progress));
-  const daysRemaining = daysBetween(input.today, input.gateDate);
+  const daysRemaining = scheduleDaysBetween(
+    input.today,
+    input.gateDate,
+    input.includeWeekends
+  );
   const taskOverdue = input.checkTaskDueDates && unfinished.some((task) => {
     const due = taskDate(task.dueDate);
     return due !== null && due < input.today;
@@ -274,7 +287,11 @@ function assessGate(input: {
     if (input.today === input.gateDate) reasons.push("gate-today");
     if ((gap ?? 0) >= 25) reasons.push("schedule-gap");
   } else {
-    const duration = Math.max(0, daysBetween(input.windowStart, input.gateDate));
+    const duration = Math.max(0, scheduleDaysBetween(
+      input.windowStart,
+      input.gateDate,
+      input.includeWeekends
+    ));
     const windowClosing = duration > 0 && daysRemaining / duration <= 0.2;
     if ((gap ?? 0) >= 10 || windowClosing) {
       state = "attention";
@@ -305,7 +322,8 @@ function assessGate(input: {
     blockingTasks: input.blockingTasks ?? [],
     quality: dataQuality(unfinished, input.checkTaskDueDates),
     timing,
-    dueDateChecksEnabled: input.checkTaskDueDates
+    dueDateChecksEnabled: input.checkTaskDueDates,
+    includeWeekends: input.includeWeekends
   };
 }
 
@@ -340,6 +358,7 @@ function projectRisk(
     settings: options.settings
   });
   const checkTaskDueDates = options.checkTaskDueDates !== false;
+  const includeWeekends = schedule.includeWeekends !== false;
   const gates: GateRiskMetric[] = [];
   let windowStart = schedule.startDate;
   let previousGatesPassed = true;
@@ -360,7 +379,8 @@ function projectRisk(
       passed: metric.state === "skipped" || progressValue === 100,
       skipped: metric.state === "skipped",
       previousGatesPassed,
-      checkTaskDueDates
+      checkTaskDueDates,
+      includeWeekends
     });
     gates.push(gate);
     previousGatesPassed = previousGatesPassed && gate.state === "passed";
@@ -388,7 +408,8 @@ function projectRisk(
     blockingTasks: acceptanceBlockers,
     passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
     previousGatesPassed,
-    checkTaskDueDates
+    checkTaskDueDates,
+    includeWeekends
   });
   acceptance.tasks = acceptanceTasks;
   gates.push(acceptance);
@@ -409,7 +430,8 @@ function projectRisk(
     blockingTasks: acceptanceBlockers,
     timingTasks: acceptanceRiskTasks,
     passed: progress.acceptance.total > 0 && acceptanceProgress === 100,
-    checkTaskDueDates
+    checkTaskDueDates,
+    includeWeekends
   });
   gates.push(launch);
 

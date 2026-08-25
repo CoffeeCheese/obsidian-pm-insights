@@ -530,7 +530,13 @@ export class InsightsView extends ItemView {
         text: t.nearestGate(
           risk.nearestGate.project.title,
           this.gateRiskName(risk.nearestGate.gate, t),
-          risk.nearestGate.gate.daysRemaining
+          risk.nearestGate.gate.daysRemaining,
+          risk.nearestGate.gate.includeWeekends,
+          risk.nearestGate.gate.state === "overdue"
+            ? "overdue"
+            : risk.nearestGate.gate.gateDate === risk.today
+              ? "today"
+              : "remaining"
         )
       });
     }

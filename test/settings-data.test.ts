@@ -115,13 +115,15 @@ describe("normalizeInsightSettings", () => {
           startDate: "2026-08-01",
           stageGates: { design: "2026-08-05", development: "2026-08-12" },
           acceptanceGate: "2026-08-18",
-          launchDate: "2026-08-20"
+          launchDate: "2026-08-20",
+          includeWeekends: false
         },
         "temporarily-missing": {
           startDate: "2026-09-01",
           stageGates: {},
           acceptanceGate: "",
-          launchDate: ""
+          launchDate: "",
+          includeWeekends: true
         }
       }
     });
@@ -130,8 +132,24 @@ describe("normalizeInsightSettings", () => {
       startDate: "2026-08-01",
       stageGates: { design: "2026-08-05", development: "2026-08-12" },
       acceptanceGate: "2026-08-18",
-      launchDate: "2026-08-20"
+      launchDate: "2026-08-20",
+      includeWeekends: false
     });
     expect(normalized.gateSchedules["temporarily-missing"]).toBeDefined();
+  });
+
+  it("keeps legacy project gates on calendar days until users change the rule", () => {
+    const normalized = normalizeInsightSettings({
+      gateSchedules: {
+        legacy: {
+          startDate: "2026-08-01",
+          stageGates: { development: "2026-08-12" },
+          acceptanceGate: "2026-08-18",
+          launchDate: "2026-08-20"
+        }
+      }
+    } as unknown as Partial<InsightSettings>);
+
+    expect(normalized.gateSchedules.legacy?.includeWeekends).toBe(true);
   });
 });

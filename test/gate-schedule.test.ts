@@ -10,6 +10,7 @@ const schedule = (overrides: Partial<ProjectGateSchedule> = {}): ProjectGateSche
   },
   acceptanceGate: "2026-08-15",
   launchDate: "2026-08-15",
+  includeWeekends: true,
   ...overrides
 });
 

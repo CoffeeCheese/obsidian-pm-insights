@@ -1,4 +1,4 @@
-import { ButtonComponent, Modal, type App } from "obsidian";
+import { ButtonComponent, Modal, setIcon, type App } from "obsidian";
 
 interface ConfirmActionModalOptions {
   title: string;
@@ -18,8 +18,14 @@ export class ConfirmActionModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("pmi-confirm-action-modal");
+    if (this.options.destructive) this.modalEl.addClass("is-destructive");
     this.titleEl.setText(this.options.title);
-    this.contentEl.createEl("p", { text: this.options.message });
+    const summary = this.contentEl.createDiv("pmi-confirm-action-summary");
+    if (this.options.destructive) {
+      const signal = summary.createSpan("pmi-confirm-action-signal");
+      setIcon(signal, "pencil-off");
+    }
+    summary.createEl("p", { text: this.options.message });
     const actions = this.contentEl.createDiv("pmi-confirm-action-actions");
     const cancel = new ButtonComponent(actions)
       .setButtonText(this.options.cancel)
@@ -27,7 +33,7 @@ export class ConfirmActionModal extends Modal {
     cancel.buttonEl.addClass("pmi-confirm-action-cancel");
     const confirm = new ButtonComponent(actions).setButtonText(this.options.confirm);
     confirm.buttonEl.addClass("pmi-confirm-action-confirm");
-    if (this.options.destructive) confirm.buttonEl.addClass("mod-warning");
+    if (this.options.destructive) confirm.buttonEl.addClass("is-destructive");
     else confirm.setCta();
     confirm.onClick(() => {
       this.confirmed = true;

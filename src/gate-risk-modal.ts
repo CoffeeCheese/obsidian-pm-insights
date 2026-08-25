@@ -370,7 +370,7 @@ export class GateRiskModal extends Modal {
         this.snapshot.today,
         acceptanceBlockers
       ));
-      const labels = signals.map((signal) => this.taskRiskLabel(signal, t));
+      const labels = signals.map((signal) => this.taskRiskLabel(signal, gate, t));
       const primaryTone = this.primaryTaskRiskTone(signals);
       const button = list.createEl("button", {
         cls: `pmi-risk-task is-risk-${primaryTone}`,
@@ -386,7 +386,7 @@ export class GateRiskModal extends Modal {
         attr: { "aria-hidden": "true" }
       });
       for (const [index, signal] of signals.entries()) {
-        const label = labels[index] ?? this.taskRiskLabel(signal, t);
+        const label = labels[index] ?? this.taskRiskLabel(signal, gate, t);
         evidence.createSpan({
           cls: `pmi-risk-task-signal is-${this.taskRiskTone(signal.kind)}${index === 0 ? " is-primary" : ""}`,
           text: label,
@@ -468,17 +468,24 @@ export class GateRiskModal extends Modal {
     }
   }
 
-  private taskRiskLabel(signal: GateTaskRiskSignal, t: Translations): string {
+  private taskRiskLabel(
+    signal: GateTaskRiskSignal,
+    gate: GateRiskMetric,
+    t: Translations
+  ): string {
     switch (signal.kind) {
-      case "task-overdue": return t.gateTaskRiskOverdue(signal.days ?? 0);
-      case "task-after-gate": return t.gateTaskRiskAfterGate(signal.days ?? 0);
+      case "task-overdue":
+        return t.gateTaskRiskOverdue(signal.days ?? 0, gate.includeWeekends);
+      case "task-after-gate":
+        return t.gateTaskRiskAfterGate(signal.days ?? 0, gate.includeWeekends);
       case "missing-due": return t.gateTaskRiskMissingDue;
       case "unestimated": return t.gateTaskRiskUnestimated;
       case "unassigned": return t.gateTaskRiskUnassigned;
       case "acceptance-blocker": return t.gateTaskRiskAcceptanceBlocker;
       case "awaiting-acceptance": return t.gateTaskRiskAwaitingAcceptance;
       case "acceptance-incomplete": return t.gateTaskRiskAcceptanceIncomplete;
-      case "gate-overdue": return t.gateTaskRiskGateOverdue(signal.days ?? 0);
+      case "gate-overdue":
+        return t.gateTaskRiskGateOverdue(signal.days ?? 0, gate.includeWeekends);
       case "gate-today": return t.gateTaskRiskGateToday;
       case "schedule-gap": return t.gateTaskRiskScheduleGap;
       case "window-closing": return t.gateTaskRiskWindowClosing;
@@ -572,8 +579,12 @@ export class GateRiskModal extends Modal {
 
   private gateDateLabel(gate: GateRiskMetric, t: Translations): string {
     if (gate.state === "passed") return gate.gateDate;
-    return `${gate.gateDate} · ${gate.daysRemaining < 0
-      ? t.gateDaysOverdue(Math.abs(gate.daysRemaining))
-      : t.gateDaysRemaining(gate.daysRemaining)}`;
+    return `${gate.gateDate} · ${gate.state === "overdue"
+      ? t.gateDaysOverdue(Math.abs(gate.daysRemaining), gate.includeWeekends)
+      : t.gateDaysRemaining(
+          gate.daysRemaining,
+          gate.includeWeekends,
+          gate.gateDate === this.snapshot.today
+        )}`;
   }
 }

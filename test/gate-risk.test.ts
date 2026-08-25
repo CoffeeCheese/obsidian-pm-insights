@@ -62,7 +62,8 @@ const schedule: ProjectGateSchedule = {
   startDate: "2026-08-01",
   stageGates: { delivery: "2026-08-11" },
   acceptanceGate: "2026-08-15",
-  launchDate: "2026-08-18"
+  launchDate: "2026-08-18",
+  includeWeekends: true
 };
 
 const risk = (
@@ -116,6 +117,63 @@ describe("aggregateGateRisk", () => {
       daysRemaining: 3
     });
     expect(snapshot.nearestGate).toMatchObject({ project: { id: "p1" }, gate: { id: "delivery" } });
+  });
+
+  it("recalculates expected progress and remaining time with a workday-only project clock", () => {
+    const workdaySchedule = { ...schedule, includeWeekends: false };
+    const snapshot = risk([
+      root(),
+      task({ id: "done", completed: true, completedAt: "2026-08-06" }),
+      task({ id: "open" })
+    ], "2026-08-08", { p1: workdaySchedule });
+    const stage = snapshot.projects[0]?.gates[0];
+
+    expect(stage).toMatchObject({
+      expectedProgress: 71.43,
+      daysRemaining: 2,
+      includeWeekends: false
+    });
+  });
+
+  it("does not advance planned progress while a workday-only clock is on a weekend", () => {
+    const workdaySchedule = { ...schedule, includeWeekends: false };
+    const friday = risk([root(), task({ id: "open" })], "2026-08-07", {
+      p1: workdaySchedule
+    });
+    const saturday = risk([root(), task({ id: "open" })], "2026-08-08", {
+      p1: workdaySchedule
+    });
+
+    expect(friday.projects[0]?.gates[0]?.expectedProgress).toBe(71.43);
+    expect(saturday.projects[0]?.gates[0]?.expectedProgress).toBe(71.43);
+  });
+
+  it("keeps a weekend-overdue gate overdue even when zero workdays have elapsed", () => {
+    const weekendGate: ProjectGateSchedule = {
+      ...schedule,
+      startDate: "2026-08-03",
+      stageGates: { delivery: "2026-08-07" },
+      acceptanceGate: "2026-08-10",
+      launchDate: "2026-08-11",
+      includeWeekends: false
+    };
+    const stage = risk([root(), task({ id: "open" })], "2026-08-09", {
+      p1: weekendGate
+    }).projects[0]?.gates[0];
+
+    expect(stage?.state).toBe("overdue");
+    expect(Math.abs(stage?.daysRemaining ?? 1)).toBe(0);
+  });
+
+  it("reports task-to-gate differences in workdays when weekends are excluded", () => {
+    const candidate = task({ id: "weekend-plan", dueDate: "2026-08-15" });
+    const workdaySchedule = { ...schedule, includeWeekends: false };
+    const gate = risk([root(), candidate], "2026-08-08", { p1: workdaySchedule })
+      .projects[0]?.gates[0];
+    if (!gate) throw new Error("Missing delivery gate");
+
+    expect(gateTaskRiskSignals(candidate, gate, "2026-08-08"))
+      .toContainEqual({ kind: "task-after-gate", days: 3 });
   });
 
   it("raises explicit unfinished task date conflicts to high risk", () => {
@@ -392,7 +450,8 @@ describe("aggregateGateRisk", () => {
         testing: "2026-08-10"
       },
       acceptanceGate: "2026-08-15",
-      launchDate: "2026-08-21"
+      launchDate: "2026-08-21",
+      includeWeekends: true
     };
     const snapshot = aggregateGateRisk([project], [
       root(),
@@ -449,7 +508,8 @@ describe("aggregateGateRisk", () => {
       startDate: "2026-08-01",
       stageGates: { discovery: "2026-08-05", delivery: "2026-08-10" },
       acceptanceGate: "2026-08-15",
-      launchDate: "2026-08-21"
+      launchDate: "2026-08-21",
+      includeWeekends: true
     };
     const snapshot = aggregateGateRisk([project], [
       root({ completed: true, completedAt: "2026-08-14" }),

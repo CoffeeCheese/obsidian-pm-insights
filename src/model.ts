@@ -65,6 +65,7 @@ export interface ProjectGateSchedule {
   stageGates: Record<DeliveryStageId, string>;
   acceptanceGate: string;
   launchDate: string;
+  includeWeekends: boolean;
 }
 
 export interface GateRiskSettings {

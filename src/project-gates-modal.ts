@@ -1,5 +1,6 @@
 import { ButtonComponent, Modal, setIcon, type App } from "obsidian";
-import { validateGateSchedule } from "./domain/gate-schedule";
+import { isDateOnly, validateGateSchedule } from "./domain/gate-schedule";
+import { scheduleDaysBetween } from "./domain/schedule-calendar";
 import type { Translations } from "./i18n";
 import type {
   DeliveryStageSettings,
@@ -24,12 +25,27 @@ export class ProjectGatesModal extends Modal {
   private confirmationOpen = false;
   private saveButton: HTMLButtonElement | null = null;
   private validationEl: HTMLElement | null = null;
+  private durationRows: Array<{
+    element: HTMLElement;
+    from: () => string;
+    to: () => string;
+    projectDuration: boolean;
+  }> = [];
 
   constructor(app: App, private readonly options: ProjectGatesModalOptions) {
     super(app);
     this.draft = options.schedule
-      ? structuredClone(options.schedule)
-      : { startDate: "", stageGates: {}, acceptanceGate: "", launchDate: "" };
+      ? {
+          ...structuredClone(options.schedule),
+          includeWeekends: options.schedule.includeWeekends !== false
+        }
+      : {
+          startDate: "",
+          stageGates: {},
+          acceptanceGate: "",
+          launchDate: "",
+          includeWeekends: true
+        };
   }
 
   onOpen(): void {
@@ -43,11 +59,14 @@ export class ProjectGatesModal extends Modal {
     copy.createEl("strong", { text: `${project.icon} ${project.title}` });
     copy.createEl("p", { text: t.gateEditorDesc });
 
+    this.renderCalendarRule();
+
     const timeline = this.contentEl.createDiv("pmi-gate-editor-timeline");
     this.dateField(timeline, "flag", t.projectStartDate, this.draft.startDate, (value) => {
       this.draft.startDate = value;
     });
     for (const [index, stage] of this.options.stages.entries()) {
+      const previousStage = this.options.stages[index - 1];
       this.dateField(
         timeline,
         "diamond",
@@ -57,9 +76,13 @@ export class ProjectGatesModal extends Modal {
           this.draft.stageGates[stage.id] = value;
         },
         stage.id,
-        index
+        index,
+        () => previousStage
+          ? this.draft.stageGates[previousStage.id] ?? ""
+          : this.draft.startDate
       );
     }
+    const lastStage = this.options.stages.at(-1);
     this.dateField(
       timeline,
       "badge-check",
@@ -68,11 +91,13 @@ export class ProjectGatesModal extends Modal {
       (value) => {
         this.draft.acceptanceGate = value;
       },
-      "acceptance"
+      "acceptance",
+      undefined,
+      () => lastStage ? this.draft.stageGates[lastStage.id] ?? "" : this.draft.startDate
     );
     this.dateField(timeline, "rocket", t.launchReminderDate, this.draft.launchDate, (value) => {
       this.draft.launchDate = value;
-    }, "launch");
+    }, "launch", undefined, () => this.draft.startDate, true);
 
     this.validationEl = this.contentEl.createDiv({
       cls: "pmi-gate-editor-validation",
@@ -86,9 +111,11 @@ export class ProjectGatesModal extends Modal {
     this.saveButton = save.buttonEl;
     save.onClick(() => void this.save());
     this.updateValidation();
+    this.updateDurations();
   }
 
   onClose(): void {
+    this.durationRows = [];
     this.contentEl.empty();
   }
 
@@ -123,7 +150,9 @@ export class ProjectGatesModal extends Modal {
     value: string,
     update: (value: string) => void,
     gateId = "start",
-    stageIndex?: number
+    stageIndex?: number,
+    durationFrom?: () => string,
+    projectDuration = false
   ): void {
     const row = root.createDiv("pmi-gate-editor-row");
     row.dataset.gateId = gateId;
@@ -131,17 +160,83 @@ export class ProjectGatesModal extends Modal {
     const node = row.createSpan("pmi-gate-editor-node");
     setIcon(node, icon);
     const field = row.createEl("label", { cls: "pmi-gate-editor-field" });
-    field.createSpan({ text: label });
+    const labelCopy = field.createDiv("pmi-gate-editor-field-copy");
+    labelCopy.createSpan({ text: label });
+    const duration = labelCopy.createEl("small", {
+      text: durationFrom ? "" : this.options.translations.gateTimelineStart
+    });
     const input = field.createEl("input", {
       type: "date",
       value,
       attr: { "aria-label": label }
     });
+    if (durationFrom) {
+      this.durationRows.push({
+        element: duration,
+        from: durationFrom,
+        to: () => input.value,
+        projectDuration
+      });
+    }
     input.addEventListener("input", () => {
       update(input.value);
       this.dirty = true;
       this.updateValidation();
+      this.updateDurations();
     });
+  }
+
+  private renderCalendarRule(): void {
+    const t = this.options.translations;
+    const rule = this.contentEl.createDiv("pmi-gate-calendar-rule");
+    const signal = rule.createSpan("pmi-gate-calendar-signal");
+    setIcon(signal, "calendar-days");
+    const copy = rule.createDiv("pmi-gate-calendar-copy");
+    copy.createEl("strong", { text: t.gateCalendarRuleTitle });
+    copy.createSpan({ text: t.gateCalendarRuleDesc });
+
+    const toggle = rule.createEl("button", {
+      cls: "pmi-gate-calendar-toggle",
+      attr: { type: "button", role: "switch" }
+    });
+    const weekend = toggle.createSpan("pmi-gate-calendar-weekend");
+    weekend.createSpan({ text: t.gateWeekendSaturday });
+    weekend.createSpan({ text: t.gateWeekendSunday });
+    const state = toggle.createSpan("pmi-gate-calendar-state");
+    state.createSpan({ cls: "pmi-gate-calendar-toggle-label", text: t.gateSkipWeekends });
+    const mode = state.createEl("strong");
+
+    const updateToggle = (): void => {
+      const workdaysOnly = !this.draft.includeWeekends;
+      toggle.classList.toggle("is-workday-only", workdaysOnly);
+      toggle.setAttribute("aria-checked", String(workdaysOnly));
+      const modeLabel = workdaysOnly ? t.gateWorkingDays : t.gateCalendarDays;
+      toggle.setAttribute("aria-label", `${t.gateSkipWeekends}: ${modeLabel}`);
+      mode.setText(modeLabel);
+    };
+    toggle.addEventListener("click", () => {
+      this.draft.includeWeekends = !this.draft.includeWeekends;
+      this.dirty = true;
+      updateToggle();
+      this.updateDurations();
+    });
+    updateToggle();
+  }
+
+  private updateDurations(): void {
+    const t = this.options.translations;
+    for (const row of this.durationRows) {
+      const from = row.from();
+      const to = row.to();
+      if (!isDateOnly(from) || !isDateOnly(to) || to < from) {
+        row.element.setText("");
+        continue;
+      }
+      const days = scheduleDaysBetween(from, to, this.draft.includeWeekends);
+      row.element.setText(row.projectDuration
+        ? t.gateProjectDuration(days, this.draft.includeWeekends)
+        : t.gateWindowDuration(days, this.draft.includeWeekends));
+    }
   }
 
   private updateValidation(): void {

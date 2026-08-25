@@ -954,7 +954,7 @@ body .modal-container .modal.pmi-gate-risk-modal
 body .modal-container .modal.pmi-gate-risk-modal
   button.pmi-risk-configure:not(.clickable-icon),
 body .modal-container .modal.pmi-project-gates-modal
-  button:is(.pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon),
+  button:is(.pmi-gate-calendar-toggle, .pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon),
 body .modal-container .modal.pmi-confirm-action-modal
   button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon) {
   box-shadow: none;
@@ -972,7 +972,7 @@ body .modal-container .modal.pmi-gate-risk-modal
 body .modal-container .modal.pmi-gate-risk-modal
   button.pmi-risk-configure:not(.clickable-icon):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-project-gates-modal
-  button:is(.pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon):is(:hover, :focus-visible, :active),
+  button:is(.pmi-gate-calendar-toggle, .pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-confirm-action-modal
   button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon):is(:hover, :focus-visible, :active) {
   box-shadow: none;
@@ -3024,6 +3024,127 @@ body .modal-container .modal.pmi-project-gates-modal .modal-content {
   font-size: var(--font-ui-small);
 }
 
+.pmi-gate-calendar-rule {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 13px 22px;
+  border-block-end: 1px solid var(--background-modifier-border);
+  background: color-mix(in srgb, var(--background-secondary) 72%, var(--background-primary));
+}
+
+.pmi-gate-calendar-signal {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
+}
+
+.pmi-gate-calendar-signal svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pmi-gate-calendar-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.pmi-gate-calendar-copy > strong {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-gate-calendar-copy > span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickable-icon) {
+  display: grid;
+  grid-template-columns: auto minmax(84px, auto);
+  gap: 9px;
+  align-items: center;
+  min-height: 44px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 34%, var(--background-modifier-border));
+  border-radius: 12px;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  cursor: pointer;
+}
+
+body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickable-icon):is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--interactive-accent) 66%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--interactive-accent) 5%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickable-icon):focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.pmi-gate-calendar-weekend {
+  display: grid;
+  grid-template-columns: repeat(2, 27px);
+  gap: 3px;
+}
+
+.pmi-gate-calendar-weekend > span {
+  position: relative;
+  display: grid;
+  height: 29px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 32%, var(--background-modifier-border));
+  border-radius: 7px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.pmi-gate-calendar-toggle.is-workday-only .pmi-gate-calendar-weekend > span {
+  border-color: var(--background-modifier-border);
+  color: var(--text-faint);
+  background: var(--background-secondary);
+}
+
+.pmi-gate-calendar-toggle.is-workday-only .pmi-gate-calendar-weekend > span::after {
+  content: "";
+  position: absolute;
+  width: 34px;
+  border-block-start: 1px solid var(--text-faint);
+  transform: rotate(-38deg);
+}
+
+.pmi-gate-calendar-state {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  line-height: 1.15;
+}
+
+.pmi-gate-calendar-toggle-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.pmi-gate-calendar-state > strong {
+  color: var(--text-accent);
+  font-size: var(--font-ui-small);
+  white-space: nowrap;
+}
+
 .pmi-gate-editor-timeline {
   padding: 16px 22px 4px;
 }
@@ -3072,9 +3193,25 @@ body .modal-container .modal.pmi-project-gates-modal .modal-content {
   padding-block-end: 12px;
 }
 
-.pmi-gate-editor-field > span {
+.pmi-gate-editor-field-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.pmi-gate-editor-field-copy > span {
   overflow: hidden;
   font-weight: var(--font-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-gate-editor-field-copy > small {
+  min-height: 15px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3102,21 +3239,116 @@ body .modal.pmi-project-gates-modal input[type="date"] {
 
 .pmi-confirm-action-modal {
   width: min(440px, calc(100vw - 32px));
+  border-color: color-mix(in srgb, var(--background-modifier-border) 82%, var(--text-muted));
 }
 
-.pmi-confirm-action-modal p {
+body .modal.pmi-confirm-action-modal .modal-title {
+  margin-block-end: 4px;
+  color: var(--text-normal);
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-semibold);
+  letter-spacing: -0.02em;
+}
+
+.pmi-confirm-action-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+  margin-block-start: 8px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: var(--background-secondary);
+}
+
+.pmi-confirm-action-summary p {
+  margin: 0;
   color: var(--text-muted);
   line-height: 1.55;
+}
+
+.pmi-confirm-action-signal {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 9px;
+  color: color-mix(in srgb, var(--text-error) 72%, var(--text-normal));
+  background: color-mix(in srgb, var(--text-error) 9%, var(--background-primary));
+}
+
+.pmi-confirm-action-signal svg {
+  width: 16px;
+  height: 16px;
 }
 
 .pmi-confirm-action-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-block-start: 18px;
+  gap: 9px;
+  margin-block-start: 16px;
+}
+
+body .modal.pmi-confirm-action-modal
+  button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon) {
+  min-height: 36px;
+  padding-inline: 16px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 9px;
+  font-weight: var(--font-medium);
+  transition: none;
+}
+
+body .modal.pmi-confirm-action-modal
+  button.pmi-confirm-action-cancel:not(.clickable-icon) {
+  border-color: var(--background-modifier-border);
+  color: var(--text-normal);
+  background: var(--background-primary);
+}
+
+body .modal.pmi-confirm-action-modal
+  button.pmi-confirm-action-cancel:not(.clickable-icon):is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--text-muted) 58%, var(--background-modifier-border));
+  background: var(--background-modifier-hover);
+}
+
+body .modal.pmi-confirm-action-modal
+  button.pmi-confirm-action-confirm.is-destructive:not(.clickable-icon) {
+  border-color: color-mix(in srgb, var(--text-error) 26%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--text-error) 78%, var(--text-normal));
+  background: color-mix(in srgb, var(--text-error) 11%, var(--background-primary));
+}
+
+body .modal.pmi-confirm-action-modal
+  button.pmi-confirm-action-confirm.is-destructive:not(.clickable-icon):hover {
+  border-color: color-mix(in srgb, var(--text-error) 38%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--text-error) 88%, var(--text-normal));
+  background: color-mix(in srgb, var(--text-error) 16%, var(--background-primary));
+}
+
+body .modal.pmi-confirm-action-modal
+  button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--interactive-accent) 74%, transparent);
+  outline-offset: 2px;
+}
+
+body .modal.pmi-confirm-action-modal
+  button.pmi-confirm-action-confirm.is-destructive:not(.clickable-icon):active {
+  border-color: color-mix(in srgb, var(--text-error) 44%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--text-error) 20%, var(--background-primary));
 }
 
 @media (max-width: 520px) {
+  .pmi-gate-calendar-rule {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickable-icon) {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .pmi-gate-editor-field {
     grid-template-columns: minmax(0, 1fr);
     gap: 5px;
@@ -3124,6 +3356,12 @@ body .modal.pmi-project-gates-modal input[type="date"] {
 
   .pmi-gate-editor-row {
     min-height: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmi-gate-calendar-weekend > span {
+    transition: none;
   }
 }
 

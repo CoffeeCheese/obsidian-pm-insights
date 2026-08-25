@@ -1,5 +1,14 @@
 import type { InsightSettings } from "./model";
 
+function englishScheduleDays(days: number, includeWeekends: boolean): string {
+  const unit = includeWeekends ? "calendar day" : "workday";
+  return `${days} ${unit}${days === 1 ? "" : "s"}`;
+}
+
+function chineseScheduleDays(days: number, includeWeekends: boolean): string {
+  return includeWeekends ? `${days} 个自然日` : `${days} 个工作日`;
+}
+
 const en = {
   viewName: "PM Insights",
   commandOpen: "Open workload insights",
@@ -23,6 +32,18 @@ const en = {
   gatesNotConfigured: "Gates not configured",
   gateEditorTitle: "Delivery gates",
   gateEditorDesc: "Set the ordered dates used to assess this project's delivery risk.",
+  gateCalendarRuleTitle: "Project clock",
+  gateCalendarRuleDesc: "Controls how planned progress, remaining time, and overdue time advance.",
+  gateSkipWeekends: "Skip weekends",
+  gateCalendarDays: "Calendar days",
+  gateWorkingDays: "Workdays only",
+  gateWeekendSaturday: "Sat",
+  gateWeekendSunday: "Sun",
+  gateTimelineStart: "Timeline starts here",
+  gateWindowDuration: (days: number, includeWeekends: boolean) =>
+    `${englishScheduleDays(days, includeWeekends)} from the previous gate`,
+  gateProjectDuration: (days: number, includeWeekends: boolean) =>
+    `${englishScheduleDays(days, includeWeekends)} from project start`,
   projectStartDate: "Project start",
   stageGateDate: (stage: string) => `${stage} gate`,
   acceptanceGateDate: "Acceptance gate",
@@ -60,12 +81,18 @@ const en = {
     unconfigured > 0 ? `${unconfigured} not configured` : ""
   ].filter(Boolean).join(" · ") || "All configured projects are on track",
   viewGateRisk: "Review gate risk",
-  nearestGate: (project: string, gate: string, days: number) =>
-    `${project} · ${gate} ${days < 0
-      ? `${Math.abs(days)} day${days === -1 ? "" : "s"} overdue`
-      : days === 0
+  nearestGate: (
+    project: string,
+    gate: string,
+    days: number,
+    includeWeekends: boolean,
+    relation: "overdue" | "today" | "remaining"
+  ) =>
+    `${project} · ${gate} ${relation === "overdue"
+      ? `${englishScheduleDays(Math.abs(days), includeWeekends)} overdue`
+      : relation === "today"
         ? "today"
-        : `in ${days} day${days === 1 ? "" : "s"}`}`,
+        : `in ${englishScheduleDays(days, includeWeekends)}`}`,
   nearestGateBadge: "Nearest gate",
   riskStateUnconfigured: "Not configured",
   riskStateNotStarted: "Not started",
@@ -84,9 +111,10 @@ const en = {
   gateProgressParallelStart: (date: string) => `Cross-stage progress · planned from ${date}`,
   gateProgressParallel: (expected: number | null) =>
     expected === null ? "Cross-stage progress" : `Cross-stage progress · ${expected}% expected`,
-  gateDaysRemaining: (days: number) =>
-    days === 0 ? "Gate is today" : `${days} day${days === 1 ? "" : "s"} remaining`,
-  gateDaysOverdue: (days: number) => `${days} day${days === 1 ? "" : "s"} overdue`,
+  gateDaysRemaining: (days: number, includeWeekends: boolean, isToday: boolean) =>
+    isToday ? "Gate is today" : `${englishScheduleDays(days, includeWeekends)} remaining`,
+  gateDaysOverdue: (days: number, includeWeekends: boolean) =>
+    `${englishScheduleDays(days, includeWeekends)} overdue`,
   gateReasonScheduleGap: (gap: number) => `${gap}pp schedule gap`,
   gateReasonWindowClosing: "Final 20% of the stage window",
   gateReasonTaskOverdue: "Contains overdue tasks",
@@ -107,15 +135,18 @@ const en = {
   launchAcceptanceBlockers: "Acceptance blockers",
   launchOverviewHint: "Task details are grouped under their stage gates above. Resolve them there.",
   gateTaskRiskReasons: "Risk reasons",
-  gateTaskRiskOverdue: (days: number) => `Task overdue ${days}d`,
-  gateTaskRiskAfterGate: (days: number) => `${days}d past gate`,
+  gateTaskRiskOverdue: (days: number, includeWeekends: boolean) =>
+    `Task overdue ${englishScheduleDays(days, includeWeekends)}`,
+  gateTaskRiskAfterGate: (days: number, includeWeekends: boolean) =>
+    `${englishScheduleDays(days, includeWeekends)} past gate`,
   gateTaskRiskMissingDue: "No due date",
   gateTaskRiskUnestimated: "Work task unestimated",
   gateTaskRiskUnassigned: "Unassigned",
   gateTaskRiskAcceptanceBlocker: "Blocks acceptance",
   gateTaskRiskAwaitingAcceptance: "Awaiting acceptance",
   gateTaskRiskAcceptanceIncomplete: "Acceptance incomplete",
-  gateTaskRiskGateOverdue: (days: number) => `Gate overdue ${days}d`,
+  gateTaskRiskGateOverdue: (days: number, includeWeekends: boolean) =>
+    `Gate overdue ${englishScheduleDays(days, includeWeekends)}`,
   gateTaskRiskGateToday: "Gate due today",
   gateTaskRiskScheduleGap: "Stage behind plan",
   gateTaskRiskWindowClosing: "Gate window closing",
@@ -346,6 +377,18 @@ const zh: typeof en = {
   gatesNotConfigured: "门禁未配置",
   gateEditorTitle: "交付门禁",
   gateEditorDesc: "设置有序日期，用于分析当前项目的交付风险。",
+  gateCalendarRuleTitle: "项目时钟",
+  gateCalendarRuleDesc: "统一控制计划应达、剩余与逾期时间是否在周末继续推进。",
+  gateSkipWeekends: "跳过周末",
+  gateCalendarDays: "按自然日",
+  gateWorkingDays: "仅工作日",
+  gateWeekendSaturday: "六",
+  gateWeekendSunday: "日",
+  gateTimelineStart: "时间轴从这里开始",
+  gateWindowDuration: (days: number, includeWeekends: boolean) =>
+    `距上一门禁 ${chineseScheduleDays(days, includeWeekends)}`,
+  gateProjectDuration: (days: number, includeWeekends: boolean) =>
+    `距项目开始 ${chineseScheduleDays(days, includeWeekends)}`,
   projectStartDate: "项目开始",
   stageGateDate: (stage: string) => `${stage}门禁`,
   acceptanceGateDate: "验收门禁",
@@ -383,12 +426,18 @@ const zh: typeof en = {
     unconfigured > 0 ? `${unconfigured} 个未配置` : ""
   ].filter(Boolean).join(" · ") || "已配置项目节奏正常",
   viewGateRisk: "查看门禁风险",
-  nearestGate: (project: string, gate: string, days: number) =>
-    `${project} · ${gate}${days < 0
-      ? `已逾期 ${Math.abs(days)} 天`
-      : days === 0
+  nearestGate: (
+    project: string,
+    gate: string,
+    days: number,
+    includeWeekends: boolean,
+    relation: "overdue" | "today" | "remaining"
+  ) =>
+    `${project} · ${gate}${relation === "overdue"
+      ? `已逾期 ${chineseScheduleDays(Math.abs(days), includeWeekends)}`
+      : relation === "today"
         ? "今天到期"
-        : `还有 ${days} 天`}`,
+        : `还有 ${chineseScheduleDays(days, includeWeekends)}`}`,
   nearestGateBadge: "最近门禁",
   riskStateUnconfigured: "未配置",
   riskStateNotStarted: "未开始",
@@ -407,8 +456,10 @@ const zh: typeof en = {
   gateProgressParallelStart: (date: string) => `跨阶段推进 · 计划于 ${date} 启动`,
   gateProgressParallel: (expected: number | null) =>
     expected === null ? "跨阶段推进" : `跨阶段推进 · 计划应达 ${expected}%`,
-  gateDaysRemaining: (days: number) => days === 0 ? "门禁就在今天" : `剩余 ${days} 天`,
-  gateDaysOverdue: (days: number) => `已逾期 ${days} 天`,
+  gateDaysRemaining: (days: number, includeWeekends: boolean, isToday: boolean) =>
+    isToday ? "门禁就在今天" : `剩余 ${chineseScheduleDays(days, includeWeekends)}`,
+  gateDaysOverdue: (days: number, includeWeekends: boolean) =>
+    `已逾期 ${chineseScheduleDays(days, includeWeekends)}`,
   gateReasonScheduleGap: (gap: number) => `进度落后 ${gap}pp`,
   gateReasonWindowClosing: "已进入阶段窗口最后 20%",
   gateReasonTaskOverdue: "存在已逾期任务",
@@ -429,15 +480,18 @@ const zh: typeof en = {
   launchAcceptanceBlockers: "验收阻塞",
   launchOverviewHint: "任务明细已归入上方对应阶段门禁，请按阶段查看和处理。",
   gateTaskRiskReasons: "风险原因",
-  gateTaskRiskOverdue: (days: number) => `任务逾期 ${days} 天`,
-  gateTaskRiskAfterGate: (days: number) => `晚于门禁 ${days} 天`,
+  gateTaskRiskOverdue: (days: number, includeWeekends: boolean) =>
+    `任务逾期 ${chineseScheduleDays(days, includeWeekends)}`,
+  gateTaskRiskAfterGate: (days: number, includeWeekends: boolean) =>
+    `晚于门禁 ${chineseScheduleDays(days, includeWeekends)}`,
   gateTaskRiskMissingDue: "未设截止日",
   gateTaskRiskUnestimated: "子任务未估时",
   gateTaskRiskUnassigned: "未分配",
   gateTaskRiskAcceptanceBlocker: "阻塞验收",
   gateTaskRiskAwaitingAcceptance: "等待验收",
   gateTaskRiskAcceptanceIncomplete: "验收未完成",
-  gateTaskRiskGateOverdue: (days: number) => `门禁逾期 ${days} 天`,
+  gateTaskRiskGateOverdue: (days: number, includeWeekends: boolean) =>
+    `门禁逾期 ${chineseScheduleDays(days, includeWeekends)}`,
   gateTaskRiskGateToday: "门禁今日到期",
   gateTaskRiskScheduleGap: "阶段进度落后",
   gateTaskRiskWindowClosing: "门禁临近",

@@ -62,7 +62,8 @@ function gate(
     blockingTasks: [],
     quality: { missingDue: 0, unestimated: 0, unassigned: 0 },
     timing: null,
-    dueDateChecksEnabled: true
+    dueDateChecksEnabled: true,
+    includeWeekends: true
   };
   return {
     project: project(projectId),

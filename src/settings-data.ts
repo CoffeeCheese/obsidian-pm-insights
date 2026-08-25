@@ -48,7 +48,10 @@ function normalizeGateSchedules(value: unknown): Record<string, ProjectGateSched
       startDate: typeof raw.startDate === "string" ? raw.startDate.trim() : "",
       stageGates,
       acceptanceGate: typeof raw.acceptanceGate === "string" ? raw.acceptanceGate.trim() : "",
-      launchDate: typeof raw.launchDate === "string" ? raw.launchDate.trim() : ""
+      launchDate: typeof raw.launchDate === "string" ? raw.launchDate.trim() : "",
+      // Existing gate schedules have always used calendar days. Preserve that
+      // calculation until a user explicitly enables the workday-only clock.
+      includeWeekends: typeof raw.includeWeekends === "boolean" ? raw.includeWeekends : true
     } satisfies ProjectGateSchedule]];
   }));
 }
