@@ -272,6 +272,7 @@ export class GateRiskModal extends Modal {
     }
 
     const body = item.createDiv("pmi-risk-gate-body");
+    if (gate.delayStatus) this.renderDelayContext(body, gate, t);
     if (gate.reasons.length > 0) {
       const reasons = body.createDiv("pmi-risk-reasons");
       for (const reason of gate.reasons) {
@@ -311,6 +312,40 @@ export class GateRiskModal extends Modal {
     }
     if (gate.tasks.length === 0 && gate.blockingTasks.length === 0) {
       body.createDiv({ cls: "pmi-risk-no-tasks", text: t.gateNoRiskTasks });
+    }
+  }
+
+  private renderDelayContext(
+    root: HTMLElement,
+    gate: GateRiskMetric,
+    t: Translations
+  ): void {
+    const context = root.createDiv("pmi-risk-delay-context");
+    const dates = context.createDiv("pmi-risk-delay-dates");
+    for (const [kind, label, value] of [
+      ["baseline", t.gateDelayBaseline, gate.baselineDate],
+      ["forecast", t.gateDelayForecast, gate.forecastDate],
+      ["actual", t.gateDelayActual, gate.actualDate]
+    ] as const) {
+      if (!value) continue;
+      const track = dates.createDiv(`pmi-risk-delay-date is-${kind}`);
+      track.createSpan({ text: label });
+      track.createEl("time", { text: value, attr: { datetime: value } });
+    }
+    const outcomes = context.createDiv("pmi-risk-delay-outcomes");
+    if (gate.delayDays !== null && gate.delayDays !== undefined) {
+      outcomes.createSpan({ text: t.gateDelayExpected(gate.delayDays, gate.includeWeekends) });
+    }
+    if (gate.actualDelayDays !== null && gate.actualDelayDays !== undefined) {
+      outcomes.createSpan({ text: t.gateDelayActualResult(gate.actualDelayDays, gate.includeWeekends) });
+    }
+    if (gate.forecastVarianceDays !== null && gate.forecastVarianceDays !== undefined) {
+      outcomes.createSpan({ text: t.gateDelayVariance(gate.forecastVarianceDays, gate.includeWeekends) });
+    }
+    if (gate.forecastMissed) {
+      const missed = context.createDiv("pmi-risk-delay-missed");
+      setIcon(missed.createSpan(), "triangle-alert");
+      missed.createSpan({ text: t.gateDelayNeedsReforecast });
     }
   }
 

@@ -14,6 +14,7 @@ import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
 import { validateGateSchedule } from "./domain/gate-schedule";
 import { aggregateGateRisk, gateRiskSummaryState, type GateRiskSnapshot } from "./domain/gate-risk";
+import { reconcileProjectGateActuals } from "./domain/gate-delay";
 import { GateRiskModal } from "./gate-risk-modal";
 import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
@@ -135,6 +136,8 @@ export class InsightsView extends ItemView {
       this.host.settings.selectedProjectIds = validSelection;
       await this.host.saveSettings();
     }
+
+    await this.reconcileGateActualStates(snapshot);
 
     this.renderControls(root, snapshot, t);
     this.dashboardEl = root.createDiv("pmi-dashboard");
@@ -342,8 +345,9 @@ export class InsightsView extends ItemView {
         this.host.settings.gateSchedules[project.id],
         this.host.settings.deliveryProgress.stages.map((stage) => stage.id)
       );
+      const delayPlan = this.host.settings.gateDelays[project.id];
       const gates = token.createEl("button", {
-        cls: `pmi-project-scope-gates${gateValidation.valid ? " is-configured" : ""}`,
+        cls: `pmi-project-scope-gates${gateValidation.valid ? " is-configured" : ""}${delayPlan?.revisions.length ? " has-delay" : ""}`,
         attr: {
           type: "button",
           "aria-label": t.configureProjectGates(project.title),
@@ -352,6 +356,7 @@ export class InsightsView extends ItemView {
         }
       });
       setIcon(gates, "calendar-range");
+      if (delayPlan?.revisions.length) gates.createSpan("pmi-project-scope-delay-dot");
       gates.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -490,9 +495,15 @@ export class InsightsView extends ItemView {
       stages: this.host.settings.deliveryProgress.stages,
       stageName: (stage) => this.deliveryStageLabel(stage.id, stage.name, t),
       schedule: this.host.settings.gateSchedules[project.id],
+      delay: this.host.settings.gateDelays[project.id],
+      actuals: this.host.settings.gateActuals[project.id],
+      today: this.todayDate(),
       translations: t,
-      save: async (schedule) => {
+      save: async ({ schedule, delay, actuals }) => {
         this.host.settings.gateSchedules[project.id] = schedule;
+        if (delay) this.host.settings.gateDelays[project.id] = delay;
+        else delete this.host.settings.gateDelays[project.id];
+        this.host.settings.gateActuals[project.id] = actuals;
         await this.host.saveSettings();
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
@@ -538,6 +549,15 @@ export class InsightsView extends ItemView {
               ? "today"
               : "remaining"
         )
+      });
+    }
+    const delayedProjects = risk.projects.filter((project) =>
+      project.gates.some((gate) => gate.delayStatus === "evaluating" || gate.delayStatus === "confirmed")
+    ).length;
+    if (delayedProjects > 0) {
+      copy.createSpan({
+        cls: "pmi-gate-risk-summary-delay",
+        text: t.gateDelayProjectCount(delayedProjects)
       });
     }
     const action = summary.createSpan("pmi-gate-risk-summary-action");
@@ -591,9 +611,33 @@ export class InsightsView extends ItemView {
       includeArchived: this.host.settings.includeArchived,
       settings: this.host.settings.deliveryProgress,
       gateSchedules: this.host.settings.gateSchedules,
+      gateDelays: this.host.settings.gateDelays,
+      gateActuals: this.host.settings.gateActuals,
       checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
       today: this.todayDate()
     });
+  }
+
+  private async reconcileGateActualStates(snapshot: ProjectManagerSnapshot): Promise<void> {
+    let changed = false;
+    const today = this.todayDate();
+    const now = new Date().toISOString();
+    for (const project of snapshot.projects) {
+      const result = reconcileProjectGateActuals({
+        projectId: project.id,
+        tasks: snapshot.tasks,
+        settings: this.host.settings.deliveryProgress,
+        includeArchived: this.host.settings.includeArchived,
+        schedule: this.host.settings.gateSchedules[project.id],
+        previous: this.host.settings.gateActuals[project.id],
+        today,
+        now
+      });
+      if (!result.changed) continue;
+      this.host.settings.gateActuals[project.id] = result.state;
+      changed = true;
+    }
+    if (changed) await this.host.saveSettings();
   }
 
   private gateRiskName(gate: GateRiskSnapshot["projects"][number]["gates"][number], t: Translations): string {
