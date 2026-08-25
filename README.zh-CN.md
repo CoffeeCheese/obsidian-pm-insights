@@ -32,39 +32,15 @@ Project Manager Insights 是建立在这些数据之上的**只读洞察增强�
 
 ### 2. Project Manager 实际界面：任务执行工作台
 
-Project Manager 让计划与执行始终贴近 Vault 中的 Markdown 文件。项目总览为每个项目提供清晰入口，三种相互衔接的任务视图则帮助团队编辑任务数据、安排时间计划，并推动工作沿交付流程持续流转。
+Project Manager 让计划与执行始终贴近 Vault 中的 Markdown 文件。三种相互衔接的任务视图帮助团队编辑任务数据、安排时间计划，并基于同一份 Markdown 数据推动工作沿交付流程持续流转。
 
 <p align="center">
   <a href="https://github.com/stepankropachev/obsidian-pm">
-    <img src="https://github.com/user-attachments/assets/ca6bc67f-e656-45be-b93a-17410555ec1a" width="100%" alt="Project Manager 项目总览，展示项目卡片、任务进度、状态与排期摘要">
+    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Project Manager 静态界面联系表，展示用于编辑任务的表格视图、安排依赖的甘特视图和推动工作流转的看板视图">
   </a>
 </p>
 
-<table>
-  <tr>
-    <th width="33%" align="center">表格 · 编辑</th>
-    <th width="33%" align="center">甘特 · 排期</th>
-    <th width="33%" align="center">看板 · 流转</th>
-  </tr>
-  <tr>
-    <td>
-      <video src="https://github.com/user-attachments/assets/104bd993-d4c1-42e7-9d6a-ae46fd7ce6a8" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-    <td>
-      <video src="https://github.com/user-attachments/assets/916f7100-44ef-401c-abb3-e003a0f7720a" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-    <td>
-      <video src="https://github.com/user-attachments/assets/316fc43b-6915-499a-a6ad-0680c462d014" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-  </tr>
-  <tr>
-    <td><sub>排序、筛选、行内编辑，并批量调整任务。</sub></td>
-    <td><sub>规划日期、依赖、里程碑与交付节奏。</sub></td>
-    <td><sub>在状态间移动任务卡片，同时看清负责人。</sub></td>
-  </tr>
-</table>
-
-<p align="center"><sub>界面素材直接加载自 <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager 上游仓库</a>，点击任意预览即可播放。</sub></p>
+<p align="center"><sub>基于 <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager 上游仓库</a>界面帧制作的轻量静态联系表：在表格中编辑，在甘特图中排期，在看板中推动流转。</sub></p>
 
 > **两个插件的交接点：** 团队在 Project Manager 中规划、排期并更新任务；PM Insights 只读解析同一份 Markdown 与 YAML 数据，将其扩展为跨项目交付信号，同时不接管源任务。
 

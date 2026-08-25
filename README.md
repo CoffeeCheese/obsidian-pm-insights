@@ -32,39 +32,15 @@ Project Manager Insights is a **read-only insight layer** built on top of that d
 
 ### 2. Project Manager in action: the execution workspace
 
-Project Manager keeps planning and execution close to the Markdown files in your Vault. Its dashboard gives every project a clear home, while three connected views let the team edit task data, shape the schedule, and move work through the delivery flow.
+Project Manager keeps planning and execution close to the Markdown files in your Vault. Three connected views let the team edit task data, shape the schedule, and move work through the delivery flow without leaving the same Markdown source.
 
 <p align="center">
   <a href="https://github.com/stepankropachev/obsidian-pm">
-    <img src="https://github.com/user-attachments/assets/ca6bc67f-e656-45be-b93a-17410555ec1a" width="100%" alt="Project Manager dashboard with project cards, task progress, status, and schedule summaries">
+    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Static Project Manager interface contact sheet showing the Table view for task editing, Gantt view for dependency scheduling, and Kanban view for workflow movement">
   </a>
 </p>
 
-<table>
-  <tr>
-    <th width="33%" align="center">TABLE · EDIT</th>
-    <th width="33%" align="center">GANTT · SCHEDULE</th>
-    <th width="33%" align="center">KANBAN · FLOW</th>
-  </tr>
-  <tr>
-    <td>
-      <video src="https://github.com/user-attachments/assets/104bd993-d4c1-42e7-9d6a-ae46fd7ce6a8" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-    <td>
-      <video src="https://github.com/user-attachments/assets/916f7100-44ef-401c-abb3-e003a0f7720a" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-    <td>
-      <video src="https://github.com/user-attachments/assets/316fc43b-6915-499a-a6ad-0680c462d014" muted playsinline controls preload="metadata" width="400"></video>
-    </td>
-  </tr>
-  <tr>
-    <td><sub>Sort, filter, edit inline, and apply bulk task changes.</sub></td>
-    <td><sub>Plan dates, dependencies, milestones, and delivery timing.</sub></td>
-    <td><sub>Move task cards between statuses and keep ownership visible.</sub></td>
-  </tr>
-</table>
-
-<p align="center"><sub>Interface media is loaded directly from the <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager upstream repository</a>. Select any preview to play it.</sub></p>
+<p align="center"><sub>A lightweight static contact sheet assembled from interface frames in the <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager upstream repository</a>: edit in Table, schedule in Gantt, and move work in Kanban.</sub></p>
 
 > **The handoff:** Project Manager is where the team plans, schedules, and updates work. PM Insights reads that same Markdown and YAML data to reveal cross-project delivery signals—without taking ownership of the source tasks.
 
