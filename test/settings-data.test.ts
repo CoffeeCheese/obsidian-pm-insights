@@ -152,4 +152,63 @@ describe("normalizeInsightSettings", () => {
 
     expect(normalized.gateSchedules.legacy?.includeWeekends).toBe(true);
   });
+
+  it("normalizes delay revisions and actual gate events independently from baselines", () => {
+    const normalized = normalizeInsightSettings({
+      gateDelays: {
+        p1: {
+          status: "confirmed",
+          confirmed: {
+            stageGates: { development: "2026-08-15" },
+            acceptanceGate: "2026-08-18",
+            launchDate: "2026-08-20"
+          },
+          revisions: [{
+            id: "r1",
+            createdAt: "2026-08-10T09:00:00.000Z",
+            kind: "confirmed",
+            reason: "Vendor delay",
+            forecast: {
+              stageGates: { development: "2026-08-15" },
+              acceptanceGate: "2026-08-18",
+              launchDate: "2026-08-20"
+            },
+            stages: [{ id: "development", name: "Development", order: 0 }],
+            changes: { development: "manual", acceptance: "linked", launch: "linked" }
+          }]
+        }
+      },
+      gateActuals: {
+        p1: {
+          gates: {
+            development: {
+              date: "2026-08-14",
+              source: "tasks",
+              recordedAt: "2026-08-14T09:00:00.000Z",
+              open: false
+            }
+          },
+          events: [{
+            id: "e1",
+            createdAt: "2026-08-14T09:00:00.000Z",
+            kind: "passed",
+            gateId: "development",
+            date: "2026-08-14",
+            source: "tasks"
+          }]
+        }
+      }
+    });
+
+    expect(normalized.gateDelays.p1?.revisions[0]).toMatchObject({
+      kind: "confirmed",
+      reason: "Vendor delay",
+      changes: { development: "manual", acceptance: "linked", launch: "linked" }
+    });
+    expect(normalized.gateActuals.p1?.gates.development).toMatchObject({
+      date: "2026-08-14",
+      source: "tasks",
+      open: false
+    });
+  });
 });

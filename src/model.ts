@@ -68,6 +68,86 @@ export interface ProjectGateSchedule {
   includeWeekends: boolean;
 }
 
+export interface ProjectGateForecast {
+  stageGates: Record<DeliveryStageId, string>;
+  acceptanceGate: string;
+  launchDate: string;
+}
+
+export type GateDelayStatus =
+  | "evaluating"
+  | "confirmed"
+  | "resolved"
+  | "restored"
+  | "completed";
+
+export type GateDelayRevisionKind =
+  | "evaluation"
+  | "confirmed"
+  | "resolved"
+  | "restored"
+  | "withdrawn";
+
+export type GateDateChangeSource = "manual" | "linked" | "system";
+
+export interface GateStageSnapshot {
+  id: DeliveryStageId;
+  name: string;
+  order: number;
+}
+
+export interface GateDelayRevision {
+  id: string;
+  createdAt: string;
+  kind: GateDelayRevisionKind;
+  reason: string;
+  forecast: ProjectGateForecast;
+  stages: GateStageSnapshot[];
+  changes: Record<string, GateDateChangeSource>;
+}
+
+export interface ProjectGateDelayPlan {
+  status: GateDelayStatus;
+  draft?: ProjectGateForecast;
+  confirmed?: ProjectGateForecast;
+  confirmedRevisionId?: string;
+  revisions: GateDelayRevision[];
+}
+
+export type GateActualDateSource = "tasks" | "observed" | "manual";
+
+export interface GateActualPass {
+  date: string;
+  source: GateActualDateSource;
+  recordedAt: string;
+  open: boolean;
+}
+
+export type GateActualEventKind =
+  | "passed"
+  | "reopened"
+  | "corrected"
+  | "launch"
+  | "launch-corrected";
+
+export interface GateActualEvent {
+  id: string;
+  createdAt: string;
+  kind: GateActualEventKind;
+  gateId: string;
+  date?: string;
+  previousDate?: string;
+  source?: GateActualDateSource;
+  reason?: string;
+}
+
+export interface ProjectGateActualState {
+  gates: Record<string, GateActualPass>;
+  launchDate?: string;
+  launchRecordedAt?: string;
+  events: GateActualEvent[];
+}
+
 export interface GateRiskSettings {
   checkTaskDueDates: boolean;
 }
@@ -82,6 +162,8 @@ export interface InsightSettings {
   deliveryProgress: DeliveryProgressSettings;
   gateRisk: GateRiskSettings;
   gateSchedules: Record<string, ProjectGateSchedule>;
+  gateDelays: Record<string, ProjectGateDelayPlan>;
+  gateActuals: Record<string, ProjectGateActualState>;
 }
 
 export interface WorkMetrics {
@@ -157,6 +239,8 @@ export const DEFAULT_SETTINGS: InsightSettings = {
     checkTaskDueDates: true
   },
   gateSchedules: {},
+  gateDelays: {},
+  gateActuals: {},
   deliveryProgress: {
     stages: [
       {

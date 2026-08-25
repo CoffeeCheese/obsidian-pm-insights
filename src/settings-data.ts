@@ -2,8 +2,18 @@ import {
   DEFAULT_SETTINGS,
   type DeliveryProgressSettings,
   type DeliveryStageSettings,
+  type GateActualDateSource,
+  type GateActualEvent,
+  type GateActualEventKind,
+  type GateDateChangeSource,
+  type GateDelayRevision,
+  type GateDelayRevisionKind,
+  type GateDelayStatus,
   type GateRiskSettings,
   type InsightSettings,
+  type ProjectGateActualState,
+  type ProjectGateDelayPlan,
+  type ProjectGateForecast,
   type ProjectGateSchedule
 } from "./model";
 
@@ -20,7 +30,9 @@ export function normalizeInsightSettings(
       : DEFAULT_SETTINGS.showDeliveryProgress,
     deliveryProgress: normalizeDeliveryProgressSettings(saved?.deliveryProgress),
     gateRisk: normalizeGateRiskSettings(saved?.gateRisk),
-    gateSchedules: normalizeGateSchedules(saved?.gateSchedules)
+    gateSchedules: normalizeGateSchedules(saved?.gateSchedules),
+    gateDelays: normalizeGateDelays(saved?.gateDelays),
+    gateActuals: normalizeGateActuals(saved?.gateActuals)
   };
 }
 
@@ -53,6 +65,173 @@ function normalizeGateSchedules(value: unknown): Record<string, ProjectGateSched
       // calculation until a user explicitly enables the workday-only clock.
       includeWeekends: typeof raw.includeWeekends === "boolean" ? raw.includeWeekends : true
     } satisfies ProjectGateSchedule]];
+  }));
+}
+
+const DELAY_STATUSES = new Set<GateDelayStatus>([
+  "evaluating",
+  "confirmed",
+  "resolved",
+  "restored",
+  "completed"
+]);
+const REVISION_KINDS = new Set<GateDelayRevisionKind>([
+  "evaluation",
+  "confirmed",
+  "resolved",
+  "restored",
+  "withdrawn"
+]);
+const CHANGE_SOURCES = new Set<GateDateChangeSource>(["manual", "linked", "system"]);
+const ACTUAL_SOURCES = new Set<GateActualDateSource>(["tasks", "observed", "manual"]);
+const ACTUAL_EVENT_KINDS = new Set<GateActualEventKind>([
+  "passed",
+  "reopened",
+  "corrected",
+  "launch",
+  "launch-corrected"
+]);
+
+function stringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([key, candidate]) =>
+    typeof candidate === "string" ? [[key, candidate.trim()]] : []
+  ));
+}
+
+function normalizeForecast(value: unknown): ProjectGateForecast | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const raw = value as Partial<ProjectGateForecast>;
+  return {
+    stageGates: stringRecord(raw.stageGates),
+    acceptanceGate: typeof raw.acceptanceGate === "string" ? raw.acceptanceGate.trim() : "",
+    launchDate: typeof raw.launchDate === "string" ? raw.launchDate.trim() : ""
+  };
+}
+
+function normalizeRevision(value: unknown): GateDelayRevision | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const raw = value as Partial<GateDelayRevision>;
+  const forecast = normalizeForecast(raw.forecast);
+  if (!forecast || typeof raw.id !== "string" || typeof raw.createdAt !== "string"
+      || !REVISION_KINDS.has(raw.kind as GateDelayRevisionKind)) return undefined;
+  const stages = Array.isArray(raw.stages)
+    ? raw.stages.flatMap((candidate, order) => {
+        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+        const stage = candidate as { id?: unknown; name?: unknown; order?: unknown };
+        if (typeof stage.id !== "string" || !stage.id.trim()) return [];
+        return [{
+          id: stage.id.trim(),
+          name: typeof stage.name === "string" ? stage.name.trim() : "",
+          order: typeof stage.order === "number" && Number.isFinite(stage.order)
+            ? stage.order
+            : order
+        }];
+      })
+    : [];
+  const changes = Object.fromEntries(Object.entries(raw.changes ?? {}).flatMap(([key, source]) =>
+    CHANGE_SOURCES.has(source)
+      ? [[key, source]]
+      : []
+  ));
+  return {
+    id: raw.id,
+    createdAt: raw.createdAt,
+    kind: raw.kind as GateDelayRevisionKind,
+    reason: typeof raw.reason === "string" ? raw.reason.trim() : "",
+    forecast,
+    stages,
+    changes
+  };
+}
+
+function normalizeGateDelays(value: unknown): Record<string, ProjectGateDelayPlan> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([projectId, candidate]) => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+    const raw = candidate as Partial<ProjectGateDelayPlan>;
+    const revisions = Array.isArray(raw.revisions)
+      ? raw.revisions.flatMap((revision) => normalizeRevision(revision) ?? [])
+      : [];
+    const status = DELAY_STATUSES.has(raw.status as GateDelayStatus)
+      ? raw.status as GateDelayStatus
+      : revisions.length > 0
+        ? "resolved"
+        : "evaluating";
+    const draft = normalizeForecast(raw.draft);
+    const confirmed = normalizeForecast(raw.confirmed);
+    const confirmedRevisionId = typeof raw.confirmedRevisionId === "string"
+      ? raw.confirmedRevisionId
+      : undefined;
+    return [[projectId, {
+      status,
+      revisions,
+      ...(draft ? { draft } : {}),
+      ...(confirmed ? { confirmed } : {}),
+      ...(confirmedRevisionId ? { confirmedRevisionId } : {})
+    } satisfies ProjectGateDelayPlan]];
+  }));
+}
+
+function normalizeActualEvent(value: unknown): GateActualEvent | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const raw = value as Partial<GateActualEvent>;
+  if (typeof raw.id !== "string" || typeof raw.createdAt !== "string"
+      || typeof raw.gateId !== "string"
+      || !ACTUAL_EVENT_KINDS.has(raw.kind as GateActualEventKind)) return undefined;
+  const date = typeof raw.date === "string" ? raw.date.trim() : undefined;
+  const previousDate = typeof raw.previousDate === "string"
+    ? raw.previousDate.trim()
+    : undefined;
+  const source = ACTUAL_SOURCES.has(raw.source as GateActualDateSource)
+    ? raw.source as GateActualDateSource
+    : undefined;
+  const reason = typeof raw.reason === "string" ? raw.reason.trim() : undefined;
+  return {
+    id: raw.id,
+    createdAt: raw.createdAt,
+    kind: raw.kind as GateActualEventKind,
+    gateId: raw.gateId,
+    ...(date ? { date } : {}),
+    ...(previousDate ? { previousDate } : {}),
+    ...(source ? { source } : {}),
+    ...(reason ? { reason } : {})
+  };
+}
+
+function normalizeGateActuals(value: unknown): Record<string, ProjectGateActualState> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([projectId, candidate]) => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+    const raw = candidate as Partial<ProjectGateActualState>;
+    const gates = raw.gates && typeof raw.gates === "object" && !Array.isArray(raw.gates)
+      ? Object.fromEntries(Object.entries(raw.gates).flatMap(([gateId, value]) => {
+          if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+          const pass = value as { date?: unknown; source?: unknown; recordedAt?: unknown; open?: unknown };
+          if (typeof pass.date !== "string" || typeof pass.recordedAt !== "string") return [];
+          const source = ACTUAL_SOURCES.has(pass.source as GateActualDateSource)
+            ? pass.source as GateActualDateSource
+            : "observed";
+          return [[gateId, {
+            date: pass.date.trim(),
+            source,
+            recordedAt: pass.recordedAt,
+            open: pass.open === true
+          }]];
+        }))
+      : {};
+    const launchDate = typeof raw.launchDate === "string" ? raw.launchDate.trim() : undefined;
+    const launchRecordedAt = typeof raw.launchRecordedAt === "string"
+      ? raw.launchRecordedAt
+      : undefined;
+    return [[projectId, {
+      gates,
+      events: Array.isArray(raw.events)
+        ? raw.events.flatMap((event) => normalizeActualEvent(event) ?? [])
+        : [],
+      ...(launchDate ? { launchDate } : {}),
+      ...(launchRecordedAt ? { launchRecordedAt } : {})
+    } satisfies ProjectGateActualState]];
   }));
 }
 
