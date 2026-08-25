@@ -30,7 +30,45 @@ Project Manager Insights 是建立在这些数据之上的**只读洞察增强�
 | **Project Manager：数据与执行层** | 创建和维护项目、主任务与子任务，并保存类型、父子关系、状态、优先级、日期、进度、估时、工时、负责人、标签及自定义字段。 |
 | **Project Manager Insights：洞察增强层** | 只读汇总上述数据，在不改变原有工作流的前提下，补充跨项目、成员、交付、验收、数据质量和排期风险等分析视角。 |
 
-### 2. 如何从元数据扩展观察维度
+### 2. Project Manager 实际界面：任务执行工作台
+
+Project Manager 让计划与执行始终贴近 Vault 中的 Markdown 文件。项目总览为每个项目提供清晰入口，三种相互衔接的任务视图则帮助团队编辑任务数据、安排时间计划，并推动工作沿交付流程持续流转。
+
+<p align="center">
+  <a href="https://github.com/stepankropachev/obsidian-pm">
+    <img src="https://github.com/user-attachments/assets/ca6bc67f-e656-45be-b93a-17410555ec1a" width="100%" alt="Project Manager 项目总览，展示项目卡片、任务进度、状态与排期摘要">
+  </a>
+</p>
+
+<table>
+  <tr>
+    <th width="33%" align="center">表格 · 编辑</th>
+    <th width="33%" align="center">甘特 · 排期</th>
+    <th width="33%" align="center">看板 · 流转</th>
+  </tr>
+  <tr>
+    <td>
+      <video src="https://github.com/user-attachments/assets/104bd993-d4c1-42e7-9d6a-ae46fd7ce6a8" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/916f7100-44ef-401c-abb3-e003a0f7720a" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/316fc43b-6915-499a-a6ad-0680c462d014" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+  </tr>
+  <tr>
+    <td><sub>排序、筛选、行内编辑，并批量调整任务。</sub></td>
+    <td><sub>规划日期、依赖、里程碑与交付节奏。</sub></td>
+    <td><sub>在状态间移动任务卡片，同时看清负责人。</sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>界面素材直接加载自 <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager 上游仓库</a>，点击任意预览即可播放。</sub></p>
+
+> **两个插件的交接点：** 团队在 Project Manager 中规划、排期并更新任务；PM Insights 只读解析同一份 Markdown 与 YAML 数据，将其扩展为跨项目交付信号，同时不接管源任务。
+
+### 3. 如何从元数据扩展观察维度
 
 ```text
 Project Manager 数据源
@@ -47,7 +85,7 @@ Project Manager 数据源
                     └── 从统计结果返回 Project Manager 源任务
 ```
 
-### 3. 增强后的项目管理视角
+### 4. 增强后的项目管理视角
 
 选择一个或多个 Project Manager 项目后，PM Insights 会进一步提供：
 

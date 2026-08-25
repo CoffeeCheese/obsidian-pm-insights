@@ -30,7 +30,45 @@ Project Manager Insights is a **read-only insight layer** built on top of that d
 | **Project Manager: data and execution** | Create and maintain projects, root tasks, and subtasks, including type, hierarchy, status, priority, dates, progress, estimates, logged time, assignees, tags, and custom fields. |
 | **Project Manager Insights: insight enhancement** | Aggregate the same data without writing to it, adding cross-project, member, delivery, acceptance, data-quality, and schedule-risk views without disrupting the existing workflow. |
 
-### 2. How metadata becomes additional perspectives
+### 2. Project Manager in action: the execution workspace
+
+Project Manager keeps planning and execution close to the Markdown files in your Vault. Its dashboard gives every project a clear home, while three connected views let the team edit task data, shape the schedule, and move work through the delivery flow.
+
+<p align="center">
+  <a href="https://github.com/stepankropachev/obsidian-pm">
+    <img src="https://github.com/user-attachments/assets/ca6bc67f-e656-45be-b93a-17410555ec1a" width="100%" alt="Project Manager dashboard with project cards, task progress, status, and schedule summaries">
+  </a>
+</p>
+
+<table>
+  <tr>
+    <th width="33%" align="center">TABLE · EDIT</th>
+    <th width="33%" align="center">GANTT · SCHEDULE</th>
+    <th width="33%" align="center">KANBAN · FLOW</th>
+  </tr>
+  <tr>
+    <td>
+      <video src="https://github.com/user-attachments/assets/104bd993-d4c1-42e7-9d6a-ae46fd7ce6a8" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/916f7100-44ef-401c-abb3-e003a0f7720a" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/316fc43b-6915-499a-a6ad-0680c462d014" muted playsinline controls preload="metadata" width="400"></video>
+    </td>
+  </tr>
+  <tr>
+    <td><sub>Sort, filter, edit inline, and apply bulk task changes.</sub></td>
+    <td><sub>Plan dates, dependencies, milestones, and delivery timing.</sub></td>
+    <td><sub>Move task cards between statuses and keep ownership visible.</sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Interface media is loaded directly from the <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager upstream repository</a>. Select any preview to play it.</sub></p>
+
+> **The handoff:** Project Manager is where the team plans, schedules, and updates work. PM Insights reads that same Markdown and YAML data to reveal cross-project delivery signals—without taking ownership of the source tasks.
+
+### 3. How metadata becomes additional perspectives
 
 ```text
 Project Manager data source
@@ -47,7 +85,7 @@ Type · hierarchy · status · dates · hours · assignees · tags
                     └── insight results → the source task in Project Manager
 ```
 
-### 3. The perspectives added by PM Insights
+### 4. The perspectives added by PM Insights
 
 After you select one or more Project Manager projects, PM Insights adds:
 
