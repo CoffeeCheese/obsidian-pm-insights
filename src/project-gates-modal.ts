@@ -265,6 +265,7 @@ export class ProjectGatesModal extends Modal {
     const t = this.options.translations;
     const policy = gateBaselineEditPolicy(this.delay);
     const locked = !policy.canEditDates;
+    const delayForecast = this.delay?.draft ?? this.delay?.confirmed;
     if (locked) {
       const notice = root.createDiv("pmi-gate-baseline-lock");
       setIcon(notice.createSpan(), "lock-keyhole");
@@ -296,7 +297,8 @@ export class ProjectGatesModal extends Modal {
           ? this.baseline.stageGates[previousStage.id] ?? ""
           : this.baseline.startDate,
         false,
-        locked
+        locked,
+        delayForecast
       );
     }
     const lastStage = this.options.stages.at(-1);
@@ -310,7 +312,8 @@ export class ProjectGatesModal extends Modal {
       undefined,
       () => lastStage ? this.baseline.stageGates[lastStage.id] ?? "" : this.baseline.startDate,
       false,
-      locked
+      locked,
+      delayForecast
     );
     this.baselineDateField(
       timeline,
@@ -322,7 +325,8 @@ export class ProjectGatesModal extends Modal {
       undefined,
       () => this.baseline.startDate,
       true,
-      locked
+      locked,
+      delayForecast
     );
     const validation = root.createDiv({
       cls: "pmi-gate-editor-validation",
@@ -349,16 +353,31 @@ export class ProjectGatesModal extends Modal {
     stageIndex?: number,
     durationFrom?: () => string,
     projectDuration = false,
-    disabled = false
+    disabled = false,
+    delayForecast?: ProjectGateForecast
   ): void {
+    const t = this.options.translations;
+    const delayDays = delayForecast ? gateDelayDays(this.baseline, delayForecast, gateId) : 0;
     const row = root.createDiv("pmi-gate-editor-row");
+    row.toggleClass("has-delay-reference", delayDays > 0);
     row.dataset.gateId = gateId;
     if (stageIndex !== undefined) row.dataset.stageIndex = String(stageIndex);
     const node = row.createSpan("pmi-gate-editor-node");
     setIcon(node, icon);
     const field = row.createEl("label", { cls: "pmi-gate-editor-field" });
     const labelCopy = field.createDiv("pmi-gate-editor-field-copy");
-    labelCopy.createSpan({ text: label });
+    const title = labelCopy.createDiv("pmi-gate-editor-field-title");
+    title.createSpan({ text: label });
+    if (delayForecast && delayDays > 0) {
+      title.createSpan({
+        cls: "pmi-gate-baseline-delay-offset",
+        text: t.gateBaselineDelayOffset(delayDays, this.baseline.includeWeekends),
+        attr: {
+          title: t.gateBaselineDelayForecastTitle(gateForecastDate(delayForecast, gateId)),
+          "aria-label": `${t.gateBaselineDelayForecastTitle(gateForecastDate(delayForecast, gateId))}; ${t.gateBaselineDelayOffset(delayDays, this.baseline.includeWeekends)}`
+        }
+      });
+    }
     const duration = labelCopy.createEl("small", {
       text: durationFrom ? "" : this.options.translations.gateTimelineStart
     });

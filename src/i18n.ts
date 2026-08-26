@@ -58,6 +58,9 @@ const en = {
   gateDelayTab: "Delay plan",
   gateBaselineLocked: "Baseline locked",
   gateBaselineLockedDesc: "Delay history now depends on these dates. Clear all delay plans before editing baseline dates; the shared project clock remains adjustable.",
+  gateBaselineDelayOffset: (days: number, includeWeekends: boolean) =>
+    `Delayed by ${englishScheduleDays(days, includeWeekends)}`,
+  gateBaselineDelayForecastTitle: (date: string) => `Current forecast: ${date}`,
   gateDelayClockPendingKicker: "Unsaved project clock change",
   gateDelayClockPendingTitle: "The delay plan is waiting for one shared time rule",
   gateDelayClockPendingBody: "Delay values and stage progress depend on the project clock. Save this rule first to recalculate the plan before editing it.",
@@ -524,6 +527,9 @@ const zh: typeof en = {
   gateDelayTab: "延期计划",
   gateBaselineLocked: "原始基线已锁定",
   gateBaselineLockedDesc: "延期历史已依赖这些日期。如需修改基线日期，请先清除全部延期计划；共享的项目时钟仍可调整。",
+  gateBaselineDelayOffset: (days: number, includeWeekends: boolean) =>
+    `延期 ${chineseScheduleDays(days, includeWeekends)}`,
+  gateBaselineDelayForecastTitle: (date: string) => `当前预计：${date}`,
   gateDelayClockPendingKicker: "项目时钟有未保存修改",
   gateDelayClockPendingTitle: "延期计划正在等待统一的时间规则",
   gateDelayClockPendingBody: "延期天数和阶段进度都依赖项目时钟。请先保存本次规则调整，系统重新计算后即可继续编辑延期计划。",
