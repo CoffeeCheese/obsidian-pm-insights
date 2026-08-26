@@ -242,7 +242,7 @@ const en = {
     isToday ? "Gate is today" : `${englishScheduleDays(days, includeWeekends)} remaining`,
   gateDaysOverdue: (days: number, includeWeekends: boolean) =>
     `${englishScheduleDays(days, includeWeekends)} overdue`,
-  gateReasonScheduleGap: (gap: number) => `${gap}pp schedule gap`,
+  gateReasonScheduleGap: (gap: number) => `${gap}% schedule gap`,
   gateReasonWindowClosing: "Final 20% of the stage window",
   gateReasonTaskOverdue: "Contains overdue tasks",
   gateReasonTaskAfterGate: "A task is planned after this gate",
@@ -713,7 +713,7 @@ const zh: typeof en = {
     isToday ? "门禁就在今天" : `剩余 ${chineseScheduleDays(days, includeWeekends)}`,
   gateDaysOverdue: (days: number, includeWeekends: boolean) =>
     `已逾期 ${chineseScheduleDays(days, includeWeekends)}`,
-  gateReasonScheduleGap: (gap: number) => `进度落后 ${gap}pp`,
+  gateReasonScheduleGap: (gap: number) => `进度落后 ${gap}%`,
   gateReasonWindowClosing: "已进入阶段窗口最后 20%",
   gateReasonTaskOverdue: "存在已逾期任务",
   gateReasonTaskAfterGate: "存在计划晚于门禁的任务",
