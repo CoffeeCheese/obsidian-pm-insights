@@ -382,20 +382,47 @@ Selecting an exception opens the Project Manager task editor above the current m
 
 ### 5. Delivery gates: use planned checkpoints to detect schedule risk
 
-#### Set stage gates and a project-level launch reminder
+#### Set the project clock and gates on the original baseline
 
-Each project can have its own delivery schedule:
+Each project's delivery-gate editor has an **Original baseline** tab and a **Delay plan** tab. The original baseline preserves the delivery schedule that was first agreed for the project:
 
 - project start date;
 - one gate date for every business stage;
 - acceptance gate date;
 - final launch reminder date.
 
-![Focused PM Insights project delivery-gate modal with ordered project start, design, development, testing, acceptance, and launch dates](docs/assets/pm-insights-gate-settings-focused.png)
+![Focused view of the redesigned PM Insights Original baseline tab with a locked-baseline notice, project clock, stage gates, delay markers, and launch reminder](docs/assets/pm-insights-gate-settings-focused.png)
 
-*Open gate settings from the calendar button in a selected project chip. Every project keeps an independent schedule, and date order is validated before saving.*
+*The Original baseline keeps the first agreed dates intact. Lightweight markers beside affected nodes describe the active delay without changing the date fields.*
 
-Gate risk compares actual completion with the expected percentage for the current calendar date. When work has started early or several stages are progressing in parallel, the timeline shows **Ahead** or **Cross-stage** instead of treating that movement as a failure.
+The **Project clock** decides whether time advances through weekends. With **Skip weekends** enabled, expected progress, remaining time, overdue time, delay values, and downstream forecasts all use workdays. Disable it to use calendar days. Schedules created before this option was introduced keep their previous calendar-day behavior until the user explicitly changes the rule.
+
+Once delay history exists, the original dates are locked so later edits cannot invalidate saved assessments. To create a different original plan, first use **Manage delay data** to clear every delay plan. The shared project clock remains adjustable while the baseline is locked.
+
+#### Evaluate and confirm a new delivery path with delay plans
+
+The **Delay plan** stays separate from the original baseline. It can express delivery risk, later forecast dates, and the delay assigned to each stage without rewriting the original plan.
+
+![Focused PM Insights Delay plan tab comparing baseline, forecast, and actual dates while showing the forecast workday delay for each stage](docs/assets/pm-insights-gate-delay-focused.png)
+
+*A confirmed plan places baseline, forecast, and actual outcomes beside each node. The summary at the top reports the final launch delay at a glance.*
+
+During a delay assessment, you can:
+
+- choose a forecast date or enter the number of workdays or calendar days to delay; both inputs stay synchronized;
+- use the minus and plus controls to adjust a node one day at a time and cascade the change through later gates using the project clock;
+- add an adjustment reason and select **Save assessment** before confirming it from the corresponding activity entry, or confirm the current delay plan immediately without a review step;
+- keep only one pending assessment at a time; another assessment can start after the current one is confirmed or withdrawn;
+- preserve every revision, including reducing a ten-day delay to five days. Withdrawing an item marks the original record instead of creating another activity entry;
+- settle forecasts automatically from actual gate progress. If a five-day delay was forecast but the gate passes three days late, the recovered two days appear without manual input.
+
+An unsaved assessment can be cancelled to return to the previous plan, with confirmation before edited input is discarded. Delay history also preserves gate passes, reopenings, date corrections, and launch records so the current plan remains explainable.
+
+![Focused PM Insights Delay activity section with the active confirmed delay expanded into stage changes and confirmation details, followed by compact withdrawn assessments](docs/assets/pm-insights-gate-delay-activity-focused.png)
+
+*Delay activity keeps the active item, stage-date changes, change sources, and confirmation time in one record. Withdrawn items remain as compact history instead of generating separate withdrawal entries.*
+
+Open delivery gates from the calendar button in a selected project chip. Every project keeps an independent schedule, and date order is validated before saving. Gate risk compares actual completion with the expected percentage for today using the current project clock. When work has started early or several stages are progressing in parallel, the timeline shows **Ahead** or **Cross-stage** instead of treating that movement as a failure.
 
 A stage gate evaluates its own stage. Acceptance additionally considers tasks that block acceptance. The final launch reminder summarizes the project across all stages and acceptance; it does not depend on a single preceding stage or repeat every task already listed under a stage gate.
 
@@ -425,6 +452,7 @@ The **Delivery gate risk** modal places project rhythm and supporting evidence i
 
 - switch among selected projects and inspect each schedule;
 - compare actual completion with expected completion;
+- when a project has a confirmed delay, compare the original plan, delayed date, forecast delay, and remaining time directly on each stage timeline;
 - distinguish not started, on track, attention, high risk, overdue, passed, skipped, ahead, and cross-stage states;
 - read specific reason chips such as overdue task, past gate, stage progress gap, unestimated subtask, unassigned, or blocking acceptance;
 - open a risk task in Project Manager;
