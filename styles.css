@@ -292,6 +292,10 @@ body .modal-container .modal.pmi-project-gates-modal {
   --pmi-delay-confirmed: color-mix(in srgb, var(--interactive-accent) 72%, #5b68c8);
   --pmi-delay-actual: color-mix(in srgb, var(--color-green) 72%, #2e8b78);
   --pmi-delay-danger: color-mix(in srgb, var(--text-error) 78%, #c34d4d);
+  --pmi-delay-control-border: color-mix(in srgb, var(--pmi-delay-baseline) 24%, var(--background-modifier-border));
+  --pmi-delay-control-hover: color-mix(in srgb, var(--pmi-delay-evaluating) 42%, var(--background-modifier-border));
+  --pmi-delay-control-focus: color-mix(in srgb, var(--pmi-delay-evaluating) 68%, var(--text-normal));
+  --pmi-delay-control-surface: var(--background-primary);
   width: min(760px, calc(100vw - 32px));
   max-height: min(880px, calc(100vh - 32px));
 }
@@ -728,6 +732,7 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   color: var(--text-muted);
   font-size: calc(var(--font-ui-smaller) - 1px);
   font-weight: var(--font-medium);
+  transition: color 120ms ease;
 }
 
 .pmi-delay-forecast-control > input {
@@ -738,6 +743,34 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   font-family: var(--font-monospace);
   font-size: var(--font-ui-small);
   font-variant-numeric: tabular-nums;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-forecast-control.is-date > input[type="date"],
+body .modal.pmi-project-gates-modal .pmi-delay-reason > textarea {
+  border: 1px solid var(--pmi-delay-control-border);
+  outline: 0;
+  box-shadow: none;
+  background: var(--pmi-delay-control-surface);
+  caret-color: var(--pmi-delay-evaluating);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-forecast-control.is-date > input[type="date"]:hover,
+body .modal.pmi-project-gates-modal .pmi-delay-reason > textarea:hover {
+  border-color: var(--pmi-delay-control-hover);
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-forecast-control.is-date > input[type="date"]:is(:focus, :focus-visible),
+body .modal.pmi-project-gates-modal .pmi-delay-reason > textarea:is(:focus, :focus-visible) {
+  border-color: var(--pmi-delay-control-focus);
+  outline: 0;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 3%, var(--pmi-delay-control-surface));
+}
+
+.pmi-delay-forecast-control:focus-within > span,
+.pmi-delay-reason:focus-within > span {
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 74%, var(--text-normal));
 }
 
 .pmi-delay-forecast-bridge {
@@ -761,20 +794,21 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   min-width: 0;
   height: 30px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
+  border: 1px solid var(--pmi-delay-control-border);
   border-radius: var(--input-radius);
-  background: var(--background-primary);
-  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  box-shadow: none;
+  background: var(--pmi-delay-control-surface);
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .pmi-delay-days-control:hover {
-  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 54%, var(--background-modifier-border));
+  border-color: var(--pmi-delay-control-hover);
 }
 
 .pmi-delay-days-control:focus-within {
-  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 76%, var(--text-normal));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pmi-delay-evaluating) 16%, transparent);
-  background: color-mix(in srgb, var(--pmi-delay-evaluating) 4%, var(--background-primary));
+  border-color: var(--pmi-delay-control-focus);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 3%, var(--pmi-delay-control-surface));
 }
 
 body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-input {
@@ -1245,7 +1279,10 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
     transform: none;
   }
 
-  .pmi-delay-days-control {
+  .pmi-delay-forecast-control > span,
+  .pmi-delay-forecast-control.is-date > input[type="date"],
+  .pmi-delay-days-control,
+  .pmi-delay-reason > textarea {
     transition: none;
   }
 }
