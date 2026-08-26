@@ -1228,6 +1228,18 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   transform: none;
 }
 
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-confirm:not(.clickable-icon) {
+  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 52%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 82%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 10%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-confirm:not(.clickable-icon):is(:hover, :focus-visible, :active) {
+  border-color: var(--pmi-delay-control-focus);
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 72%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 16%, var(--background-primary));
+}
+
 body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action:not(.clickable-icon):disabled {
   opacity: 0.48;
 }
@@ -1522,7 +1534,7 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   gap: 6px;
 }
 
-body .modal.pmi-project-gates-modal button:is(.pmi-delay-history-revise, .pmi-delay-history-confirm):not(.clickable-icon) {
+body .modal.pmi-project-gates-modal button.pmi-delay-history-confirm:not(.clickable-icon) {
   display: inline-flex;
   width: fit-content;
   min-height: 29px;
@@ -1541,7 +1553,7 @@ body .modal.pmi-project-gates-modal button:is(.pmi-delay-history-revise, .pmi-de
   transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
-body .modal.pmi-project-gates-modal button:is(.pmi-delay-history-revise, .pmi-delay-history-confirm):not(.clickable-icon) svg {
+body .modal.pmi-project-gates-modal button.pmi-delay-history-confirm:not(.clickable-icon) svg {
   width: 14px;
   height: 14px;
 }
@@ -1552,7 +1564,6 @@ body .modal.pmi-project-gates-modal button.pmi-delay-history-confirm:not(.clicka
   background: color-mix(in srgb, var(--pmi-delay-confirmed) 9%, var(--background-primary));
 }
 
-body .modal.pmi-project-gates-modal button.pmi-delay-history-revise:not(.clickable-icon):is(:hover, :focus-visible),
 body .modal.pmi-project-gates-modal button.pmi-delay-history-confirm:not(.clickable-icon):is(:hover, :focus-visible) {
   border-color: color-mix(in srgb, var(--pmi-delay-confirmed) 68%, var(--background-modifier-border));
   color: var(--text-normal);
@@ -1918,7 +1929,6 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-reason > textarea,
   .pmi-delay-actions > button.pmi-delay-action,
   .pmi-delay-history-withdraw,
-  .pmi-delay-history-revise,
   .pmi-delay-history-confirm {
     transition: none;
   }

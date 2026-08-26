@@ -172,10 +172,38 @@ function normalizeGateDelays(value: unknown): Record<string, ProjectGateDelayPla
     const confirmedRevisionId = typeof raw.confirmedRevisionId === "string"
       ? raw.confirmedRevisionId
       : undefined;
+    const explicitPendingId = typeof raw.pendingEvaluationRevisionId === "string"
+      ? raw.pendingEvaluationRevisionId
+      : undefined;
+    const withdrawnRevisionIds = new Set(revisions.flatMap((revision) => {
+      if (revision.withdrawnAt) return [revision.id];
+      if (revision.kind === "withdrawn" && revision.targetRevisionId) {
+        return [revision.targetRevisionId];
+      }
+      return [];
+    }));
+    const inferredPendingId = (() => {
+      for (let index = revisions.length - 1; index >= 0; index -= 1) {
+        const revision = revisions[index];
+        if (!revision || revision.kind === "withdrawn"
+            || withdrawnRevisionIds.has(revision.id)) continue;
+        if (revision.kind === "evaluation") return revision.id;
+        if (["confirmed", "resolved", "restored"].includes(revision.kind)) return undefined;
+      }
+      return undefined;
+    })();
+    const pendingEvaluationRevisionId = status === "evaluating" && draft
+      ? revisions.find((revision) =>
+          revision.id === explicitPendingId
+            && revision.kind === "evaluation"
+            && !withdrawnRevisionIds.has(revision.id)
+        )?.id ?? inferredPendingId
+      : undefined;
     return [[projectId, {
       status,
       revisions,
       ...(draft ? { draft } : {}),
+      ...(pendingEvaluationRevisionId ? { pendingEvaluationRevisionId } : {}),
       ...(confirmed ? { confirmed } : {}),
       ...(confirmedRevisionId ? { confirmedRevisionId } : {})
     } satisfies ProjectGateDelayPlan]];

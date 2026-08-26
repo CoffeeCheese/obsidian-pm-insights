@@ -15,6 +15,7 @@ import {
   gateDelayDays,
   gateForecastDateFromDelay,
   gateForecastDate,
+  pendingDelayEvaluationRevision,
   setGateForecastDate,
   settleDelayEvaluationRevision,
   withdrawDelayRevision,
@@ -748,11 +749,24 @@ export class ProjectGatesModal extends Modal {
     const save = new ButtonComponent(actions).setButtonText(t.gateDelaySaveEvaluation);
     save.buttonEl.addClass("pmi-delay-action", "is-save");
     save.setDisabled(!validation.valid).onClick(() => void this.saveEvaluation(message));
+    const hasDelay = forecastHasDelay(
+      this.baseline,
+      this.delay.draft,
+      this.stageIds(),
+      this.actuals
+    );
+    const confirmingRestore = Boolean(this.delay.confirmed && !hasDelay);
+    const confirm = new ButtonComponent(actions)
+      .setButtonText(confirmingRestore ? t.gateDelayConfirmRestore : t.gateDelayConfirm)
+      .setCta();
+    confirm.buttonEl.addClass("pmi-delay-action", "is-confirm");
+    confirm.setDisabled(!validation.valid || (!hasDelay && !this.delay.confirmed))
+      .onClick(() => void this.confirmEvaluation(message));
   }
 
   private renderSettledDelayActions(root: HTMLElement): void {
     if (!this.delay || this.delay.status === "completed") return;
-    if (this.confirmableEvaluationRevision()) return;
+    if (pendingDelayEvaluationRevision(this.delay)) return;
     const actions = root.createDiv("pmi-delay-settled-actions");
     const button = new ButtonComponent(actions)
       .setButtonText(this.options.translations.gateDelayCreateEvaluation)
@@ -966,16 +980,6 @@ export class ProjectGatesModal extends Modal {
       withdraw.createSpan({ text: t.gateDelayWithdraw });
       withdraw.addEventListener("click", () => this.confirmWithdrawRevision(revision));
     }
-    const revise = actions.createEl("button", {
-      cls: "pmi-delay-history-revise",
-      attr: { type: "button" }
-    });
-    setIcon(revise.createSpan(), "pencil-line");
-    revise.createSpan({ text: t.gateDelayCreateEvaluation });
-    revise.addEventListener("click", () => {
-      this.startEvaluation();
-      this.render();
-    });
     const confirm = actions.createEl("button", {
       cls: "pmi-delay-history-confirm",
       attr: { type: "button" }
@@ -1054,6 +1058,7 @@ export class ProjectGatesModal extends Modal {
   }
 
   private startEvaluation(): void {
+    if (this.evaluationSnapshot || pendingDelayEvaluationRevision(this.delay)) return;
     this.evaluationSnapshot = {
       delay: this.delay ? structuredClone(this.delay) : undefined,
       delayDirty: this.delayDirty,
@@ -1115,18 +1120,56 @@ export class ProjectGatesModal extends Modal {
 
   private async saveEvaluation(message: HTMLElement): Promise<void> {
     if (!this.delay?.draft) return;
+    if (pendingDelayEvaluationRevision(this.delay)) {
+      message.setText(this.options.translations.gateDelayEvaluationPending);
+      return;
+    }
     if (this.delay.revisions.length > 0 && !this.reason.trim()) {
       message.setText(this.options.translations.gateDelayReasonRequired);
       return;
     }
     const hasDelay = forecastHasDelay(this.baseline, this.delay.draft, this.stageIds(), this.actuals);
     const kind: GateDelayRevisionKind = !hasDelay && !this.delay.confirmed ? "resolved" : "evaluation";
-    this.delay.revisions.push(this.revision(kind, this.delay.draft));
+    const revision = this.revision(kind, this.delay.draft);
+    this.delay.revisions.push(revision);
     if (kind === "resolved") {
       this.delay.status = "resolved";
       delete this.delay.draft;
+      delete this.delay.pendingEvaluationRevisionId;
     } else {
       this.delay.status = "evaluating";
+      this.delay.pendingEvaluationRevisionId = revision.id;
+    }
+    await this.persist();
+    this.evaluationSnapshot = undefined;
+    this.reason = "";
+    this.pendingChanges = {};
+    this.delayDirty = false;
+    this.render();
+  }
+
+  private async confirmEvaluation(message: HTMLElement): Promise<void> {
+    if (!this.delay?.draft || pendingDelayEvaluationRevision(this.delay)) return;
+    if (!this.reason.trim()) {
+      message.setText(this.options.translations.gateDelayReasonRequired);
+      return;
+    }
+    const forecast = cloneForecast(this.delay.draft);
+    const hasDelay = forecastHasDelay(this.baseline, forecast, this.stageIds(), this.actuals);
+    if (!hasDelay && !this.delay.confirmed) return;
+    const restoring = Boolean(this.delay.confirmed && !hasDelay);
+    const revision = this.revision(restoring ? "restored" : "confirmed", forecast);
+    this.delay.revisions.push(revision);
+    delete this.delay.draft;
+    delete this.delay.pendingEvaluationRevisionId;
+    if (restoring) {
+      this.delay.status = "restored";
+      delete this.delay.confirmed;
+      delete this.delay.confirmedRevisionId;
+    } else {
+      this.delay.status = "confirmed";
+      this.delay.confirmed = forecast;
+      this.delay.confirmedRevisionId = revision.id;
     }
     await this.persist();
     this.evaluationSnapshot = undefined;
@@ -1169,8 +1212,7 @@ export class ProjectGatesModal extends Modal {
   private confirmableEvaluationRevision(): GateDelayRevision | undefined {
     if (this.evaluationSnapshot || this.delayDirty || this.delay?.status !== "evaluating"
         || !this.delay.draft) return undefined;
-    const revision = withdrawableDelayRevision(this.delay);
-    return revision?.kind === "evaluation" ? revision : undefined;
+    return pendingDelayEvaluationRevision(this.delay);
   }
 
   private confirmWithdrawRevision(revision: GateDelayRevision): void {

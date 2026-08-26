@@ -7,6 +7,7 @@ import {
   gateBaselineEditPolicy,
   gateDelayDays,
   gateForecastDateFromDelay,
+  pendingDelayEvaluationRevision,
   reconcileProjectGateActuals,
   settleDelayEvaluationRevision,
   withdrawDelayRevision,
@@ -186,22 +187,25 @@ describe("gate delay planning", () => {
     })).toBe(false);
   });
 
-  it("withdraws the latest saved item and restores the previous assessment draft", () => {
+  it("keeps only the latest legacy assessment pending", () => {
     const first = revision("r1", "evaluation", "2026-08-24");
     const second = revision("r2", "evaluation", "2026-08-31");
     const plan: ProjectGateDelayPlan = {
       status: "evaluating",
       draft: structuredClone(second.forecast),
+      pendingEvaluationRevisionId: second.id,
       revisions: [first, second]
     };
 
+    expect(pendingDelayEvaluationRevision(plan)?.id).toBe("r2");
     expect(withdrawableDelayRevision(plan)?.id).toBe("r2");
     const withdrawnAt = "2026-08-26T09:00:00.000Z";
     const rolledBack = withdrawDelayRevision(plan, "r2", withdrawnAt);
     expect(rolledBack).toMatchObject({
-      status: "evaluating",
-      draft: { launchDate: "2026-08-24" }
+      status: "withdrawn"
     });
+    expect(rolledBack?.draft).toBeUndefined();
+    expect(pendingDelayEvaluationRevision(rolledBack)).toBeUndefined();
     expect(rolledBack?.revisions).toHaveLength(2);
     expect(rolledBack?.revisions[1]?.withdrawnAt).toBe(withdrawnAt);
     expect(withdrawDelayRevision(plan, "r1", withdrawnAt)).toBeUndefined();
@@ -212,6 +216,7 @@ describe("gate delay planning", () => {
     const rolledBack = withdrawDelayRevision({
       status: "evaluating",
       draft: structuredClone(saved.forecast),
+      pendingEvaluationRevisionId: saved.id,
       revisions: [saved]
     }, saved.id, "2026-08-26T09:00:00.000Z");
 
@@ -225,6 +230,7 @@ describe("gate delay planning", () => {
     const plan: ProjectGateDelayPlan = {
       status: "evaluating",
       draft: structuredClone(saved.forecast),
+      pendingEvaluationRevisionId: saved.id,
       revisions: [saved]
     };
     const decidedAt = "2026-08-26T10:00:00.000Z";
@@ -238,6 +244,7 @@ describe("gate delay planning", () => {
       revisions: [{ id: saved.id, kind: "confirmed", decidedAt }]
     });
     expect(settled?.draft).toBeUndefined();
+    expect(settled?.pendingEvaluationRevisionId).toBeUndefined();
     expect(settled?.revisions).toHaveLength(1);
     expect(plan.revisions[0]?.kind).toBe("evaluation");
   });
@@ -248,6 +255,7 @@ describe("gate delay planning", () => {
     const plan: ProjectGateDelayPlan = {
       status: "evaluating",
       draft: structuredClone(restored.forecast),
+      pendingEvaluationRevisionId: restored.id,
       confirmed: structuredClone(confirmed.forecast),
       confirmedRevisionId: confirmed.id,
       revisions: [confirmed, restored]
@@ -273,6 +281,7 @@ describe("gate delay planning", () => {
     const plan: ProjectGateDelayPlan = {
       status: "evaluating",
       draft: structuredClone(second.forecast),
+      pendingEvaluationRevisionId: second.id,
       revisions: [first, second]
     };
 

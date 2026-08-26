@@ -113,6 +113,7 @@ export interface GateDelayRevision {
 export interface ProjectGateDelayPlan {
   status: GateDelayStatus;
   draft?: ProjectGateForecast;
+  pendingEvaluationRevisionId?: string;
   confirmed?: ProjectGateForecast;
   confirmedRevisionId?: string;
   revisions: GateDelayRevision[];

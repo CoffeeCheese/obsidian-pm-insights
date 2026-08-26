@@ -153,6 +153,44 @@ describe("normalizeInsightSettings", () => {
     expect(normalized.gateSchedules.legacy?.includeWeekends).toBe(true);
   });
 
+  it("links a legacy evaluating draft to only its latest active assessment", () => {
+    const forecast = {
+      stageGates: { development: "2026-08-15" },
+      acceptanceGate: "2026-08-18",
+      launchDate: "2026-08-20"
+    };
+    const normalized = normalizeInsightSettings({
+      gateDelays: {
+        p1: {
+          status: "evaluating",
+          draft: forecast,
+          revisions: [
+            {
+              id: "r1",
+              createdAt: "2026-08-10T09:00:00.000Z",
+              kind: "evaluation",
+              reason: "First assessment",
+              forecast,
+              stages: [],
+              changes: {}
+            },
+            {
+              id: "r2",
+              createdAt: "2026-08-11T09:00:00.000Z",
+              kind: "evaluation",
+              reason: "Latest assessment",
+              forecast,
+              stages: [],
+              changes: {}
+            }
+          ]
+        }
+      }
+    } as unknown as Partial<InsightSettings>);
+
+    expect(normalized.gateDelays.p1?.pendingEvaluationRevisionId).toBe("r2");
+  });
+
   it("normalizes delay revisions and actual gate events independently from baselines", () => {
     const normalized = normalizeInsightSettings({
       gateDelays: {

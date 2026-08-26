@@ -79,10 +79,12 @@ const en = {
   gateDelayStatusSummary: (days: number, includeWeekends: boolean) =>
     days === 0 ? "No launch delay" : `Launch forecast ${englishScheduleDays(days, includeWeekends)} late`,
   gateDelayReason: "Adjustment reason",
-  gateDelayReasonPlaceholder: "What changed in this assessment?",
-  gateDelayReasonRequired: "Add an adjustment reason before saving this change.",
+  gateDelayReasonPlaceholder: "What changed in this plan?",
+  gateDelayReasonRequired: "Add an adjustment reason before saving or confirming this change.",
   gateDelaySaveEvaluation: "Save assessment",
+  gateDelayConfirm: "Confirm delay plan",
   gateDelayConfirmEvaluation: "Confirm this assessment",
+  gateDelayEvaluationPending: "Confirm or withdraw the current assessment before starting another one.",
   gateDelayDecisionPending: "Awaiting a decision",
   gateDelayDecisionHint: (restoring: boolean): string => restoring
     ? "Confirm this assessment to retire the active delay plan and return delivery tracking to the original baseline."
@@ -543,10 +545,12 @@ const zh: typeof en = {
   gateDelayStatusSummary: (days: number, includeWeekends: boolean) =>
     days === 0 ? "预计按原计划上线" : `预计上线延期 ${chineseScheduleDays(days, includeWeekends)}`,
   gateDelayReason: "调整原因",
-  gateDelayReasonPlaceholder: "本次评估发生了什么变化？",
-  gateDelayReasonRequired: "请填写调整原因后再保存本次变化。",
+  gateDelayReasonPlaceholder: "本次计划调整发生了什么变化？",
+  gateDelayReasonRequired: "请填写调整原因后再保存或确认本次变化。",
   gateDelaySaveEvaluation: "保存延期评估",
+  gateDelayConfirm: "确认延期计划",
   gateDelayConfirmEvaluation: "确认此评估",
+  gateDelayEvaluationPending: "请先确认或撤销当前延期评估，再发起新一轮评估。",
   gateDelayDecisionPending: "等待确认",
   gateDelayDecisionHint: (restoring: boolean) => restoring
     ? "确认后将结束当前延期计划，并恢复按原始基线跟踪交付。"

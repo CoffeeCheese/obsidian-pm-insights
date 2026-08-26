@@ -78,20 +78,27 @@ function withdrawnRevisionIds(revisions: readonly GateDelayRevision[]): Set<stri
   }));
 }
 
+export function pendingDelayEvaluationRevision(
+  plan: ProjectGateDelayPlan | undefined
+): GateDelayRevision | undefined {
+  if (!plan || plan.status !== "evaluating" || !plan.draft
+      || !plan.pendingEvaluationRevisionId) return undefined;
+  const withdrawn = withdrawnRevisionIds(plan.revisions);
+  return plan.revisions.find((revision) =>
+    revision.id === plan.pendingEvaluationRevisionId
+      && revision.kind === "evaluation"
+      && !withdrawn.has(revision.id)
+  );
+}
+
 export function withdrawableDelayRevision(
   plan: ProjectGateDelayPlan | undefined
 ): GateDelayRevision | undefined {
   if (!plan || plan.status === "completed") return undefined;
   const withdrawn = withdrawnRevisionIds(plan.revisions);
-  if (plan.draft) {
-    for (let index = plan.revisions.length - 1; index >= 0; index -= 1) {
-      const revision = plan.revisions[index];
-      if (!revision || revision.kind === "withdrawn" || withdrawn.has(revision.id)) continue;
-      if (revision.kind === "evaluation") return revision;
-      if (["confirmed", "resolved", "restored"].includes(revision.kind)) return undefined;
-    }
-    return undefined;
-  }
+  const pendingEvaluation = pendingDelayEvaluationRevision(plan);
+  if (pendingEvaluation) return pendingEvaluation;
+  if (plan.draft) return undefined;
   if (!plan.confirmedRevisionId) return undefined;
   const revision = plan.revisions.find((candidate) =>
     candidate.id === plan.confirmedRevisionId
@@ -117,6 +124,7 @@ export function settleDelayEvaluationRevision(
   revision.kind = restoring ? "restored" : "confirmed";
   revision.decidedAt = decidedAt;
   delete next.draft;
+  delete next.pendingEvaluationRevisionId;
 
   if (restoring) {
     next.status = "restored";
@@ -143,23 +151,9 @@ function rollbackDelayRevision(
   withdrawn.add(revisionId);
 
   if (target.kind === "evaluation") {
-    let previous: GateDelayRevision | undefined;
-    for (let index = targetIndex - 1; index >= 0; index -= 1) {
-      const revision = next.revisions[index];
-      if (!revision || revision.kind === "withdrawn" || withdrawn.has(revision.id)) continue;
-      if (revision.kind === "evaluation") {
-        previous = revision;
-        break;
-      }
-      if (["confirmed", "resolved", "restored"].includes(revision.kind)) break;
-    }
-    if (previous) {
-      next.draft = cloneForecast(previous.forecast);
-      next.status = "evaluating";
-    } else {
-      delete next.draft;
-      next.status = next.confirmed ? "confirmed" : "withdrawn";
-    }
+    delete next.draft;
+    delete next.pendingEvaluationRevisionId;
+    next.status = next.confirmed ? "confirmed" : "withdrawn";
     return next;
   }
 
