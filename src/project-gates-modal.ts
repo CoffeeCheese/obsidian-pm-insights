@@ -551,17 +551,17 @@ export class ProjectGatesModal extends Modal {
     const daysField = editor.createDiv("pmi-delay-forecast-control is-days");
     daysField.createSpan({ text: t.gateDelayDaysInput });
     const daysControl = daysField.createDiv("pmi-delay-days-control");
-    const incrementLabel = t.gateDelayIncrementAria(gateLabel, this.baseline.includeWeekends);
-    const incrementButton = daysControl.createEl("button", {
-      cls: "pmi-delay-days-prefix",
-      text: "+",
+    const decrementLabel = t.gateDelayDecrementAria(gateLabel, this.baseline.includeWeekends);
+    const decrementButton = daysControl.createEl("button", {
+      cls: "pmi-delay-days-step is-decrement",
+      text: "−",
       attr: {
         type: "button",
-        "aria-label": incrementLabel,
-        title: incrementLabel
+        "aria-label": decrementLabel,
+        title: decrementLabel
       }
     });
-    incrementButton.disabled = plannedDays >= MAX_DELAY_DAYS;
+    decrementButton.disabled = plannedDays <= 0;
     const daysInput = daysControl.createEl("input", {
       cls: "pmi-delay-days-input",
       type: "text",
@@ -578,14 +578,27 @@ export class ProjectGatesModal extends Modal {
       cls: "pmi-delay-days-unit",
       text: t.gateDelayDaysUnit(this.baseline.includeWeekends)
     });
-    incrementButton.addEventListener("click", () => {
-      const nextDelayDays = Math.min(plannedDays + 1, MAX_DELAY_DAYS);
+    const incrementLabel = t.gateDelayIncrementAria(gateLabel, this.baseline.includeWeekends);
+    const incrementButton = daysControl.createEl("button", {
+      cls: "pmi-delay-days-step is-increment",
+      text: "+",
+      attr: {
+        type: "button",
+        "aria-label": incrementLabel,
+        title: incrementLabel
+      }
+    });
+    incrementButton.disabled = plannedDays >= MAX_DELAY_DAYS;
+    const adjustDelayDays = (delta: number): void => {
+      const nextDelayDays = Math.max(0, Math.min(plannedDays + delta, MAX_DELAY_DAYS));
       this.updateForecastDate(
         gateId,
         gateForecastDateFromDelay(this.baseline, gateId, nextDelayDays)
       );
       this.render();
-    });
+    };
+    decrementButton.addEventListener("click", () => adjustDelayDays(-1));
+    incrementButton.addEventListener("click", () => adjustDelayDays(1));
     daysInput.addEventListener("input", () => daysInput.setCustomValidity(""));
     daysInput.addEventListener("change", () => {
       const delayDays = Number(daysInput.value);

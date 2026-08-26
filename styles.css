@@ -789,7 +789,7 @@ body .modal.pmi-project-gates-modal .pmi-delay-reason > textarea:is(:focus, :foc
 
 .pmi-delay-days-control {
   display: grid;
-  grid-template-columns: 27px minmax(44px, 1fr) auto;
+  grid-template-columns: 27px minmax(36px, 1fr) auto 27px;
   align-items: center;
   min-width: 0;
   height: 30px;
@@ -837,7 +837,7 @@ body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-in
   background: transparent;
 }
 
-.pmi-delay-days-prefix,
+.pmi-delay-days-step,
 .pmi-delay-days-unit {
   color: color-mix(in srgb, var(--pmi-delay-evaluating) 78%, var(--text-normal));
   font-size: var(--font-ui-smaller);
@@ -845,7 +845,7 @@ body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-in
   white-space: nowrap;
 }
 
-.pmi-delay-days-prefix {
+.pmi-delay-days-step {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -855,41 +855,54 @@ body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-in
   height: 28px;
   padding: 0;
   border: 0;
-  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
   border-radius: 0;
   box-shadow: none;
-  background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent);
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 6%, transparent);
   cursor: pointer;
   transition: color 120ms ease, background-color 120ms ease;
 }
 
-body .modal.pmi-project-gates-modal .pmi-delay-days-control > button.pmi-delay-days-prefix:not(.clickable-icon) {
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > button.pmi-delay-days-step:not(.clickable-icon) {
   width: 27px;
   min-width: 27px;
   height: 28px;
   min-height: 28px;
   padding: 0;
   border: 0;
-  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
   border-radius: 0;
   box-shadow: none;
-  background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent);
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 6%, transparent);
 }
 
-body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:is(:hover, :focus-visible, :active) {
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > button.pmi-delay-days-step.is-decrement {
+  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > button.pmi-delay-days-step.is-increment {
+  border-inline-start: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-step:is(:hover, :focus-visible, :active) {
   border: 0;
-  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
   outline: 0;
   box-shadow: none;
   color: color-mix(in srgb, var(--pmi-delay-evaluating) 88%, var(--text-normal));
   background: color-mix(in srgb, var(--pmi-delay-evaluating) 16%, var(--background-primary));
 }
 
-body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:active {
+body .modal.pmi-project-gates-modal button.pmi-delay-days-step.is-decrement:is(:hover, :focus-visible, :active) {
+  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-step.is-increment:is(:hover, :focus-visible, :active) {
+  border-inline-start: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-step:active {
   background: color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-primary));
 }
 
-body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:disabled {
+body .modal.pmi-project-gates-modal button.pmi-delay-days-step:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
@@ -1404,7 +1417,7 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-forecast-control > span,
   .pmi-delay-forecast-control.is-date > input[type="date"],
   .pmi-delay-days-control,
-  .pmi-delay-days-prefix,
+  .pmi-delay-days-step,
   .pmi-delay-reason > textarea,
   .pmi-delay-actions > button.pmi-delay-action {
     transition: none;

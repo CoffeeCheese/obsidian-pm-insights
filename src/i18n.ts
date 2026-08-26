@@ -86,6 +86,8 @@ const en = {
     includeWeekends ? "calendar days" : "workdays",
   gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
     `${gate} · Delay in ${includeWeekends ? "calendar days" : "workdays"}`,
+  gateDelayDecrementAria: (gate: string, includeWeekends: boolean) =>
+    `Subtract 1 ${includeWeekends ? "calendar day" : "workday"} from ${gate}`,
   gateDelayIncrementAria: (gate: string, includeWeekends: boolean) =>
     `Add 1 ${includeWeekends ? "calendar day" : "workday"} to ${gate}`,
   gateDelayDaysInvalid: (max: number) => `Enter a whole number from 0 to ${max}.`,
@@ -517,6 +519,8 @@ const zh: typeof en = {
   gateDelayDaysUnit: (includeWeekends: boolean) => includeWeekends ? "自然日" : "工作日",
   gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
     `${gate} · 延期${includeWeekends ? "自然日" : "工作日"}`,
+  gateDelayDecrementAria: (gate: string, includeWeekends: boolean) =>
+    `${gate}减少 1 个${includeWeekends ? "自然日" : "工作日"}`,
   gateDelayIncrementAria: (gate: string, includeWeekends: boolean) =>
     `${gate}增加 1 个${includeWeekends ? "自然日" : "工作日"}`,
   gateDelayDaysInvalid: (max: number) => `请输入 0 至 ${max} 的整数。`,
