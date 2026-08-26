@@ -15,6 +15,38 @@
 
 [English](README.md) · **简体中文**
 
+<p align="center">
+  <strong>同一份项目数据，两种连续工作界面</strong><br>
+  <sub>Project Manager 维护任务与排期&nbsp;&nbsp;→&nbsp;&nbsp;PM Insights 汇总团队交付与风险</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="53%" align="center" valign="top">
+      <strong>Project Manager · 数据与执行</strong><br>
+      <sub>创建任务 · 安排依赖 · 推动流转</sub>
+    </td>
+    <td width="47%" align="center" valign="top">
+      <strong>PM Insights · 只读洞察</strong><br>
+      <sub>跨项目进度 · 交付风险 · 数据质量</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <a href="docs/assets/obsidian-pm-work-surfaces.zh-CN.png">
+        <img src="docs/assets/obsidian-pm-work-surfaces.zh-CN.png" width="100%" alt="当前 Obsidian 主题下的 Project Manager 执行工作台，展示表格、甘特图和看板视图">
+      </a>
+    </td>
+    <td valign="top">
+      <a href="docs/assets/pm-insights-overview-0.3.1.zh-CN.png">
+        <img src="docs/assets/pm-insights-overview-0.3.1.zh-CN.png" width="100%" alt="Project Manager Insights 工作主页，展示项目范围、门禁风险、团队工时、交付进度、异常和数据质量">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><sub>左侧产生并维护执行数据，右侧只读解析并追溯团队交付。点击图片可查看完整尺寸。</sub></p>
+
 ## 一、插件概述：从个人执行看见团队交付
 
 [Project Manager](https://github.com/stepankropachev/obsidian-pm) 是本插件的数据基础与任务操作层。它将项目和任务保存为 Vault 内的 Markdown 文件与 YAML 元数据，并提供表格、甘特图、看板、任务层级、依赖、排期、负责人和工时等项目管理能力。
@@ -28,36 +60,9 @@ Project Manager Insights 是建立在这些数据之上的**只读洞察增强�
 | **Project Manager：数据与执行层** | 创建和维护项目、主任务与子任务，并保存类型、父子关系、状态、优先级、日期、进度、估时、工时、负责人、标签及自定义字段。 |
 | **Project Manager Insights：洞察增强层** | 只读汇总上述数据，在不改变原有工作流的前提下，补充跨项目、成员、交付、验收、数据质量和排期风险等分析视角。 |
 
-### 2. 从 Project Manager 执行工作台到 PM Insights 洞察主页
+### 2. 两个工作台如何联动
 
 同一份 Markdown 项目数据贯穿两个工作台：团队先在 Project Manager 中创建任务、安排依赖并推动状态流转；PM Insights 再以只读方式汇总这些执行记录，在工作主页集中呈现跨项目进度、交付风险与数据质量。
-
-<table>
-  <tr>
-    <td width="53%" valign="top">
-      <a href="docs/assets/obsidian-pm-work-surfaces.zh-CN.png">
-        <img src="docs/assets/obsidian-pm-work-surfaces.zh-CN.png" width="100%" alt="当前 Obsidian 主题下的 Project Manager 执行工作台，展示表格、甘特图和看板视图">
-      </a>
-    </td>
-    <td width="47%" valign="top">
-      <a href="docs/assets/pm-insights-overview-0.3.1.zh-CN.png">
-        <img src="docs/assets/pm-insights-overview-0.3.1.zh-CN.png" width="100%" alt="Project Manager Insights 工作主页，展示项目范围、门禁风险、团队工时、交付进度、异常和数据质量">
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top">
-      <strong>数据与执行来源 · Project Manager</strong><br>
-      <sub>编辑任务、安排依赖、推动状态流转<br><a href="https://github.com/stepankropachev/obsidian-pm">了解 Project Manager</a></sub>
-    </td>
-    <td align="center" valign="top">
-      <strong>只读洞察主页 · PM Insights</strong><br>
-      <sub>汇总项目范围、团队交付与计划风险<br><a href="https://community.obsidian.md/plugins/project-manager-insights">从 Obsidian 安装</a></sub>
-    </td>
-  </tr>
-</table>
-
-<p align="center"><sub>同一份 Markdown / YAML 数据：左侧负责创建与维护，右侧负责只读解析与来源追溯。点击图片可查看完整尺寸。</sub></p>
 
 > **两个插件的交接点：** Project Manager 产生可信的执行数据，PM Insights 将其还原为可追溯的团队交付信号，同时不接管源任务。
 
