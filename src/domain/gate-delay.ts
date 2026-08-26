@@ -101,6 +101,35 @@ export function withdrawableDelayRevision(
   return revision;
 }
 
+export function settleDelayEvaluationRevision(
+  plan: ProjectGateDelayPlan,
+  revisionId: string,
+  restoring: boolean,
+  decidedAt: string
+): ProjectGateDelayPlan | undefined {
+  const target = withdrawableDelayRevision(plan);
+  if (plan.status !== "evaluating" || !plan.draft
+      || target?.id !== revisionId || target.kind !== "evaluation") return undefined;
+
+  const next = structuredClone(plan);
+  const revision = next.revisions.find((candidate) => candidate.id === revisionId);
+  if (!revision) return undefined;
+  revision.kind = restoring ? "restored" : "confirmed";
+  revision.decidedAt = decidedAt;
+  delete next.draft;
+
+  if (restoring) {
+    next.status = "restored";
+    delete next.confirmed;
+    delete next.confirmedRevisionId;
+  } else {
+    next.status = "confirmed";
+    next.confirmed = cloneForecast(revision.forecast);
+    next.confirmedRevisionId = revision.id;
+  }
+  return next;
+}
+
 function rollbackDelayRevision(
   plan: ProjectGateDelayPlan,
   revisionId: string

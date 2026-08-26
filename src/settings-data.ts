@@ -138,10 +138,12 @@ function normalizeRevision(value: unknown): GateDelayRevision | undefined {
   const targetRevisionId = typeof raw.targetRevisionId === "string"
     ? raw.targetRevisionId.trim()
     : "";
+  const decidedAt = typeof raw.decidedAt === "string" ? raw.decidedAt.trim() : "";
   const withdrawnAt = typeof raw.withdrawnAt === "string" ? raw.withdrawnAt.trim() : "";
   return {
     id: raw.id,
     createdAt: raw.createdAt,
+    ...(decidedAt ? { decidedAt } : {}),
     kind: raw.kind as GateDelayRevisionKind,
     reason: typeof raw.reason === "string" ? raw.reason.trim() : "",
     ...(targetRevisionId ? { targetRevisionId } : {}),

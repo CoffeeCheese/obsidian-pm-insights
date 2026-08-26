@@ -166,6 +166,7 @@ describe("normalizeInsightSettings", () => {
           revisions: [{
             id: "r1",
             createdAt: "2026-08-10T09:00:00.000Z",
+            decidedAt: "2026-08-10T10:00:00.000Z",
             kind: "confirmed",
             reason: "Vendor delay",
             withdrawnAt: "2026-08-11T09:00:00.000Z",
@@ -204,6 +205,7 @@ describe("normalizeInsightSettings", () => {
     expect(normalized.gateDelays.p1?.revisions[0]).toMatchObject({
       kind: "confirmed",
       reason: "Vendor delay",
+      decidedAt: "2026-08-10T10:00:00.000Z",
       withdrawnAt: "2026-08-11T09:00:00.000Z",
       changes: { development: "manual", acceptance: "linked", launch: "linked" }
     });

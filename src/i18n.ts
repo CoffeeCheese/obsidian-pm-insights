@@ -82,7 +82,14 @@ const en = {
   gateDelayReasonPlaceholder: "What changed in this assessment?",
   gateDelayReasonRequired: "Add an adjustment reason before saving this change.",
   gateDelaySaveEvaluation: "Save assessment",
-  gateDelayConfirm: "Confirm delay",
+  gateDelayConfirmEvaluation: "Confirm this assessment",
+  gateDelayDecisionPending: "Awaiting a decision",
+  gateDelayDecisionHint: (restoring: boolean): string => restoring
+    ? "Confirm this assessment to retire the active delay plan and return delivery tracking to the original baseline."
+    : "Confirm this assessment to make its forecast dates the active delivery plan.",
+  gateDelayDecidedAt: (time: string, restored: boolean): string => restored
+    ? `Confirmed ${time} · Returned to the original baseline on this assessment`
+    : `Confirmed ${time} · This assessment became the active delay plan`,
   gateDelayCreateEvaluation: "Create new assessment",
   gateDelayCancelEvaluation: "Cancel this assessment",
   gateDelayCancelEvaluationTitle: "Cancel this assessment?",
@@ -539,7 +546,14 @@ const zh: typeof en = {
   gateDelayReasonPlaceholder: "本次评估发生了什么变化？",
   gateDelayReasonRequired: "请填写调整原因后再保存本次变化。",
   gateDelaySaveEvaluation: "保存延期评估",
-  gateDelayConfirm: "确认延期",
+  gateDelayConfirmEvaluation: "确认此评估",
+  gateDelayDecisionPending: "等待确认",
+  gateDelayDecisionHint: (restoring: boolean) => restoring
+    ? "确认后将结束当前延期计划，并恢复按原始基线跟踪交付。"
+    : "确认后，这份评估中的预计日期将成为当前生效的交付计划。",
+  gateDelayDecidedAt: (time: string, restored: boolean) => restored
+    ? `${time} 确认 · 已在此评估上恢复原始基线`
+    : `${time} 确认 · 此评估已成为当前延期计划`,
   gateDelayCreateEvaluation: "创建新一轮评估",
   gateDelayCancelEvaluation: "取消本轮评估",
   gateDelayCancelEvaluationTitle: "取消本轮评估？",

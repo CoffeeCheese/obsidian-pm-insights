@@ -8,6 +8,7 @@ import {
   gateDelayDays,
   gateForecastDateFromDelay,
   reconcileProjectGateActuals,
+  settleDelayEvaluationRevision,
   withdrawDelayRevision,
   withdrawableDelayRevision,
   validateGateForecast
@@ -217,6 +218,70 @@ describe("gate delay planning", () => {
     expect(rolledBack?.status).toBe("withdrawn");
     expect(rolledBack?.draft).toBeUndefined();
     expect(rolledBack?.confirmed).toBeUndefined();
+  });
+
+  it("confirms the saved assessment in place without adding another activity item", () => {
+    const saved = revision("r1", "evaluation", "2026-08-24");
+    const plan: ProjectGateDelayPlan = {
+      status: "evaluating",
+      draft: structuredClone(saved.forecast),
+      revisions: [saved]
+    };
+    const decidedAt = "2026-08-26T10:00:00.000Z";
+
+    const settled = settleDelayEvaluationRevision(plan, saved.id, false, decidedAt);
+
+    expect(settled).toMatchObject({
+      status: "confirmed",
+      confirmedRevisionId: saved.id,
+      confirmed: { launchDate: "2026-08-24" },
+      revisions: [{ id: saved.id, kind: "confirmed", decidedAt }]
+    });
+    expect(settled?.draft).toBeUndefined();
+    expect(settled?.revisions).toHaveLength(1);
+    expect(plan.revisions[0]?.kind).toBe("evaluation");
+  });
+
+  it("confirms a return-to-baseline assessment in place", () => {
+    const confirmed = revision("r1", "confirmed", "2026-08-24");
+    const restored = revision("r2", "evaluation", schedule.launchDate);
+    const plan: ProjectGateDelayPlan = {
+      status: "evaluating",
+      draft: structuredClone(restored.forecast),
+      confirmed: structuredClone(confirmed.forecast),
+      confirmedRevisionId: confirmed.id,
+      revisions: [confirmed, restored]
+    };
+
+    const settled = settleDelayEvaluationRevision(
+      plan,
+      restored.id,
+      true,
+      "2026-08-26T10:00:00.000Z"
+    );
+
+    expect(settled?.status).toBe("restored");
+    expect(settled?.confirmed).toBeUndefined();
+    expect(settled?.confirmedRevisionId).toBeUndefined();
+    expect(settled?.revisions).toHaveLength(2);
+    expect(settled?.revisions[1]?.kind).toBe("restored");
+  });
+
+  it("only settles the latest active saved assessment", () => {
+    const first = revision("r1", "evaluation", "2026-08-24");
+    const second = revision("r2", "evaluation", "2026-08-31");
+    const plan: ProjectGateDelayPlan = {
+      status: "evaluating",
+      draft: structuredClone(second.forecast),
+      revisions: [first, second]
+    };
+
+    expect(settleDelayEvaluationRevision(
+      plan,
+      first.id,
+      false,
+      "2026-08-26T10:00:00.000Z"
+    )).toBeUndefined();
   });
 
   it("withdraws the effective confirmed item and restores the preceding confirmed plan", () => {

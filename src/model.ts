@@ -100,6 +100,7 @@ export interface GateStageSnapshot {
 export interface GateDelayRevision {
   id: string;
   createdAt: string;
+  decidedAt?: string;
   kind: GateDelayRevisionKind;
   reason: string;
   targetRevisionId?: string;
