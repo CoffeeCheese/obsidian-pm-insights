@@ -331,6 +331,12 @@ body .modal-container .modal.pmi-project-gates-modal {
   background: color-mix(in srgb, var(--pmi-delay-actual) 9%, var(--background-primary));
 }
 
+.pmi-delay-status.is-withdrawn {
+  border-color: var(--background-modifier-border);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+}
+
 .pmi-delay-status svg {
   width: 14px;
   height: 14px;
@@ -495,6 +501,11 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
     var(--background-secondary);
 }
 
+.pmi-delay-hero.is-withdrawn {
+  border-color: var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
 .pmi-delay-hero-signal {
   display: grid;
   width: 38px;
@@ -511,6 +522,10 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
 
 .pmi-delay-hero:is(.is-resolved, .is-restored, .is-completed) .pmi-delay-hero-signal {
   color: var(--pmi-delay-actual);
+}
+
+.pmi-delay-hero.is-withdrawn .pmi-delay-hero-signal {
+  color: var(--text-muted);
 }
 
 .pmi-delay-hero-copy {
@@ -1011,12 +1026,6 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   transform: none;
 }
 
-body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-withdraw:not(.clickable-icon) {
-  margin-inline-end: auto;
-  border-color: transparent;
-  background: transparent;
-}
-
 body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-confirm:not(.clickable-icon) {
   border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 52%, var(--background-modifier-border));
   color: color-mix(in srgb, var(--pmi-delay-evaluating) 82%, var(--text-normal));
@@ -1147,6 +1156,24 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   gap: 1px;
 }
 
+.pmi-delay-history-title {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 7px;
+}
+
+.pmi-delay-history-title > span {
+  padding: 1px 5px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font-size: calc(var(--font-ui-smaller) - 1px);
+  font-weight: var(--font-medium);
+  line-height: 1.35;
+}
+
 .pmi-delay-history-summary > span,
 .pmi-delay-history-item time {
   color: var(--text-muted);
@@ -1167,6 +1194,24 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   color: var(--text-muted);
   background: var(--background-secondary);
   font-size: var(--font-ui-smaller);
+}
+
+.pmi-delay-withdrawn-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 9px;
+  padding: 7px 8px;
+  border-inline-start: 2px solid var(--text-faint);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 4%, transparent);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-delay-withdrawn-note svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 
 .pmi-delay-history-diff {
@@ -1199,6 +1244,62 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   color: var(--text-muted);
   background: var(--background-secondary);
   white-space: nowrap;
+}
+
+.pmi-delay-history-action {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-start: 9px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-history-withdraw:not(.clickable-icon) {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 27px;
+  height: auto;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  transform: none;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-history-withdraw:not(.clickable-icon) svg {
+  width: 14px;
+  height: 14px;
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-history-withdraw:not(.clickable-icon):is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--text-error) 24%, var(--background-modifier-border));
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 6%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.pmi-delay-history-item.is-withdrawn-target {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--text-muted) 2%, var(--background-primary));
+}
+
+.pmi-delay-history-item.is-withdrawn-target .pmi-delay-history-marker {
+  color: var(--text-faint);
+  background: var(--background-secondary);
 }
 
 .pmi-delay-danger {
@@ -1401,10 +1502,9 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
     width: 100%;
   }
 
-  .pmi-delay-actions > button.is-withdraw {
-    grid-column: 1 / -1;
-    justify-self: start;
-    width: auto;
+  .pmi-delay-history-action {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -1419,7 +1519,8 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-days-control,
   .pmi-delay-days-step,
   .pmi-delay-reason > textarea,
-  .pmi-delay-actions > button.pmi-delay-action {
+  .pmi-delay-actions > button.pmi-delay-action,
+  .pmi-delay-history-withdraw {
     transition: none;
   }
 }

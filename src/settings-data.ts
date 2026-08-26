@@ -73,6 +73,7 @@ const DELAY_STATUSES = new Set<GateDelayStatus>([
   "confirmed",
   "resolved",
   "restored",
+  "withdrawn",
   "completed"
 ]);
 const REVISION_KINDS = new Set<GateDelayRevisionKind>([
@@ -134,11 +135,17 @@ function normalizeRevision(value: unknown): GateDelayRevision | undefined {
       ? [[key, source]]
       : []
   ));
+  const targetRevisionId = typeof raw.targetRevisionId === "string"
+    ? raw.targetRevisionId.trim()
+    : "";
+  const withdrawnAt = typeof raw.withdrawnAt === "string" ? raw.withdrawnAt.trim() : "";
   return {
     id: raw.id,
     createdAt: raw.createdAt,
     kind: raw.kind as GateDelayRevisionKind,
     reason: typeof raw.reason === "string" ? raw.reason.trim() : "",
+    ...(targetRevisionId ? { targetRevisionId } : {}),
+    ...(withdrawnAt ? { withdrawnAt } : {}),
     forecast,
     stages,
     changes

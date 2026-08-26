@@ -5,6 +5,7 @@ import type {
   DeliveryProgressSettings,
   GateActualDateSource,
   GateActualEvent,
+  GateDelayRevision,
   ProjectGateActualState,
   ProjectGateDelayPlan,
   ProjectGateForecast,
@@ -49,6 +50,103 @@ export function cloneForecast(forecast: ProjectGateForecast): ProjectGateForecas
 
 export function delayPlanLocksBaseline(plan: ProjectGateDelayPlan | undefined): boolean {
   return (plan?.revisions.length ?? 0) > 0;
+}
+
+function withdrawnRevisionIds(revisions: readonly GateDelayRevision[]): Set<string> {
+  return new Set(revisions.flatMap((revision) => {
+    if (revision.withdrawnAt) return [revision.id];
+    if (revision.kind === "withdrawn" && revision.targetRevisionId) {
+      return [revision.targetRevisionId];
+    }
+    return [];
+  }));
+}
+
+export function withdrawableDelayRevision(
+  plan: ProjectGateDelayPlan | undefined
+): GateDelayRevision | undefined {
+  if (!plan || plan.status === "completed") return undefined;
+  const withdrawn = withdrawnRevisionIds(plan.revisions);
+  if (plan.draft) {
+    for (let index = plan.revisions.length - 1; index >= 0; index -= 1) {
+      const revision = plan.revisions[index];
+      if (!revision || revision.kind === "withdrawn" || withdrawn.has(revision.id)) continue;
+      if (revision.kind === "evaluation") return revision;
+      if (["confirmed", "resolved", "restored"].includes(revision.kind)) return undefined;
+    }
+    return undefined;
+  }
+  if (!plan.confirmedRevisionId) return undefined;
+  const revision = plan.revisions.find((candidate) =>
+    candidate.id === plan.confirmedRevisionId
+      && candidate.kind === "confirmed"
+      && !withdrawn.has(candidate.id)
+  );
+  return revision;
+}
+
+function rollbackDelayRevision(
+  plan: ProjectGateDelayPlan,
+  revisionId: string
+): ProjectGateDelayPlan | undefined {
+  const target = withdrawableDelayRevision(plan);
+  if (!target || target.id !== revisionId) return undefined;
+  const next = structuredClone(plan);
+  const targetIndex = next.revisions.findIndex((revision) => revision.id === revisionId);
+  if (targetIndex < 0) return undefined;
+  const withdrawn = withdrawnRevisionIds(next.revisions);
+  withdrawn.add(revisionId);
+
+  if (target.kind === "evaluation") {
+    let previous: GateDelayRevision | undefined;
+    for (let index = targetIndex - 1; index >= 0; index -= 1) {
+      const revision = next.revisions[index];
+      if (!revision || revision.kind === "withdrawn" || withdrawn.has(revision.id)) continue;
+      if (revision.kind === "evaluation") {
+        previous = revision;
+        break;
+      }
+      if (["confirmed", "resolved", "restored"].includes(revision.kind)) break;
+    }
+    if (previous) {
+      next.draft = cloneForecast(previous.forecast);
+      next.status = "evaluating";
+    } else {
+      delete next.draft;
+      next.status = next.confirmed ? "confirmed" : "withdrawn";
+    }
+    return next;
+  }
+
+  delete next.draft;
+  let confirmed: GateDelayRevision | undefined;
+  for (const revision of next.revisions.slice(0, targetIndex)) {
+    if (revision.kind === "withdrawn" || withdrawn.has(revision.id)) continue;
+    if (revision.kind === "confirmed") confirmed = revision;
+    else if (revision.kind === "resolved" || revision.kind === "restored") confirmed = undefined;
+  }
+  if (confirmed) {
+    next.confirmed = cloneForecast(confirmed.forecast);
+    next.confirmedRevisionId = confirmed.id;
+    next.status = "confirmed";
+  } else {
+    delete next.confirmed;
+    delete next.confirmedRevisionId;
+    next.status = "withdrawn";
+  }
+  return next;
+}
+
+export function withdrawDelayRevision(
+  plan: ProjectGateDelayPlan,
+  revisionId: string,
+  withdrawnAt: string
+): ProjectGateDelayPlan | undefined {
+  const next = rollbackDelayRevision(plan, revisionId);
+  const target = next?.revisions.find((revision) => revision.id === revisionId);
+  if (!next || !target) return undefined;
+  target.withdrawnAt = withdrawnAt;
+  return next;
 }
 
 export function effectiveGateSchedule(

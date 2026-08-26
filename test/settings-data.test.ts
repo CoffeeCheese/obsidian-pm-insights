@@ -168,6 +168,7 @@ describe("normalizeInsightSettings", () => {
             createdAt: "2026-08-10T09:00:00.000Z",
             kind: "confirmed",
             reason: "Vendor delay",
+            withdrawnAt: "2026-08-11T09:00:00.000Z",
             forecast: {
               stageGates: { development: "2026-08-15" },
               acceptanceGate: "2026-08-18",
@@ -203,6 +204,7 @@ describe("normalizeInsightSettings", () => {
     expect(normalized.gateDelays.p1?.revisions[0]).toMatchObject({
       kind: "confirmed",
       reason: "Vendor delay",
+      withdrawnAt: "2026-08-11T09:00:00.000Z",
       changes: { development: "manual", acceptance: "linked", launch: "linked" }
     });
     expect(normalized.gateActuals.p1?.gates.development).toMatchObject({

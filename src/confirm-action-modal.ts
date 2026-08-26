@@ -5,6 +5,7 @@ interface ConfirmActionModalOptions {
   message: string;
   cancel: string;
   confirm: string;
+  icon?: string;
   destructive?: boolean;
   onConfirm(): void;
   onCancel?(): void;
@@ -23,7 +24,7 @@ export class ConfirmActionModal extends Modal {
     const summary = this.contentEl.createDiv("pmi-confirm-action-summary");
     if (this.options.destructive) {
       const signal = summary.createSpan("pmi-confirm-action-signal");
-      setIcon(signal, "pencil-off");
+      setIcon(signal, this.options.icon ?? "pencil-off");
     }
     summary.createEl("p", { text: this.options.message });
     const actions = this.contentEl.createDiv("pmi-confirm-action-actions");

@@ -79,6 +79,7 @@ export type GateDelayStatus =
   | "confirmed"
   | "resolved"
   | "restored"
+  | "withdrawn"
   | "completed";
 
 export type GateDelayRevisionKind =
@@ -101,6 +102,8 @@ export interface GateDelayRevision {
   createdAt: string;
   kind: GateDelayRevisionKind;
   reason: string;
+  targetRevisionId?: string;
+  withdrawnAt?: string;
   forecast: ProjectGateForecast;
   stages: GateStageSnapshot[];
   changes: Record<string, GateDateChangeSource>;

@@ -7,9 +7,17 @@ import {
   gateDelayDays,
   gateForecastDateFromDelay,
   reconcileProjectGateActuals,
+  withdrawDelayRevision,
+  withdrawableDelayRevision,
   validateGateForecast
 } from "../src/domain/gate-delay";
-import { DEFAULT_SETTINGS, type ProjectGateSchedule, type TaskRecord } from "../src/model";
+import {
+  DEFAULT_SETTINGS,
+  type GateDelayRevision,
+  type ProjectGateDelayPlan,
+  type ProjectGateSchedule,
+  type TaskRecord
+} from "../src/model";
 
 const schedule: ProjectGateSchedule = {
   startDate: "2026-08-03",
@@ -55,6 +63,28 @@ function root(): TaskRecord {
     completed: false,
     completedAt: null
   });
+}
+
+function revision(
+  id: string,
+  kind: GateDelayRevision["kind"],
+  launchDate: string,
+  withdrawnAt?: string
+): GateDelayRevision {
+  return {
+    id,
+    createdAt: `2026-08-${id.replace(/\D/g, "").padStart(2, "0")}T09:00:00.000Z`,
+    kind,
+    reason: id,
+    ...(withdrawnAt ? { withdrawnAt } : {}),
+    forecast: {
+      stageGates: structuredClone(schedule.stageGates),
+      acceptanceGate: schedule.acceptanceGate,
+      launchDate
+    },
+    stages: [],
+    changes: { launch: "manual" }
+  };
 }
 
 describe("gate delay planning", () => {
@@ -118,6 +148,79 @@ describe("gate delay planning", () => {
       },
       events: []
     })).toBe(false);
+  });
+
+  it("withdraws the latest saved item and restores the previous assessment draft", () => {
+    const first = revision("r1", "evaluation", "2026-08-24");
+    const second = revision("r2", "evaluation", "2026-08-31");
+    const plan: ProjectGateDelayPlan = {
+      status: "evaluating",
+      draft: structuredClone(second.forecast),
+      revisions: [first, second]
+    };
+
+    expect(withdrawableDelayRevision(plan)?.id).toBe("r2");
+    const withdrawnAt = "2026-08-26T09:00:00.000Z";
+    const rolledBack = withdrawDelayRevision(plan, "r2", withdrawnAt);
+    expect(rolledBack).toMatchObject({
+      status: "evaluating",
+      draft: { launchDate: "2026-08-24" }
+    });
+    expect(rolledBack?.revisions).toHaveLength(2);
+    expect(rolledBack?.revisions[1]?.withdrawnAt).toBe(withdrawnAt);
+    expect(withdrawDelayRevision(plan, "r1", withdrawnAt)).toBeUndefined();
+  });
+
+  it("ends an assessment when its only saved delay item is withdrawn", () => {
+    const saved = revision("r1", "evaluation", "2026-08-24");
+    const rolledBack = withdrawDelayRevision({
+      status: "evaluating",
+      draft: structuredClone(saved.forecast),
+      revisions: [saved]
+    }, saved.id, "2026-08-26T09:00:00.000Z");
+
+    expect(rolledBack?.status).toBe("withdrawn");
+    expect(rolledBack?.draft).toBeUndefined();
+    expect(rolledBack?.confirmed).toBeUndefined();
+  });
+
+  it("withdraws the effective confirmed item and restores the preceding confirmed plan", () => {
+    const first = revision("r1", "confirmed", "2026-08-24");
+    const second = revision("r2", "confirmed", "2026-08-31");
+    const plan: ProjectGateDelayPlan = {
+      status: "confirmed",
+      confirmed: structuredClone(second.forecast),
+      confirmedRevisionId: second.id,
+      revisions: [first, second]
+    };
+
+    const rolledBack = withdrawDelayRevision(
+      plan,
+      second.id,
+      "2026-08-26T09:00:00.000Z"
+    );
+    expect(rolledBack).toMatchObject({
+      status: "confirmed",
+      confirmedRevisionId: first.id,
+      confirmed: { launchDate: "2026-08-24" }
+    });
+  });
+
+  it("does not offer an item that was already withdrawn", () => {
+    const confirmed = revision(
+      "r1",
+      "confirmed",
+      "2026-08-24",
+      "2026-08-26T09:00:00.000Z"
+    );
+    const plan: ProjectGateDelayPlan = {
+      status: "withdrawn",
+      revisions: [confirmed]
+    };
+
+    expect(withdrawableDelayRevision(plan)).toBeUndefined();
+    expect(withdrawDelayRevision(plan, confirmed.id, "2026-08-27T09:00:00.000Z"))
+      .toBeUndefined();
   });
 });
 
