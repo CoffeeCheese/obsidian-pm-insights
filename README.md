@@ -15,7 +15,37 @@ A read-only insight layer for Project Manager that extends its projects, tasks, 
 
 **English** · [简体中文](README.zh-CN.md)
 
-![Project Manager Insights dashboard showing three projects, current scope, gate risk, team hours, weighted delivery progress, delivery exceptions, data quality, member ledgers, filters, and task rows](docs/assets/pm-insights-overview-0.3.1.png)
+<p align="center">
+  <strong>One project data source, two connected workspaces</strong><br>
+  <sub>Project Manager maintains tasks and schedules&nbsp;&nbsp;→&nbsp;&nbsp;PM Insights surfaces team delivery and risk</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="53%" align="center" valign="top">
+      <strong>Project Manager · Data &amp; execution</strong><br>
+      <sub>Create tasks · Schedule dependencies · Move work</sub>
+    </td>
+    <td width="47%" align="center" valign="top">
+      <strong>PM Insights · Read-only insight</strong><br>
+      <sub>Cross-project progress · Delivery risk · Data quality</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <a href="docs/assets/obsidian-pm-work-surfaces.png">
+        <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Project Manager execution workspace in the current Obsidian theme, showing Table, Gantt, and Kanban views">
+      </a>
+    </td>
+    <td valign="top">
+      <a href="docs/assets/pm-insights-overview-0.3.1.png">
+        <img src="docs/assets/pm-insights-overview-0.3.1.png" width="100%" alt="Project Manager Insights workspace showing project scope, gate risk, team hours, delivery progress, exceptions, and data quality">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><sub>The left side creates and maintains execution data; the right side reads it to explain and trace team delivery. Click either image to view it at full size.</sub></p>
 
 ## I. Plugin overview: from individual execution to team delivery
 
@@ -30,19 +60,11 @@ Project Manager Insights is a **read-only insight layer** built on top of that d
 | **Project Manager: data and execution** | Create and maintain projects, root tasks, and subtasks, including type, hierarchy, status, priority, dates, progress, estimates, logged time, assignees, tags, and custom fields. |
 | **Project Manager Insights: insight enhancement** | Aggregate the same data without writing to it, adding cross-project, member, delivery, acceptance, data-quality, and schedule-risk views without disrupting the existing workflow. |
 
-### 2. Project Manager in action: the execution workspace
+### 2. How the two workspaces connect
 
-Project Manager keeps planning and execution close to the Markdown files in your Vault. Three connected views let the team edit task data, shape the schedule, and move work through the delivery flow without leaving the same Markdown source.
+The same Markdown project data flows through both workspaces: teams create tasks, schedule dependencies, and move work through statuses in Project Manager; PM Insights then aggregates those execution records without writing to them and brings cross-project progress, delivery risk, and data quality into one workspace.
 
-<p align="center">
-  <a href="https://github.com/stepankropachev/obsidian-pm">
-    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Project Manager execution workspace in the current Obsidian theme, showing the Table view for task editing, Gantt view for dependency scheduling, and Kanban view for workflow movement">
-  </a>
-</p>
-
-<p align="center"><sub>Captured from the current <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager</a> interface with fictional README demo data: edit in Table, schedule in Gantt, and move work in Kanban.</sub></p>
-
-> **The handoff:** Project Manager is where the team plans, schedules, and updates work. PM Insights reads that same Markdown and YAML data to reveal cross-project delivery signals—without taking ownership of the source tasks.
+> **The handoff:** Project Manager produces trustworthy execution data. PM Insights turns it into traceable team-delivery signals without taking ownership of the source tasks.
 
 ### 3. How metadata becomes additional perspectives
 
