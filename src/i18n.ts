@@ -76,6 +76,13 @@ const en = {
   gateDelaySaveEvaluation: "Save assessment",
   gateDelayConfirm: "Confirm delay",
   gateDelayCreateEvaluation: "Create new assessment",
+  gateDelayCancelEvaluation: "Cancel this assessment",
+  gateDelayCancelEvaluationTitle: "Cancel this assessment?",
+  gateDelayCancelEvaluationMessage: (hasPrevious: boolean): string => hasPrevious
+    ? "Discard the unsaved forecast dates and reason, then return to the previous delay plan."
+    : "Discard the unsaved forecast dates and reason, then return to no delay assessment.",
+  gateDelayContinueEvaluation: "Keep editing",
+  gateDelayCancelEvaluationConfirm: "Discard assessment",
   gateDelayConfirmRestore: "Confirm return to baseline",
   gateDelayWithdraw: "Withdraw this delay item",
   gateDelayWithdrawTitle: "Withdraw delay item",
@@ -518,6 +525,13 @@ const zh: typeof en = {
   gateDelaySaveEvaluation: "保存延期评估",
   gateDelayConfirm: "确认延期",
   gateDelayCreateEvaluation: "创建新一轮评估",
+  gateDelayCancelEvaluation: "取消本轮评估",
+  gateDelayCancelEvaluationTitle: "取消本轮评估？",
+  gateDelayCancelEvaluationMessage: (hasPrevious: boolean) => hasPrevious
+    ? "放弃尚未保存的预计日期和调整原因，返回上一份延期计划。"
+    : "放弃尚未保存的预计日期和调整原因，返回尚未发起延期评估的状态。",
+  gateDelayContinueEvaluation: "继续填写",
+  gateDelayCancelEvaluationConfirm: "放弃本轮评估",
   gateDelayConfirmRestore: "确认恢复原计划",
   gateDelayWithdraw: "撤销此延期事项",
   gateDelayWithdrawTitle: "撤销延期事项",

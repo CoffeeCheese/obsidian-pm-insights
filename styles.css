@@ -1018,6 +1018,28 @@ body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action
   transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-cancel:not(.clickable-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-end: auto;
+  border-color: color-mix(in srgb, var(--pmi-delay-baseline) 44%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--pmi-delay-baseline) 72%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-baseline) 5%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-cancel:not(.clickable-icon) svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.8;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-cancel:not(.clickable-icon):is(:hover, :focus-visible, :active) {
+  border-color: color-mix(in srgb, var(--pmi-delay-baseline) 68%, var(--background-modifier-border));
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--pmi-delay-baseline) 10%, var(--background-primary));
+}
+
 body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action:not(.clickable-icon):is(:hover, :focus-visible, :active) {
   border-color: var(--pmi-delay-control-hover);
   color: var(--text-normal);
@@ -1500,6 +1522,12 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
 
   .pmi-delay-actions > button {
     width: 100%;
+  }
+
+  .pmi-delay-actions > button.pmi-delay-action.is-cancel {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    margin-inline-end: 0;
   }
 
   .pmi-delay-history-action {

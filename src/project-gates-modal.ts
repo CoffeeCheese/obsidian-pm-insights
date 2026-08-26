@@ -65,6 +65,13 @@ interface DurationRow {
   projectDuration: boolean;
 }
 
+interface DelayEvaluationSnapshot {
+  delay: ProjectGateDelayPlan | undefined;
+  delayDirty: boolean;
+  pendingChanges: Record<string, GateDateChangeSource>;
+  reason: string;
+}
+
 class ProjectNameConfirmModal extends Modal {
   constructor(
     app: App,
@@ -130,6 +137,7 @@ export class ProjectGatesModal extends Modal {
   private reason = "";
   private launchDate = "";
   private launchReason = "";
+  private evaluationSnapshot: DelayEvaluationSnapshot | undefined;
 
   constructor(app: App, private readonly options: ProjectGatesModalOptions) {
     super(app);
@@ -652,6 +660,15 @@ export class ProjectGatesModal extends Modal {
     });
     message.setText(this.forecastValidationMessage(validation));
     const actions = form.createDiv("pmi-delay-actions");
+    if (this.evaluationSnapshot) {
+      const cancel = actions.createEl("button", {
+        cls: "pmi-delay-action is-cancel",
+        attr: { type: "button" }
+      });
+      setIcon(cancel.createSpan(), "x");
+      cancel.createSpan({ text: t.gateDelayCancelEvaluation });
+      cancel.addEventListener("click", () => this.cancelEvaluation());
+    }
     const save = new ButtonComponent(actions).setButtonText(t.gateDelaySaveEvaluation);
     save.buttonEl.addClass("pmi-delay-action", "is-save");
     save.setDisabled(!validation.valid).onClick(() => void this.saveEvaluation(message));
@@ -893,6 +910,12 @@ export class ProjectGatesModal extends Modal {
   }
 
   private startEvaluation(): void {
+    this.evaluationSnapshot = {
+      delay: this.delay ? structuredClone(this.delay) : undefined,
+      delayDirty: this.delayDirty,
+      pendingChanges: structuredClone(this.pendingChanges),
+      reason: this.reason
+    };
     const base = this.delay?.confirmed
       ? cloneForecast(this.delay.confirmed)
       : forecastFromSchedule(this.baseline);
@@ -914,6 +937,36 @@ export class ProjectGatesModal extends Modal {
     this.delayDirty = true;
   }
 
+  private cancelEvaluation(): void {
+    const snapshot = this.evaluationSnapshot;
+    if (!snapshot) return;
+    const restore = (): void => {
+      this.delay = snapshot.delay ? structuredClone(snapshot.delay) : undefined;
+      this.delayDirty = snapshot.delayDirty;
+      this.pendingChanges = structuredClone(snapshot.pendingChanges);
+      this.reason = snapshot.reason;
+      this.evaluationSnapshot = undefined;
+      this.confirmationOpen = false;
+      this.render();
+    };
+    const hasChanges = Object.keys(this.pendingChanges).length > 0 || this.reason.length > 0;
+    if (!hasChanges) {
+      restore();
+      return;
+    }
+    if (this.confirmationOpen) return;
+    this.confirmationOpen = true;
+    const t = this.options.translations;
+    new ConfirmActionModal(this.app, {
+      title: t.gateDelayCancelEvaluationTitle,
+      message: t.gateDelayCancelEvaluationMessage(Boolean(snapshot.delay)),
+      cancel: t.gateDelayContinueEvaluation,
+      confirm: t.gateDelayCancelEvaluationConfirm,
+      onConfirm: restore,
+      onCancel: () => { this.confirmationOpen = false; }
+    }).open();
+  }
+
   private async saveEvaluation(message: HTMLElement): Promise<void> {
     if (!this.delay?.draft) return;
     if (this.delay.revisions.length > 0 && !this.reason.trim()) {
@@ -930,6 +983,7 @@ export class ProjectGatesModal extends Modal {
       this.delay.status = "evaluating";
     }
     await this.persist();
+    this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
     this.delayDirty = false;
@@ -949,6 +1003,7 @@ export class ProjectGatesModal extends Modal {
       this.delay.status = "resolved";
       delete this.delay.draft;
       await this.persist();
+      this.evaluationSnapshot = undefined;
       this.reason = "";
       this.pendingChanges = {};
       this.delayDirty = false;
@@ -970,6 +1025,7 @@ export class ProjectGatesModal extends Modal {
       this.delay.confirmedRevisionId = revision.id;
     }
     await this.persist();
+    this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
     this.delayDirty = false;
@@ -998,6 +1054,7 @@ export class ProjectGatesModal extends Modal {
     if (!rolledBack) return;
     this.delay = rolledBack;
     await this.persist();
+    this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
     this.delayDirty = false;
@@ -1063,6 +1120,7 @@ export class ProjectGatesModal extends Modal {
   private async clearDelayData(): Promise<void> {
     this.delay = undefined;
     this.delayDirty = false;
+    this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
     await this.persist();
