@@ -111,6 +111,18 @@ export function actualGateDelayDays(
   );
 }
 
+export function gateForecastDateFromDelay(
+  baseline: ProjectGateSchedule,
+  gateId: string,
+  delayDays: number
+): string {
+  return addScheduleDays(
+    baselineGateDate(baseline, gateId),
+    delayDays,
+    baseline.includeWeekends
+  );
+}
+
 export function forecastVarianceDays(
   baseline: ProjectGateSchedule,
   forecast: ProjectGateForecast,

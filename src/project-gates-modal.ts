@@ -13,6 +13,7 @@ import {
   forecastHasDelay,
   forecastVarianceDays,
   gateDelayDays,
+  gateForecastDateFromDelay,
   gateForecastDate,
   setGateForecastDate,
   validateGateForecast
@@ -52,6 +53,8 @@ interface ProjectGatesModalOptions {
 }
 
 type GateEditorTab = "baseline" | "delay";
+
+const MAX_DELAY_DAYS = 9999;
 
 interface DurationRow {
   element: HTMLElement;
@@ -463,6 +466,13 @@ export class ProjectGatesModal extends Modal {
     forecast: ProjectGateForecast,
     editable: boolean
   ): void {
+    if (editable) {
+      const hint = root.createDiv("pmi-delay-edit-hint");
+      setIcon(hint.createSpan(), "calculator");
+      hint.createSpan({
+        text: this.options.translations.gateDelayEditHint(this.baseline.includeWeekends)
+      });
+    }
     const timeline = root.createDiv("pmi-delay-timeline");
     timeline.createDiv({ cls: "pmi-delay-track-line", attr: { "aria-hidden": "true" } });
     for (const gateId of this.gateIds()) {
@@ -488,19 +498,9 @@ export class ProjectGatesModal extends Modal {
       const tracks = body.createDiv("pmi-delay-row-tracks");
       this.renderDateTrack(tracks, "baseline", this.options.translations.gateDelayBaseline,
         baselineGateDate(this.baseline, gateId));
-      if (editable) {
-        const field = tracks.createEl("label", { cls: "pmi-delay-date-track is-forecast" });
-        field.createSpan({ text: this.options.translations.gateDelayForecast });
-        const input = field.createEl("input", {
-          type: "date",
-          value: gateForecastDate(forecast, gateId),
-          attr: { "aria-label": `${this.gateLabel(gateId)} · ${this.options.translations.gateDelayForecast}` }
-        });
-        input.disabled = Boolean(actual);
-        input.addEventListener("change", () => {
-          this.updateForecastDate(gateId, input.value);
-          this.render();
-        });
+      if (editable && !actual) {
+        tracks.addClass("is-forecast-editable");
+        this.renderForecastEditor(tracks, forecast, gateId, plannedDays);
       } else {
         this.renderDateTrack(tracks, "forecast", this.options.translations.gateDelayForecast,
           gateForecastDate(forecast, gateId));
@@ -514,6 +514,75 @@ export class ProjectGatesModal extends Modal {
         result.createSpan({ text: this.options.translations.gateDelayVariance(variance, this.baseline.includeWeekends) });
       }
     }
+  }
+
+  private renderForecastEditor(
+    root: HTMLElement,
+    forecast: ProjectGateForecast,
+    gateId: string,
+    plannedDays: number
+  ): void {
+    const t = this.options.translations;
+    const gateLabel = this.gateLabel(gateId);
+    const field = root.createDiv("pmi-delay-date-track is-forecast is-editable");
+    field.createSpan({ text: t.gateDelayForecast });
+    const editor = field.createDiv("pmi-delay-forecast-editor");
+    const dateField = editor.createEl("label", { cls: "pmi-delay-forecast-control is-date" });
+    dateField.createSpan({ text: t.gateDelayDateInput });
+    const dateInput = dateField.createEl("input", {
+      type: "date",
+      value: gateForecastDate(forecast, gateId),
+      attr: {
+        min: baselineGateDate(this.baseline, gateId),
+        "aria-label": `${gateLabel} · ${t.gateDelayDateInput}`
+      }
+    });
+    dateInput.addEventListener("change", () => {
+      this.updateForecastDate(gateId, dateInput.value);
+      this.render();
+    });
+
+    const bridge = editor.createSpan({
+      cls: "pmi-delay-forecast-bridge",
+      attr: { "aria-hidden": "true" }
+    });
+    setIcon(bridge, "arrow-left-right");
+
+    const daysField = editor.createEl("label", { cls: "pmi-delay-forecast-control is-days" });
+    daysField.createSpan({ text: t.gateDelayDaysInput });
+    const daysControl = daysField.createDiv("pmi-delay-days-control");
+    daysControl.createSpan({ cls: "pmi-delay-days-prefix", text: "+" });
+    const daysInput = daysControl.createEl("input", {
+      cls: "pmi-delay-days-input",
+      type: "text",
+      value: String(plannedDays),
+      attr: {
+        inputmode: "numeric",
+        pattern: "[0-9]*",
+        autocomplete: "off",
+        spellcheck: "false",
+        "aria-label": t.gateDelayDaysAria(gateLabel, this.baseline.includeWeekends)
+      }
+    });
+    daysControl.createSpan({
+      cls: "pmi-delay-days-unit",
+      text: t.gateDelayDaysUnit(this.baseline.includeWeekends)
+    });
+    daysInput.addEventListener("input", () => daysInput.setCustomValidity(""));
+    daysInput.addEventListener("change", () => {
+      const delayDays = Number(daysInput.value);
+      if (!Number.isInteger(delayDays) || delayDays < 0 || delayDays > MAX_DELAY_DAYS) {
+        daysInput.setCustomValidity(t.gateDelayDaysInvalid(MAX_DELAY_DAYS));
+        daysInput.reportValidity();
+        daysInput.value = String(plannedDays);
+        return;
+      }
+      this.updateForecastDate(
+        gateId,
+        gateForecastDateFromDelay(this.baseline, gateId, delayDays)
+      );
+      this.render();
+    });
   }
 
   private renderDateTrack(root: HTMLElement, kind: string, label: string, value: string): void {

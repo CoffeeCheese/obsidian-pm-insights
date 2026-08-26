@@ -551,6 +551,30 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   padding: 17px 22px 4px;
 }
 
+.pmi-delay-edit-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 22px 0;
+  padding: 8px 10px;
+  border-inline-start: 2px solid var(--pmi-delay-evaluating);
+  border-radius: 0 8px 8px 0;
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 76%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 7%, transparent);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.45;
+}
+
+.pmi-delay-edit-hint > span:first-child {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.pmi-delay-edit-hint svg {
+  width: 15px;
+  height: 15px;
+}
+
 .pmi-delay-track-line {
   position: absolute;
   inset-block: 32px 30px;
@@ -640,6 +664,10 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   margin-block-start: 7px;
 }
 
+.pmi-delay-row-tracks.is-forecast-editable {
+  grid-template-columns: minmax(145px, 0.8fr) minmax(300px, 2.2fr);
+}
+
 .pmi-delay-date-track {
   display: grid;
   min-width: 0;
@@ -677,6 +705,124 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
 .pmi-delay-date-track.is-forecast {
   border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 42%, var(--background-modifier-border));
   background: color-mix(in srgb, var(--pmi-delay-evaluating) 6%, var(--background-secondary));
+}
+
+.pmi-delay-date-track.is-forecast.is-editable {
+  gap: 5px;
+}
+
+.pmi-delay-forecast-editor {
+  display: grid;
+  grid-template-columns: minmax(145px, 1.15fr) 22px minmax(130px, 0.85fr);
+  align-items: end;
+  gap: 7px;
+}
+
+.pmi-delay-forecast-control {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.pmi-delay-forecast-control > span {
+  color: var(--text-muted);
+  font-size: calc(var(--font-ui-smaller) - 1px);
+  font-weight: var(--font-medium);
+}
+
+.pmi-delay-forecast-control > input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 2px 6px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-delay-forecast-bridge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 30px;
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 70%, var(--text-muted));
+}
+
+.pmi-delay-forecast-bridge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pmi-delay-days-control {
+  display: grid;
+  grid-template-columns: 27px minmax(44px, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  height: 30px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
+  border-radius: var(--input-radius);
+  background: var(--background-primary);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.pmi-delay-days-control:hover {
+  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 54%, var(--background-modifier-border));
+}
+
+.pmi-delay-days-control:focus-within {
+  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 76%, var(--text-normal));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pmi-delay-evaluating) 16%, transparent);
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 4%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-input {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 2px 3px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  caret-color: var(--pmi-delay-evaluating);
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-input:is(:hover, :focus, :focus-visible, :active) {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.pmi-delay-days-prefix,
+.pmi-delay-days-unit {
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 78%, var(--text-normal));
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.pmi-delay-days-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  padding: 0;
+  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent);
+}
+
+.pmi-delay-days-unit {
+  padding-inline-end: 7px;
 }
 
 .pmi-delay-date-track.is-actual {
@@ -1004,6 +1150,10 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .pmi-delay-row-tracks.is-forecast-editable {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .pmi-delay-history-diff-row {
     grid-template-columns: minmax(100px, 1fr) minmax(96px, auto);
   }
@@ -1023,6 +1173,7 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   }
 
   .pmi-delay-hero,
+  .pmi-delay-edit-hint,
   .pmi-delay-action-panel,
   .pmi-launch-record {
     margin-inline: 12px;
@@ -1066,6 +1217,17 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
     gap: 2px;
   }
 
+  .pmi-delay-forecast-editor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .pmi-delay-forecast-bridge {
+    width: 100%;
+    height: 12px;
+    transform: rotate(90deg);
+  }
+
   .pmi-delay-actions,
   .pmi-delay-danger {
     grid-template-columns: minmax(0, 1fr);
@@ -1081,6 +1243,10 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-empty-icon,
   .pmi-delay-marker-forecast {
     transform: none;
+  }
+
+  .pmi-delay-days-control {
+    transition: none;
   }
 }
 

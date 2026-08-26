@@ -5,6 +5,7 @@ import {
   forecastFromSchedule,
   forecastHasDelay,
   gateDelayDays,
+  gateForecastDateFromDelay,
   reconcileProjectGateActuals,
   validateGateForecast
 } from "../src/domain/gate-delay";
@@ -78,6 +79,13 @@ describe("gate delay planning", () => {
     expect(addScheduleDays("2026-08-07", 1, false)).toBe("2026-08-10");
     expect(addScheduleDays("2026-08-10", -1, false)).toBe("2026-08-07");
     expect(addScheduleDays("2026-08-07", 1, true)).toBe("2026-08-08");
+  });
+
+  it("converts a directly entered delay back into a forecast date", () => {
+    expect(gateForecastDateFromDelay(schedule, "development", 5)).toBe("2026-08-17");
+    expect(gateForecastDateFromDelay({ ...schedule, includeWeekends: true }, "development", 5))
+      .toBe("2026-08-15");
+    expect(gateForecastDateFromDelay(schedule, "development", 0)).toBe("2026-08-10");
   });
 
   it("rejects forecast dates before the baseline or in the past", () => {

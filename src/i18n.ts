@@ -80,6 +80,15 @@ const en = {
   gateDelayForecast: "Forecast",
   gateDelayBaseline: "Baseline",
   gateDelayActual: "Actual",
+  gateDelayDateInput: "Forecast date",
+  gateDelayDaysInput: "Delay by",
+  gateDelayDaysUnit: (includeWeekends: boolean): string =>
+    includeWeekends ? "calendar days" : "workdays",
+  gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
+    `${gate} · Delay in ${includeWeekends ? "calendar days" : "workdays"}`,
+  gateDelayDaysInvalid: (max: number) => `Enter a whole number from 0 to ${max}.`,
+  gateDelayEditHint: (includeWeekends: boolean) =>
+    `Choose a forecast date or enter the delay in ${includeWeekends ? "calendar days" : "workdays"}. Either value updates the other and shifts later gates.`,
   gateDelayExpected: (days: number, includeWeekends: boolean) =>
     days === 0 ? "On baseline" : `Forecast +${englishScheduleDays(days, includeWeekends)}`,
   gateDelayActualResult: (days: number, includeWeekends: boolean) =>
@@ -501,6 +510,14 @@ const zh: typeof en = {
   gateDelayForecast: "延期预计",
   gateDelayBaseline: "原始基线",
   gateDelayActual: "实际结果",
+  gateDelayDateInput: "预计日期",
+  gateDelayDaysInput: "延期天数",
+  gateDelayDaysUnit: (includeWeekends: boolean) => includeWeekends ? "自然日" : "工作日",
+  gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
+    `${gate} · 延期${includeWeekends ? "自然日" : "工作日"}`,
+  gateDelayDaysInvalid: (max: number) => `请输入 0 至 ${max} 的整数。`,
+  gateDelayEditHint: (includeWeekends: boolean) =>
+    `可选择预计日期，也可直接填写延期${includeWeekends ? "自然日" : "工作日"}；两者会相互换算，并联动顺延后续门禁。`,
   gateDelayExpected: (days: number, includeWeekends: boolean) =>
     days === 0 ? "符合原计划" : `预计延期 ${chineseScheduleDays(days, includeWeekends)}`,
   gateDelayActualResult: (days: number, includeWeekends: boolean) =>
