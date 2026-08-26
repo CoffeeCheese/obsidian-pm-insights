@@ -903,12 +903,82 @@ body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-in
   resize: vertical;
 }
 
+.pmi-delay-reason {
+  gap: 7px;
+}
+
+.pmi-delay-reason textarea {
+  min-height: 92px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+
+.pmi-delay-action-panel > .pmi-gate-editor-validation {
+  min-height: 20px;
+  padding: 5px 0 0;
+}
+
+.pmi-delay-action-panel > .pmi-gate-editor-validation:empty {
+  display: none;
+}
+
 .pmi-delay-actions,
 .pmi-delay-settled-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.pmi-delay-actions {
+  align-items: center;
+  margin-block-start: 12px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid color-mix(in srgb, var(--pmi-delay-baseline) 20%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action:not(.clickable-icon) {
+  min-height: 30px;
+  padding: 3px 10px;
+  border: 1px solid var(--pmi-delay-control-border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  box-shadow: none;
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  transform: none;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action:not(.clickable-icon):is(:hover, :focus-visible, :active) {
+  border-color: var(--pmi-delay-control-hover);
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 4%, var(--background-primary));
+  box-shadow: none;
+  transform: none;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-withdraw:not(.clickable-icon) {
+  margin-inline-end: auto;
+  border-color: transparent;
+  background: transparent;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-confirm:not(.clickable-icon) {
+  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 52%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 82%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 10%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action.is-confirm:not(.clickable-icon):is(:hover, :focus-visible, :active) {
+  border-color: var(--pmi-delay-control-focus);
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 72%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 16%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-actions > button.pmi-delay-action:not(.clickable-icon):disabled {
+  opacity: 0.48;
 }
 
 .pmi-delay-settled-actions {
@@ -1262,14 +1332,27 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
     transform: rotate(90deg);
   }
 
-  .pmi-delay-actions,
   .pmi-delay-danger {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .pmi-delay-actions > button,
   .pmi-delay-danger > button {
     width: 100%;
+  }
+
+  .pmi-delay-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmi-delay-actions > button {
+    width: 100%;
+  }
+
+  .pmi-delay-actions > button.is-withdraw {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: auto;
   }
 }
 
@@ -1282,7 +1365,8 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-forecast-control > span,
   .pmi-delay-forecast-control.is-date > input[type="date"],
   .pmi-delay-days-control,
-  .pmi-delay-reason > textarea {
+  .pmi-delay-reason > textarea,
+  .pmi-delay-actions > button.pmi-delay-action {
     transition: none;
   }
 }

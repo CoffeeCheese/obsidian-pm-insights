@@ -606,7 +606,7 @@ export class ProjectGatesModal extends Modal {
     reason.createSpan({ text: t.gateDelayReason });
     const textarea = reason.createEl("textarea", {
       placeholder: t.gateDelayReasonPlaceholder,
-      attr: { rows: "2" }
+      attr: { rows: "4" }
     });
     textarea.value = this.reason;
     textarea.addEventListener("input", () => {
@@ -620,8 +620,10 @@ export class ProjectGatesModal extends Modal {
     message.setText(this.forecastValidationMessage(validation));
     const actions = form.createDiv("pmi-delay-actions");
     const withdraw = new ButtonComponent(actions).setButtonText(t.gateDelayWithdraw);
+    withdraw.buttonEl.addClass("pmi-delay-action", "is-withdraw");
     withdraw.onClick(() => void this.withdrawEvaluation(message));
     const save = new ButtonComponent(actions).setButtonText(t.gateDelaySaveEvaluation);
+    save.buttonEl.addClass("pmi-delay-action", "is-save");
     save.setDisabled(!validation.valid).onClick(() => void this.saveEvaluation(message));
     const hasDelay = forecastHasDelay(
       this.baseline,
@@ -633,6 +635,7 @@ export class ProjectGatesModal extends Modal {
     const confirm = new ButtonComponent(actions)
       .setButtonText(confirmingRestore ? t.gateDelayConfirmRestore : t.gateDelayConfirm)
       .setCta();
+    confirm.buttonEl.addClass("pmi-delay-action", "is-confirm");
     confirm.setDisabled(!validation.valid || (!hasDelay && !this.delay.confirmed))
       .onClick(() => void this.confirmEvaluation(message));
   }
