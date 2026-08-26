@@ -36,11 +36,11 @@ Project Manager keeps planning and execution close to the Markdown files in your
 
 <p align="center">
   <a href="https://github.com/stepankropachev/obsidian-pm">
-    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Static Project Manager interface contact sheet showing the Table view for task editing, Gantt view for dependency scheduling, and Kanban view for workflow movement">
+    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Project Manager execution workspace in the current Obsidian theme, showing the Table view for task editing, Gantt view for dependency scheduling, and Kanban view for workflow movement">
   </a>
 </p>
 
-<p align="center"><sub>A lightweight static contact sheet assembled from interface frames in the <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager upstream repository</a>: edit in Table, schedule in Gantt, and move work in Kanban.</sub></p>
+<p align="center"><sub>Captured from the current <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager</a> interface with fictional README demo data: edit in Table, schedule in Gantt, and move work in Kanban.</sub></p>
 
 > **The handoff:** Project Manager is where the team plans, schedules, and updates work. PM Insights reads that same Markdown and YAML data to reveal cross-project delivery signals—without taking ownership of the source tasks.
 

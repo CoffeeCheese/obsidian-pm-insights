@@ -36,11 +36,11 @@ Project Manager 让计划与执行始终贴近 Vault 中的 Markdown 文件。�
 
 <p align="center">
   <a href="https://github.com/stepankropachev/obsidian-pm">
-    <img src="docs/assets/obsidian-pm-work-surfaces.png" width="100%" alt="Project Manager 静态界面联系表，展示用于编辑任务的表格视图、安排依赖的甘特视图和推动工作流转的看板视图">
+    <img src="docs/assets/obsidian-pm-work-surfaces.zh-CN.png" width="100%" alt="当前 Obsidian 主题下的 Project Manager 执行工作台，展示用于编辑任务的表格视图、安排依赖的甘特视图和推动工作流转的看板视图">
   </a>
 </p>
 
-<p align="center"><sub>基于 <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager 上游仓库</a>界面帧制作的轻量静态联系表：在表格中编辑，在甘特图中排期，在看板中推动流转。</sub></p>
+<p align="center"><sub>使用虚构 README 演示数据，从当前 <a href="https://github.com/stepankropachev/obsidian-pm">Project Manager</a> 界面取景：在表格中编辑，在甘特图中排期，在看板中推动流转。</sub></p>
 
 > **两个插件的交接点：** 团队在 Project Manager 中规划、排期并更新任务；PM Insights 只读解析同一份 Markdown 与 YAML 数据，将其扩展为跨项目交付信号，同时不接管源任务。
 
