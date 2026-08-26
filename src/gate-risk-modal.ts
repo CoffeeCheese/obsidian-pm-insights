@@ -231,8 +231,9 @@ export class GateRiskModal extends Modal {
     nearest: boolean,
     t: Translations
   ): void {
+    const hasDelayTimeline = this.hasDelayTimeline(gate);
     const item = root.createEl("details", {
-      cls: `pmi-risk-gate is-${gate.state}${gate.skipped ? " is-skipped" : ""}${nearest ? " is-nearest" : ""}`,
+      cls: `pmi-risk-gate is-${gate.state}${gate.skipped ? " is-skipped" : ""}${nearest ? " is-nearest" : ""}${hasDelayTimeline ? " has-delay-timeline" : ""}`,
       attr: { "data-gate-id": gate.id }
     });
     item.open = gate.state === "overdue" || gate.state === "high" || gate.state === "attention";
@@ -247,10 +248,14 @@ export class GateRiskModal extends Modal {
       cls: `pmi-risk-state is-progress-${gate.progressSignal}`,
       text: gate.skipped ? t.riskStateSkipped : this.gateStateLabel(gate, t)
     });
-    main.createSpan({
-      cls: "pmi-risk-gate-date",
-      text: this.gateDateLabel(gate, t)
-    });
+    if (hasDelayTimeline) {
+      this.renderDelayTimeline(main, gate, t);
+    } else {
+      main.createSpan({
+        cls: "pmi-risk-gate-date",
+        text: this.gateDateLabel(gate, t)
+      });
+    }
     const progress = summary.createDiv("pmi-risk-gate-progress");
     progress.createEl("strong", { text: gate.skipped ? "—" : `${gate.progress}%` });
     if (gate.skipped) {
@@ -272,7 +277,6 @@ export class GateRiskModal extends Modal {
     }
 
     const body = item.createDiv("pmi-risk-gate-body");
-    if (gate.delayStatus) this.renderDelayContext(body, gate, t);
     if (gate.reasons.length > 0) {
       const reasons = body.createDiv("pmi-risk-reasons");
       for (const reason of gate.reasons) {
@@ -315,38 +319,103 @@ export class GateRiskModal extends Modal {
     }
   }
 
-  private renderDelayContext(
+  private renderDelayTimeline(
     root: HTMLElement,
     gate: GateRiskMetric,
     t: Translations
   ): void {
-    const context = root.createDiv("pmi-risk-delay-context");
-    const dates = context.createDiv("pmi-risk-delay-dates");
-    for (const [kind, label, value] of [
-      ["baseline", t.gateDelayBaseline, gate.baselineDate],
-      ["forecast", t.gateDelayForecast, gate.forecastDate],
-      ["actual", t.gateDelayActual, gate.actualDate]
-    ] as const) {
-      if (!value) continue;
-      const track = dates.createDiv(`pmi-risk-delay-date is-${kind}`);
-      track.createSpan({ text: label });
-      track.createEl("time", { text: value, attr: { datetime: value } });
+    const baseline = gate.baselineDate ?? gate.gateDate;
+    const forecast = gate.forecastDate && gate.forecastDate !== baseline
+      ? gate.forecastDate
+      : null;
+    const actual = gate.actualDate && gate.actualDate !== (forecast ?? baseline)
+      ? gate.actualDate
+      : null;
+    const forecastOutcome = gate.delayDays !== null && gate.delayDays !== undefined
+      ? t.gateDelayExpected(gate.delayDays, gate.includeWeekends)
+      : null;
+    const actualOutcome = gate.actualDelayDays !== null && gate.actualDelayDays !== undefined
+      ? t.gateDelayActualResult(gate.actualDelayDays, gate.includeWeekends)
+      : null;
+    const variance = gate.forecastVarianceDays !== null && gate.forecastVarianceDays !== undefined
+      ? t.gateDelayVariance(gate.forecastVarianceDays, gate.includeWeekends)
+      : null;
+    const aria = [
+      `${t.gateRiskBaselineTrack} ${baseline}`,
+      forecast ? `${t.gateDelayForecast} ${forecast}` : "",
+      actual ? `${t.gateDelayActual} ${actual}` : "",
+      actualOutcome ?? forecastOutcome ?? "",
+      variance ?? "",
+      gate.forecastMissed ? t.gateDelayNeedsReforecast : "",
+      this.gateTimeStatusLabel(gate, t)
+    ].filter(Boolean).join("; ");
+    const track = root.createDiv({
+      cls: `pmi-risk-gate-schedule${gate.forecastMissed ? " is-missed" : ""}`,
+      attr: { role: "group", "aria-label": aria }
+    });
+    this.renderDelayStop(track, "baseline", t.gateRiskBaselineTrack, baseline);
+    if (forecast) {
+      this.renderDelaySegment(track, "forecast", t.gateRiskForecastTrack, forecast);
     }
-    const outcomes = context.createDiv("pmi-risk-delay-outcomes");
-    if (gate.delayDays !== null && gate.delayDays !== undefined) {
-      outcomes.createSpan({ text: t.gateDelayExpected(gate.delayDays, gate.includeWeekends) });
+    if (actual) {
+      this.renderDelaySegment(track, "actual", t.gateRiskActualTrack, actual);
     }
-    if (gate.actualDelayDays !== null && gate.actualDelayDays !== undefined) {
-      outcomes.createSpan({ text: t.gateDelayActualResult(gate.actualDelayDays, gate.includeWeekends) });
-    }
-    if (gate.forecastVarianceDays !== null && gate.forecastVarianceDays !== undefined) {
-      outcomes.createSpan({ text: t.gateDelayVariance(gate.forecastVarianceDays, gate.includeWeekends) });
+    const outcome = actualOutcome ?? forecastOutcome;
+    if (outcome) {
+      const outcomeEl = track.createSpan({
+        cls: `pmi-risk-gate-schedule-outcome${actualOutcome ? " is-actual" : ""}`,
+        text: outcome
+      });
+      if (variance) outcomeEl.setAttribute("title", variance);
     }
     if (gate.forecastMissed) {
-      const missed = context.createDiv("pmi-risk-delay-missed");
-      setIcon(missed.createSpan(), "triangle-alert");
-      missed.createSpan({ text: t.gateDelayNeedsReforecast });
+      const missed = track.createSpan({
+        cls: "pmi-risk-gate-schedule-alert",
+        attr: { title: t.gateDelayNeedsReforecast, "aria-hidden": "true" }
+      });
+      setIcon(missed, "triangle-alert");
     }
+    const clock = this.gateTimeStatusLabel(gate, t);
+    if (clock) {
+      track.createSpan({ cls: "pmi-risk-gate-schedule-clock", text: clock });
+    }
+  }
+
+  private renderDelaySegment(
+    root: HTMLElement,
+    kind: "forecast" | "actual",
+    label: string,
+    value: string
+  ): void {
+    const segment = root.createSpan("pmi-risk-gate-schedule-segment");
+    const connector = segment.createSpan({
+      cls: "pmi-risk-gate-schedule-connector",
+      attr: { "aria-hidden": "true" }
+    });
+    setIcon(connector, "arrow-right");
+    this.renderDelayStop(segment, kind, label, value);
+  }
+
+  private renderDelayStop(
+    root: HTMLElement,
+    kind: "baseline" | "forecast" | "actual",
+    label: string,
+    value: string
+  ): void {
+    const stop = root.createSpan({
+      cls: `pmi-risk-gate-schedule-stop is-${kind}`,
+      attr: { "aria-hidden": "true" }
+    });
+    stop.createSpan({ text: label });
+    stop.createEl("time", { text: value, attr: { datetime: value } });
+  }
+
+  private hasDelayTimeline(gate: GateRiskMetric): boolean {
+    if (!gate.delayStatus || !gate.baselineDate) return false;
+    return Boolean(
+      (gate.forecastDate && gate.forecastDate !== gate.baselineDate)
+      || (gate.actualDate && gate.actualDate !== gate.baselineDate)
+    );
   }
 
   private renderLaunchOverview(
@@ -614,12 +683,17 @@ export class GateRiskModal extends Modal {
 
   private gateDateLabel(gate: GateRiskMetric, t: Translations): string {
     if (gate.state === "passed") return gate.gateDate;
-    return `${gate.gateDate} · ${gate.state === "overdue"
+    return `${gate.gateDate} · ${this.gateTimeStatusLabel(gate, t)}`;
+  }
+
+  private gateTimeStatusLabel(gate: GateRiskMetric, t: Translations): string {
+    if (gate.state === "passed") return "";
+    return gate.state === "overdue"
       ? t.gateDaysOverdue(Math.abs(gate.daysRemaining), gate.includeWeekends)
       : t.gateDaysRemaining(
           gate.daysRemaining,
           gate.includeWeekends,
           gate.gateDate === this.snapshot.today
-        )}`;
+        );
   }
 }

@@ -2429,81 +2429,6 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   white-space: nowrap;
 }
 
-.pmi-risk-delay-context {
-  display: grid;
-  gap: 7px;
-  margin-block-end: 11px;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--interactive-accent) 24%, var(--background-modifier-border));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--interactive-accent) 4%, var(--background-secondary));
-}
-
-.pmi-risk-delay-dates {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.pmi-risk-delay-date {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-  padding: 6px 8px;
-  border-inline-start: 2px solid var(--text-muted);
-  background: var(--background-primary);
-}
-
-.pmi-risk-delay-date.is-forecast {
-  border-inline-start-color: color-mix(in srgb, var(--color-yellow) 76%, #d6972e);
-}
-
-.pmi-risk-delay-date.is-actual {
-  border-inline-start-color: color-mix(in srgb, var(--color-green) 72%, #2e8b78);
-}
-
-.pmi-risk-delay-date > span {
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
-
-.pmi-risk-delay-date > time {
-  overflow: hidden;
-  font-family: var(--font-monospace);
-  font-size: var(--font-ui-small);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-}
-
-.pmi-risk-delay-outcomes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.pmi-risk-delay-outcomes > span {
-  padding: 2px 6px;
-  border-radius: 999px;
-  color: var(--text-muted);
-  background: var(--background-primary);
-  font-size: var(--font-ui-smaller);
-}
-
-.pmi-risk-delay-missed {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-error);
-  font-size: var(--font-ui-smaller);
-  font-weight: var(--font-medium);
-}
-
-@media (max-width: 520px) {
-  .pmi-risk-delay-dates {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .pmi-gate-risk-summary-action {
   display: inline-flex;
   align-items: center;
@@ -2882,6 +2807,108 @@ body .modal-container .modal.pmi-confirm-action-modal
 .pmi-risk-gate-progress {
   justify-items: end;
   text-align: end;
+}
+
+.pmi-risk-gate-schedule {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 6px;
+  margin-block-start: 3px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+.pmi-risk-gate-schedule-segment,
+.pmi-risk-gate-schedule-stop {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.pmi-risk-gate-schedule-segment {
+  gap: 5px;
+}
+
+.pmi-risk-gate-schedule-stop {
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.pmi-risk-gate-schedule-stop > span {
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: var(--font-medium);
+}
+
+.pmi-risk-gate-schedule-stop > time {
+  font-family: var(--font-monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-risk-gate-schedule-stop.is-forecast > :is(span, time) {
+  color: color-mix(in srgb, var(--color-yellow) 76%, var(--text-normal));
+}
+
+.pmi-risk-gate-schedule-stop.is-actual > :is(span, time) {
+  color: color-mix(in srgb, var(--color-green) 72%, var(--text-normal));
+}
+
+.pmi-risk-gate-schedule-connector {
+  display: grid;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-yellow) 68%, var(--text-muted));
+}
+
+.pmi-risk-gate-schedule-connector svg,
+.pmi-risk-gate-schedule-alert svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pmi-risk-gate-schedule-outcome {
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--color-yellow) 80%, var(--text-normal));
+  background: color-mix(in srgb, var(--color-yellow) 9%, transparent);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+.pmi-risk-gate-schedule-outcome.is-actual {
+  color: color-mix(in srgb, var(--color-green) 78%, var(--text-normal));
+  background: color-mix(in srgb, var(--color-green) 8%, transparent);
+}
+
+.pmi-risk-gate-schedule-alert {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-error);
+  background: color-mix(in srgb, var(--text-error) 8%, transparent);
+}
+
+.pmi-risk-gate-schedule-clock {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.pmi-risk-gate-schedule-clock::before {
+  content: "";
+  width: 3px;
+  height: 3px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .pmi-risk-gate-body {
