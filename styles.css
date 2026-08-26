@@ -474,6 +474,186 @@ body .modal.pmi-project-gates-modal button.pmi-gate-editor-tab.is-active:not(.cl
   line-height: 1.55;
 }
 
+.pmi-delay-clock-pending {
+  display: grid;
+  width: min(760px, calc(100% - 44px));
+  gap: 16px;
+  margin: 22px auto 28px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 44%, var(--background-modifier-border));
+  border-radius: 15px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent), transparent 52%),
+    var(--background-secondary);
+}
+
+.pmi-delay-clock-pending-heading {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.pmi-delay-clock-pending-signal {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 36%, var(--background-modifier-border));
+  border-radius: 12px;
+  color: var(--pmi-delay-evaluating);
+  background: var(--background-primary);
+}
+
+.pmi-delay-clock-pending-signal svg {
+  width: 19px;
+  height: 19px;
+}
+
+.pmi-delay-clock-pending-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.pmi-delay-clock-pending-kicker {
+  color: var(--pmi-delay-evaluating);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.02em;
+}
+
+.pmi-delay-clock-pending-copy h3,
+.pmi-delay-clock-pending-copy p {
+  margin: 0;
+}
+
+.pmi-delay-clock-pending-copy h3 {
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+}
+
+.pmi-delay-clock-pending-copy p {
+  max-width: 640px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+.pmi-delay-clock-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  margin-inline-start: 54px;
+}
+
+.pmi-delay-clock-state {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--background-primary) 82%, transparent);
+}
+
+.pmi-delay-clock-state.is-pending {
+  border-color: color-mix(in srgb, var(--pmi-delay-evaluating) 50%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, var(--background-primary));
+}
+
+.pmi-delay-clock-state > span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.pmi-delay-clock-state > strong {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  align-items: center;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.pmi-delay-clock-state.is-pending > strong {
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 76%, var(--text-normal));
+}
+
+.pmi-delay-clock-state > strong svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.pmi-delay-clock-route-arrow {
+  display: grid;
+  place-items: center;
+  color: var(--pmi-delay-evaluating);
+}
+
+.pmi-delay-clock-route-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pmi-delay-clock-impact {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-inline-start: 54px;
+  padding: 9px 11px;
+  border-inline-start: 2px solid color-mix(in srgb, var(--pmi-delay-evaluating) 62%, var(--background-modifier-border));
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--background-primary) 56%, transparent);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.45;
+}
+
+.pmi-delay-clock-impact svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  margin-block-start: 1px;
+  color: var(--pmi-delay-evaluating);
+}
+
+.pmi-delay-clock-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-inline-start: 54px;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-clock-actions > button.pmi-delay-clock-action:not(.clickable-icon) {
+  min-height: 36px;
+  padding-inline: 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 9px;
+  box-shadow: none;
+  transform: none;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-clock-actions > button.pmi-delay-clock-action.is-discard:not(.clickable-icon) {
+  color: var(--text-muted);
+  background: var(--background-primary);
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-clock-actions > button.pmi-delay-clock-action.is-discard:not(.clickable-icon):is(:hover, :focus-visible) {
+  border-color: var(--background-modifier-border-hover);
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-clock-actions > button.pmi-delay-clock-action.is-save:not(.clickable-icon) {
+  border-color: color-mix(in srgb, var(--interactive-accent) 76%, var(--background-modifier-border));
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-clock-actions > button.pmi-delay-clock-action:not(.clickable-icon):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--interactive-accent) 68%, transparent);
+  outline-offset: 2px;
+}
+
 .pmi-delay-hero {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
@@ -1454,8 +1634,42 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-hero,
   .pmi-delay-edit-hint,
   .pmi-delay-action-panel,
-  .pmi-launch-record {
+  .pmi-launch-record,
+  .pmi-delay-clock-pending {
     margin-inline: 12px;
+  }
+
+  .pmi-delay-clock-pending {
+    width: auto;
+    padding: 16px;
+  }
+
+  .pmi-delay-clock-route {
+    grid-template-columns: minmax(0, 1fr);
+    margin-inline-start: 0;
+  }
+
+  .pmi-delay-clock-route-arrow {
+    height: 12px;
+    transform: rotate(90deg);
+  }
+
+  .pmi-delay-clock-impact,
+  .pmi-delay-clock-actions {
+    margin-inline-start: 0;
+  }
+
+  .pmi-delay-clock-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pmi-delay-clock-actions > button {
+    width: 100%;
+  }
+
+  .pmi-delay-clock-actions > button.pmi-delay-clock-action.is-save {
+    order: -1;
   }
 
   .pmi-delay-timeline,

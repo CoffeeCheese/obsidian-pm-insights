@@ -125,6 +125,7 @@ class ProjectNameConfirmModal extends Modal {
 
 export class ProjectGatesModal extends Modal {
   private baseline: ProjectGateSchedule;
+  private savedBaseline: ProjectGateSchedule;
   private delay: ProjectGateDelayPlan | undefined;
   private actuals: ProjectGateActualState;
   private activeTab: GateEditorTab = "baseline";
@@ -154,6 +155,7 @@ export class ProjectGatesModal extends Modal {
           includeWeekends: true
         };
     this.delay = options.delay ? structuredClone(options.delay) : undefined;
+    this.savedBaseline = structuredClone(this.baseline);
     this.actuals = structuredClone(options.actuals ?? emptyActualState());
     this.launchDate = this.actuals.launchDate ?? options.today;
   }
@@ -369,7 +371,7 @@ export class ProjectGatesModal extends Modal {
     }
     input.addEventListener("input", () => {
       update(input.value);
-      this.baselineDirty = true;
+      this.updateBaselineDirty();
       this.render();
     });
   }
@@ -401,7 +403,7 @@ export class ProjectGatesModal extends Modal {
     mode.setText(modeLabel);
     toggle.addEventListener("click", () => {
       this.baseline.includeWeekends = !this.baseline.includeWeekends;
-      this.baselineDirty = true;
+      this.updateBaselineDirty();
       this.render();
     });
   }
@@ -410,6 +412,10 @@ export class ProjectGatesModal extends Modal {
     const t = this.options.translations;
     const baselineValidation = validateGateSchedule(this.baseline, this.stageIds());
     if (this.baselineDirty || !baselineValidation.valid) {
+      if (this.baselineDirty && !gateBaselineEditPolicy(this.delay).canEditDates) {
+        this.renderDelayClockPending(root);
+        return;
+      }
       const empty = root.createDiv("pmi-delay-empty");
       setIcon(empty.createSpan("pmi-delay-empty-icon"), "route-off");
       empty.createEl("h3", { text: t.gateBaselineTab });
@@ -436,6 +442,73 @@ export class ProjectGatesModal extends Modal {
     this.renderLaunchAction(root);
     this.renderHistory(root);
     this.renderDangerZone(root);
+  }
+
+  private renderDelayClockPending(root: HTMLElement): void {
+    const t = this.options.translations;
+    const pending = root.createDiv({
+      cls: "pmi-delay-clock-pending",
+      attr: { role: "region", "aria-labelledby": "pmi-delay-clock-pending-title" }
+    });
+    const heading = pending.createDiv("pmi-delay-clock-pending-heading");
+    const signal = heading.createSpan("pmi-delay-clock-pending-signal");
+    setIcon(signal, "calendar-clock");
+    const copy = heading.createDiv("pmi-delay-clock-pending-copy");
+    copy.createSpan({ cls: "pmi-delay-clock-pending-kicker", text: t.gateDelayClockPendingKicker });
+    copy.createEl("h3", {
+      text: t.gateDelayClockPendingTitle,
+      attr: { id: "pmi-delay-clock-pending-title" }
+    });
+    copy.createEl("p", { text: t.gateDelayClockPendingBody });
+
+    const route = pending.createDiv("pmi-delay-clock-route");
+    this.renderDelayClockState(
+      route,
+      t.gateDelayClockSavedRule,
+      this.savedBaseline.includeWeekends,
+      false
+    );
+    const arrow = route.createSpan("pmi-delay-clock-route-arrow");
+    setIcon(arrow, "arrow-right");
+    this.renderDelayClockState(
+      route,
+      t.gateDelayClockPendingRule,
+      this.baseline.includeWeekends,
+      true
+    );
+
+    const impact = pending.createDiv("pmi-delay-clock-impact");
+    setIcon(impact.createSpan(), "calculator");
+    impact.createSpan({ text: t.gateDelayClockPendingImpact });
+
+    const actions = pending.createDiv("pmi-delay-clock-actions");
+    const discard = new ButtonComponent(actions).setButtonText(t.gateDelayClockDiscard);
+    discard.buttonEl.addClass("pmi-delay-clock-action", "is-discard");
+    discard.onClick(() => {
+      this.baseline.includeWeekends = this.savedBaseline.includeWeekends;
+      this.updateBaselineDirty();
+      this.render();
+    });
+    const save = new ButtonComponent(actions).setButtonText(t.gateDelayClockSave).setCta();
+    save.buttonEl.addClass("pmi-delay-clock-action", "is-save");
+    save.onClick(() => void this.saveBaseline());
+  }
+
+  private renderDelayClockState(
+    root: HTMLElement,
+    label: string,
+    includeWeekends: boolean,
+    pending: boolean
+  ): void {
+    const state = root.createDiv(`pmi-delay-clock-state${pending ? " is-pending" : ""}`);
+    state.createSpan({ text: label });
+    const mode = state.createEl("strong");
+    setIcon(mode.createSpan(), includeWeekends ? "calendar-days" : "calendar-off");
+    mode.createSpan({
+      text: includeWeekends
+        ? this.options.translations.gateCalendarDays
+        : this.options.translations.gateWorkingDays
+    });
   }
 
   private renderDelayEmpty(root: HTMLElement): void {
@@ -1114,8 +1187,23 @@ export class ProjectGatesModal extends Modal {
 
   private async saveBaseline(): Promise<void> {
     await this.persist();
+    this.savedBaseline = structuredClone(this.baseline);
     this.baselineDirty = false;
     this.render();
+  }
+
+  private updateBaselineDirty(): void {
+    const stageIds = new Set([
+      ...Object.keys(this.baseline.stageGates),
+      ...Object.keys(this.savedBaseline.stageGates)
+    ]);
+    this.baselineDirty = this.baseline.startDate !== this.savedBaseline.startDate
+      || this.baseline.acceptanceGate !== this.savedBaseline.acceptanceGate
+      || this.baseline.launchDate !== this.savedBaseline.launchDate
+      || this.baseline.includeWeekends !== this.savedBaseline.includeWeekends
+      || [...stageIds].some((id) =>
+        this.baseline.stageGates[id] !== this.savedBaseline.stageGates[id]
+      );
   }
 
   private async clearDelayData(): Promise<void> {
