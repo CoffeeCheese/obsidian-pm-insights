@@ -86,6 +86,8 @@ const en = {
     includeWeekends ? "calendar days" : "workdays",
   gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
     `${gate} · Delay in ${includeWeekends ? "calendar days" : "workdays"}`,
+  gateDelayIncrementAria: (gate: string, includeWeekends: boolean) =>
+    `Add 1 ${includeWeekends ? "calendar day" : "workday"} to ${gate}`,
   gateDelayDaysInvalid: (max: number) => `Enter a whole number from 0 to ${max}.`,
   gateDelayEditHint: (includeWeekends: boolean) =>
     `Choose a forecast date or enter the delay in ${includeWeekends ? "calendar days" : "workdays"}. Either value updates the other and shifts later gates.`,
@@ -515,6 +517,8 @@ const zh: typeof en = {
   gateDelayDaysUnit: (includeWeekends: boolean) => includeWeekends ? "自然日" : "工作日",
   gateDelayDaysAria: (gate: string, includeWeekends: boolean) =>
     `${gate} · 延期${includeWeekends ? "自然日" : "工作日"}`,
+  gateDelayIncrementAria: (gate: string, includeWeekends: boolean) =>
+    `${gate}增加 1 个${includeWeekends ? "自然日" : "工作日"}`,
   gateDelayDaysInvalid: (max: number) => `请输入 0 至 ${max} 的整数。`,
   gateDelayEditHint: (includeWeekends: boolean) =>
     `可选择预计日期，也可直接填写延期${includeWeekends ? "自然日" : "工作日"}；两者会相互换算，并联动顺延后续门禁。`,

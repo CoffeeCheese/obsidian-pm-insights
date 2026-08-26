@@ -850,9 +850,48 @@ body .modal.pmi-project-gates-modal .pmi-delay-days-control > .pmi-delay-days-in
   align-items: center;
   justify-content: center;
   align-self: stretch;
+  width: 27px;
+  min-width: 27px;
+  height: 28px;
   padding: 0;
+  border: 0;
   border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
+  border-radius: 0;
+  box-shadow: none;
   background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent);
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+body .modal.pmi-project-gates-modal .pmi-delay-days-control > button.pmi-delay-days-prefix:not(.clickable-icon) {
+  width: 27px;
+  min-width: 27px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-modifier-border));
+  border-radius: 0;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 8%, transparent);
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:is(:hover, :focus-visible, :active) {
+  border: 0;
+  border-inline-end: 1px solid color-mix(in srgb, var(--pmi-delay-evaluating) 34%, var(--background-modifier-border));
+  outline: 0;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--pmi-delay-evaluating) 88%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 16%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:active {
+  background: color-mix(in srgb, var(--pmi-delay-evaluating) 22%, var(--background-primary));
+}
+
+body .modal.pmi-project-gates-modal button.pmi-delay-days-prefix:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .pmi-delay-days-unit {
@@ -1365,6 +1404,7 @@ body .modal.pmi-delay-clear-modal button.is-destructive:not(.clickable-icon):is(
   .pmi-delay-forecast-control > span,
   .pmi-delay-forecast-control.is-date > input[type="date"],
   .pmi-delay-days-control,
+  .pmi-delay-days-prefix,
   .pmi-delay-reason > textarea,
   .pmi-delay-actions > button.pmi-delay-action {
     transition: none;

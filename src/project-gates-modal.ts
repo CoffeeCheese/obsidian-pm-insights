@@ -548,10 +548,20 @@ export class ProjectGatesModal extends Modal {
     });
     setIcon(bridge, "arrow-left-right");
 
-    const daysField = editor.createEl("label", { cls: "pmi-delay-forecast-control is-days" });
+    const daysField = editor.createDiv("pmi-delay-forecast-control is-days");
     daysField.createSpan({ text: t.gateDelayDaysInput });
     const daysControl = daysField.createDiv("pmi-delay-days-control");
-    daysControl.createSpan({ cls: "pmi-delay-days-prefix", text: "+" });
+    const incrementLabel = t.gateDelayIncrementAria(gateLabel, this.baseline.includeWeekends);
+    const incrementButton = daysControl.createEl("button", {
+      cls: "pmi-delay-days-prefix",
+      text: "+",
+      attr: {
+        type: "button",
+        "aria-label": incrementLabel,
+        title: incrementLabel
+      }
+    });
+    incrementButton.disabled = plannedDays >= MAX_DELAY_DAYS;
     const daysInput = daysControl.createEl("input", {
       cls: "pmi-delay-days-input",
       type: "text",
@@ -567,6 +577,14 @@ export class ProjectGatesModal extends Modal {
     daysControl.createSpan({
       cls: "pmi-delay-days-unit",
       text: t.gateDelayDaysUnit(this.baseline.includeWeekends)
+    });
+    incrementButton.addEventListener("click", () => {
+      const nextDelayDays = Math.min(plannedDays + 1, MAX_DELAY_DAYS);
+      this.updateForecastDate(
+        gateId,
+        gateForecastDateFromDelay(this.baseline, gateId, nextDelayDays)
+      );
+      this.render();
     });
     daysInput.addEventListener("input", () => daysInput.setCustomValidity(""));
     daysInput.addEventListener("change", () => {
