@@ -32,6 +32,12 @@ export interface GateActualReconciliation {
   changed: boolean;
 }
 
+export interface GateBaselineEditPolicy {
+  canEditDates: boolean;
+  canEditCalendarRule: boolean;
+  canSave: boolean;
+}
+
 export function emptyActualState(): ProjectGateActualState {
   return { gates: {}, events: [] };
 }
@@ -50,6 +56,16 @@ export function cloneForecast(forecast: ProjectGateForecast): ProjectGateForecas
 
 export function delayPlanLocksBaseline(plan: ProjectGateDelayPlan | undefined): boolean {
   return (plan?.revisions.length ?? 0) > 0;
+}
+
+export function gateBaselineEditPolicy(
+  plan: ProjectGateDelayPlan | undefined
+): GateBaselineEditPolicy {
+  return {
+    canEditDates: !delayPlanLocksBaseline(plan),
+    canEditCalendarRule: true,
+    canSave: true
+  };
 }
 
 function withdrawnRevisionIds(revisions: readonly GateDelayRevision[]): Set<string> {

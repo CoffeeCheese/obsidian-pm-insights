@@ -4,6 +4,7 @@ import {
   effectiveGateSchedule,
   forecastFromSchedule,
   forecastHasDelay,
+  gateBaselineEditPolicy,
   gateDelayDays,
   gateForecastDateFromDelay,
   reconcileProjectGateActuals,
@@ -88,6 +89,40 @@ function revision(
 }
 
 describe("gate delay planning", () => {
+  it("keeps the shared project clock editable after delay history locks baseline dates", () => {
+    const saved = revision("r1", "confirmed", "2026-08-24");
+    const plan: ProjectGateDelayPlan = {
+      status: "confirmed",
+      confirmed: structuredClone(saved.forecast),
+      confirmedRevisionId: saved.id,
+      revisions: [saved]
+    };
+
+    expect(gateBaselineEditPolicy(plan)).toEqual({
+      canEditDates: false,
+      canEditCalendarRule: true,
+      canSave: true
+    });
+  });
+
+  it("keeps the shared project clock on the effective delayed schedule", () => {
+    const saved = revision("r1", "confirmed", "2026-08-24");
+    const plan: ProjectGateDelayPlan = {
+      status: "confirmed",
+      confirmed: structuredClone(saved.forecast),
+      confirmedRevisionId: saved.id,
+      revisions: [saved]
+    };
+
+    const sharedRuleBaseline = { ...schedule, includeWeekends: true };
+    const delayed = effectiveGateSchedule(sharedRuleBaseline, plan);
+    expect(delayed).toMatchObject({
+      launchDate: "2026-08-24",
+      includeWeekends: true
+    });
+    expect(gateDelayDays(sharedRuleBaseline, saved.forecast, "launch")).toBe(7);
+  });
+
   it("keeps an evaluation separate from the effective confirmed schedule", () => {
     const evaluation = forecastFromSchedule(schedule);
     evaluation.launchDate = "2026-08-24";

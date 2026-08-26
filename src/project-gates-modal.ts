@@ -7,11 +7,11 @@ import {
   addScheduleDays,
   baselineGateDate,
   cloneForecast,
-  delayPlanLocksBaseline,
   emptyActualState,
   forecastFromSchedule,
   forecastHasDelay,
   forecastVarianceDays,
+  gateBaselineEditPolicy,
   gateDelayDays,
   gateForecastDateFromDelay,
   gateForecastDate,
@@ -259,7 +259,8 @@ export class ProjectGatesModal extends Modal {
 
   private renderBaseline(root: HTMLElement): void {
     const t = this.options.translations;
-    const locked = delayPlanLocksBaseline(this.delay);
+    const policy = gateBaselineEditPolicy(this.delay);
+    const locked = !policy.canEditDates;
     if (locked) {
       const notice = root.createDiv("pmi-gate-baseline-lock");
       setIcon(notice.createSpan(), "lock-keyhole");
@@ -272,7 +273,7 @@ export class ProjectGatesModal extends Modal {
         this.render();
       });
     }
-    this.renderCalendarRule(root, locked);
+    this.renderCalendarRule(root, !policy.canEditCalendarRule);
     const timeline = root.createDiv("pmi-gate-editor-timeline");
     this.baselineDateField(timeline, "flag", t.projectStartDate, this.baseline.startDate, (value) => {
       this.baseline.startDate = value;
@@ -329,7 +330,7 @@ export class ProjectGatesModal extends Modal {
     new ButtonComponent(footer).setButtonText(t.cancel).onClick(() => this.close());
     const save = new ButtonComponent(footer).setButtonText(t.saveGates).setCta();
     save.buttonEl.addClass("pmi-gate-editor-save");
-    save.setDisabled(locked || !result.valid);
+    save.setDisabled(!policy.canSave || !result.valid);
     save.onClick(() => void this.saveBaseline());
     this.updateDurations();
   }
