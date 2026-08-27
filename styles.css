@@ -3314,6 +3314,8 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
 }
 
 .pmi-delivery-progress {
+  container-name: pmi-delivery-progress;
+  container-type: inline-size;
   border: 1px solid var(--pmi-edge-strong);
   border-block-start: 0;
   background: var(--background-primary);
@@ -3463,6 +3465,14 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
       color-mix(in srgb, var(--pmi-stage-design) 8%, var(--background-primary)),
       color-mix(in srgb, var(--pmi-stage-complete) 6%, var(--background-primary))
     );
+}
+
+@container pmi-delivery-progress (max-width: 620px) {
+  .pmi-progress-row--total {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding-block: 11px;
+  }
 }
 
 .pmi-progress-row-heading {
