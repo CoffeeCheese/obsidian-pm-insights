@@ -7,6 +7,12 @@ if (/!important\b/u.test(styles)) {
   failures.push("styles.css: avoid !important in plugin styles");
 }
 
+const flattenedGateFooterButton =
+  /button[^{]*(?:pmi-gate-editor-cancel|pmi-gate-editor-save)[^{]*\{[^}]*(?:box-shadow|transform):\s*none/u;
+if (flattenedGateFooterButton.test(styles)) {
+  failures.push("styles.css: preserve the native elevation of the gate footer buttons");
+}
+
 const view = readFileSync("src/view.ts", "utf8");
 if (/\.values\(\)\.next\(\)\.value\s+as\s+string\s*\|\s*undefined/u.test(view)) {
   failures.push("src/view.ts: remove the unnecessary iterator value assertion");

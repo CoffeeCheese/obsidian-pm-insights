@@ -2626,7 +2626,7 @@ body .modal-container .modal.pmi-gate-risk-modal
 body .modal-container .modal.pmi-gate-risk-modal
   button.pmi-risk-configure:not(.clickable-icon),
 body .modal-container .modal.pmi-project-gates-modal
-  button:is(.pmi-gate-calendar-toggle, .pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon),
+  button.pmi-gate-calendar-toggle:not(.clickable-icon),
 body .modal-container .modal.pmi-confirm-action-modal
   button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon) {
   box-shadow: none;
@@ -2644,7 +2644,7 @@ body .modal-container .modal.pmi-gate-risk-modal
 body .modal-container .modal.pmi-gate-risk-modal
   button.pmi-risk-configure:not(.clickable-icon):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-project-gates-modal
-  button:is(.pmi-gate-calendar-toggle, .pmi-gate-editor-cancel, .pmi-gate-editor-save):not(.clickable-icon):is(:hover, :focus-visible, :active),
+  button.pmi-gate-calendar-toggle:not(.clickable-icon):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-confirm-action-modal
   button:is(.pmi-confirm-action-cancel, .pmi-confirm-action-confirm):not(.clickable-icon):is(:hover, :focus-visible, :active) {
   box-shadow: none;
@@ -5048,6 +5048,11 @@ body .modal.pmi-project-gates-modal input[type="date"] {
   gap: 8px;
   padding: 12px 22px 18px;
   border-block-start: 1px solid var(--background-modifier-border);
+}
+
+body .modal.pmi-project-gates-modal
+  .pmi-gate-editor-footer > button.pmi-gate-editor-save:disabled:not(.clickable-icon) {
+  box-shadow: var(--pixel-shadow-button, var(--input-shadow));
 }
 
 .pmi-confirm-action-modal {
