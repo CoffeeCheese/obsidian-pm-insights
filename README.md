@@ -91,7 +91,7 @@ After you select one or more Project Manager projects, PM Insights adds:
 - **Team and individual:** move from cross-project workload into member tasks, shared work, and a personal delivery ledger.
 - **Delivery and acceptance:** derive stage completion and requirement acceptance from hierarchy, stage tags, and task statuses.
 - **Data quality:** find missing estimates, assignees, classifications, conflicting stage tags, and missing prerequisites.
-- **Schedule and risk:** compare actual stage progress, expected progress, task due dates, and project gate dates.
+- **Schedule and risk:** compare actual stage progress, expected progress, task due dates, project gate dates, and owner capacity.
 - **Source traceability:** return from a metric, exception, or risk task directly to its Project Manager project or task editor.
 
 All of these views share the same local Project Manager data. Every number and warning can be traced to the project and task that produced it, while the analysis itself leaves the source untouched.
@@ -122,7 +122,7 @@ Statistical boundaries and getting started
 | **Member insight** | What does each person own, and how much work is personal or shared? |
 | **Delivery progress** | Which stage has the work reached, and how far is it from acceptance? |
 | **Delivery exceptions** | Which tasks are not classified correctly or are blocking acceptance? |
-| **Gate risk** | Is actual progress keeping pace with stage gates and the final launch plan? |
+| **Gate risk** | Are actual progress and owner capacity keeping pace with stage gates and the final launch plan? |
 | **Data quality** | Which execution tasks are still missing estimates, assignees, or due dates? |
 | **Task traceability** | Which source task produced a metric or warning? |
 
@@ -148,7 +148,7 @@ Project Manager project
                ├── map work to delivery stages by tag
                ├── calculate stage completion from status
                ├── aggregate assignees, estimates, and logged time
-               └── check scheduling, gates, and data quality
+               └── check scheduling, gates, owner capacity, and data quality
 ```
 
 Four kinds of information play distinct roles:
@@ -448,7 +448,24 @@ Open delivery gates from the calendar button in a selected project chip. Every p
 
 A stage gate evaluates its own stage. Acceptance additionally considers tasks that block acceptance. The final launch reminder summarizes the project across all stages and acceptance; it does not depend on a single preceding stage or repeat every task already listed under a stage gate.
 
-The launch reminder keeps total remaining effort visible, but it no longer treats the whole team as one serial resource. It groups stage work by resolved assignee, splits a shared task's remaining effort evenly across its assignees, and accumulates each person's work through every effective stage gate and the launch date. Different people therefore run in parallel, while one person's work across stages still accumulates. At each checkpoint, the busiest owner is compared with that person's available capacity; the worst checkpoint determines the capacity warning. A shortfall is high risk, utilization at 80% or more calls for attention, and unestimated, unassigned, or unmapped work is surfaced as a planning blind spot. Configure **Hours per person per workday** and **Hours per person per calendar day** under **Settings → PM Insights → Gate risk rules**. Existing settings remain compatible and default to eight hours per person.
+#### Use owner bottlenecks to assess delivery capacity
+
+The launch reminder shows total remaining effort, but it does not treat the whole team as one serial resource. Capacity assessment asks one question at every checkpoint: **can the busiest owner finish the remaining work assigned to them before that date?**
+
+| Rule | How it works |
+| --- | --- |
+| **Different owners run in parallel** | Remaining effort is grouped by person. The busiest owner becomes the checkpoint bottleneck instead of everyone's work being added together. |
+| **One owner's work accumulates** | Unfinished work assigned to the same person in earlier and current stages accumulates at the corresponding checkpoint. |
+| **Shared work is split** | When a task has several assignees, its remaining effort is divided evenly after member aliases are resolved. |
+| **Every checkpoint is evaluated** | Each effective stage gate and the launch date gets its own capacity calculation; the most severe checkpoint determines the final warning. |
+
+For example, if two developers have `60h` and `50h` remaining in the development stage, the stage has `110h` of remaining effort but a `60h` bottleneck—not a serial `110h` load. With five calendar days before the development gate and eight available hours per person per day, each person has `40h` of capacity, leaving the bottleneck owner `20h` short.
+
+![Focused PM Insights launch reminder showing the owner-capacity bottleneck, including total remaining effort, bottleneck owner, personal load, shortfall, and capacity at each checkpoint](docs/assets/pm-insights-launch-capacity-focused.png)
+
+*The launch reminder separates team totals from personal bottlenecks. The 142h shown also includes Lia Park's 32h of testing work; Noah Kim's 60h and Ethan Cole's 50h run in parallel, so Development compares Noah's 60h against 40h of personal capacity.*
+
+A load above available capacity is high risk, while utilization of 80% or more calls for attention. Unestimated, unassigned, or unmapped work is not silently ignored; it appears separately as a planning blind spot. Configure **Hours per person per workday** and **Hours per person per calendar day** under **Settings → PM Insights → Gate risk rules**. Existing settings remain compatible and default to eight hours per person.
 
 The launch date is a project-rhythm reminder, not a second definition of delivery completion. The acceptance result remains the final delivery standard.
 
