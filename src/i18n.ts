@@ -455,6 +455,14 @@ const en = {
   noTasks: "No tasks match the current filters.",
   openTask: "Open task",
   openProject: "Open project in a new tab",
+  projectManagerDependencyMissingTitle: "Project Manager is required",
+  projectManagerDependencyMissingBody:
+    "PM Insights reads projects and tasks from Project Manager. Install and enable it before using this plugin.",
+  projectManagerDependencyDisabledTitle: "Enable Project Manager",
+  projectManagerDependencyDisabledBody:
+    "Project Manager is installed but disabled. Enable it before using PM Insights.",
+  projectManagerDependencyOpen: "Open plugin page",
+  projectManagerDependencyLater: "Not now",
   projectManagerUnavailable: "Project Manager is unavailable. Make sure the plugin is enabled.",
   projectManagerVersionUnsupported:
     "This Project Manager version does not support opening task details from PM Insights.",
@@ -975,6 +983,14 @@ const zh: typeof en = {
   noTasks: "没有符合当前筛选条件的任务。",
   openTask: "打开任务",
   openProject: "在新页签打开项目",
+  projectManagerDependencyMissingTitle: "需要安装 Project Manager",
+  projectManagerDependencyMissingBody:
+    "PM 洞察需要读取 Project Manager 的项目与任务。请先安装并启用 Project Manager，再使用本插件。",
+  projectManagerDependencyDisabledTitle: "需要启用 Project Manager",
+  projectManagerDependencyDisabledBody:
+    "已检测到 Project Manager，但它当前处于停用状态。请先启用，再使用 PM 洞察。",
+  projectManagerDependencyOpen: "打开插件页面",
+  projectManagerDependencyLater: "稍后处理",
   projectManagerUnavailable: "Project Manager 当前不可用，请确认插件已启用。",
   projectManagerVersionUnsupported: "当前 Project Manager 版本暂不支持从 PM 洞察打开任务详情。",
   taskEditorUnavailable: "无法在 Project Manager 中打开此任务。",

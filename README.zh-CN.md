@@ -571,6 +571,8 @@ Project Manager Insights 只读取本地 Vault 中的 Project Manager 元数据�
 
 你可以从 [Obsidian 官方社区目录安装 Project Manager Insights](https://community.obsidian.md/plugins/project-manager-insights)，也可以前往 **设置 → 第三方插件 → 浏览**，搜索 **Project Manager Insights** 后点击**安装**并**启用**。
 
+每次主动打开 PM Insights 时，插件都会检测 Project Manager 是否已经安装并启用。如果依赖不可用，确认提醒后会打开 Project Manager 的 Obsidian 官方插件页面，由 Obsidian 负责后续安装和启用；PM Insights 不会自行下载或安装依赖。
+
 ### 3. 开始分析
 
 安装完成后：

@@ -5,8 +5,13 @@ import {
   ProjectManagerNavigationError,
   ProjectManagerNavigator
 } from "./adapters/project-manager-navigation";
+import { ConfirmActionModal } from "./confirm-action-modal";
 import { translations } from "./i18n";
 import { DEFAULT_SETTINGS, type InsightSettings } from "./model";
+import {
+  openProjectManagerCommunityPage,
+  projectManagerDependencyState
+} from "./project-manager-dependency";
 import { normalizeInsightSettings } from "./settings-data";
 import { InsightsSettingTab } from "./settings";
 import {
@@ -23,6 +28,7 @@ export default class ProjectManagerInsightsPlugin
   private catalog!: ProjectManagerCatalog;
   private navigator!: ProjectManagerNavigator;
   private toolbarIntegration!: ProjectManagerToolbarIntegration;
+  private dependencyModal: ConfirmActionModal | null = null;
   private refreshTimer: number | null = null;
 
   async onload(): Promise<void> {
@@ -53,6 +59,8 @@ export default class ProjectManagerInsightsPlugin
 
   onunload(): void {
     this.toolbarIntegration.stop();
+    this.dependencyModal?.close();
+    this.dependencyModal = null;
     if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer);
     this.refreshTimer = null;
   }
@@ -86,6 +94,8 @@ export default class ProjectManagerInsightsPlugin
   }
 
   async openInsights(projectPath?: string): Promise<void> {
+    this.promptForProjectManager();
+
     let leaf: WorkspaceLeaf;
     const existing = this.app.workspace.getLeavesOfType(INSIGHTS_VIEW_TYPE)[0];
     if (existing) {
@@ -158,6 +168,37 @@ export default class ProjectManagerInsightsPlugin
       this.refreshTimer = null;
       void this.refreshInsights();
     }, 250);
+  }
+
+  private promptForProjectManager(): void {
+    const state = projectManagerDependencyState(this.app);
+    if (state === "ready" || state === "unknown") {
+      this.dependencyModal?.close();
+      this.dependencyModal = null;
+      return;
+    }
+    if (this.dependencyModal) return;
+
+    const t = translations(this.settings);
+    const modal = new ConfirmActionModal(this.app, {
+      title: state === "missing"
+        ? t.projectManagerDependencyMissingTitle
+        : t.projectManagerDependencyDisabledTitle,
+      message: state === "missing"
+        ? t.projectManagerDependencyMissingBody
+        : t.projectManagerDependencyDisabledBody,
+      cancel: t.projectManagerDependencyLater,
+      confirm: t.projectManagerDependencyOpen,
+      onConfirm: () => {
+        if (this.dependencyModal === modal) this.dependencyModal = null;
+        openProjectManagerCommunityPage();
+      },
+      onCancel: () => {
+        if (this.dependencyModal === modal) this.dependencyModal = null;
+      }
+    });
+    this.dependencyModal = modal;
+    modal.open();
   }
 
 }

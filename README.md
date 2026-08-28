@@ -569,6 +569,8 @@ You will need:
 
 Install [Project Manager Insights from the official Obsidian Community directory](https://community.obsidian.md/plugins/project-manager-insights), or open **Settings → Community plugins → Browse**, search for **Project Manager Insights**, then select **Install** and **Enable**.
 
+Whenever you open PM Insights, it checks whether Project Manager is installed and enabled. If the dependency is unavailable, confirming the reminder opens Project Manager's official Obsidian plugin page, where Obsidian handles installation and enabling; PM Insights never downloads or installs dependencies itself.
+
 ### 3. Start analyzing
 
 After installation:
