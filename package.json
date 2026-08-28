@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pm-insights",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "Read-only assignee workload insights for the Obsidian Project Manager plugin.",
   "main": "main.js",
