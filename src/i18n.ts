@@ -277,7 +277,7 @@ const en = {
   launchCapacityHigh: "Hours at risk",
   launchCapacityOverdue: "Time exhausted",
   launchCapacityPassed: "Launch completed",
-  launchRemainingHours: "Total remaining effort",
+  launchRemainingHours: "Remaining effort",
   launchBottleneckOwner: "Bottleneck owner",
   launchBottleneckLoad: "Bottleneck load",
   launchNoBottleneck: "No assigned work",
@@ -295,6 +295,8 @@ const en = {
   launchCapacityOwnerAria: (owner: string, load: number, available: number) =>
     `${owner}: ${load}h load, ${available}h available`,
   launchCapacityCheckpoints: "Capacity by checkpoint",
+  launchCapacityExpand: "Expand",
+  launchCapacityCollapse: "Collapse",
   launchCapacityCheckpointLoad: (load: number, available: number) =>
     `${load}h load / ${available}h available`,
   launchCapacityUnestimated: (count: number) =>
@@ -785,7 +787,7 @@ const zh: typeof en = {
   gateBlockingTasks: "验收阻塞任务",
   gateNoRiskTasks: "该门禁没有需要处理的未完成任务。",
   launchOverviewTitle: "项目收口概览",
-  launchPassedGates: "已通过门禁",
+  launchPassedGates: "门禁通过",
   launchRiskGates: "风险节点",
   launchOpenTasks: "待处理任务",
   launchAcceptanceBlockers: "验收阻塞",
@@ -796,7 +798,7 @@ const zh: typeof en = {
   launchCapacityHigh: "工时有风险",
   launchCapacityOverdue: "可用时间已耗尽",
   launchCapacityPassed: "已完成上线",
-  launchRemainingHours: "剩余总工作量",
+  launchRemainingHours: "剩余总工时",
   launchBottleneckOwner: "瓶颈负责人",
   launchBottleneckLoad: "瓶颈负载",
   launchNoBottleneck: "暂无已分配工作",
@@ -814,6 +816,8 @@ const zh: typeof en = {
   launchCapacityOwnerAria: (owner: string, load: number, available: number) =>
     `${owner}：负载 ${load}h，可用 ${available}h`,
   launchCapacityCheckpoints: "各节点负责人容量",
+  launchCapacityExpand: "展开",
+  launchCapacityCollapse: "收起",
   launchCapacityCheckpointLoad: (load: number, available: number) =>
     `负载 ${load}h / 可用 ${available}h`,
   launchCapacityUnestimated: (count: number) =>

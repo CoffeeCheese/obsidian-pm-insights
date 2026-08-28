@@ -92,20 +92,60 @@ const evaluation = `(async () => {
     activeWindow = document.defaultView;
     activeDocument = document;
     summary.click();
-    const capacity = await waitFor(() => [
-      ...document.querySelectorAll('[data-gate-id="launch"] .pmi-risk-capacity.is-high')
+    const launchGate = await waitFor(() => [
+      ...document.querySelectorAll('[data-gate-id="launch"]')
     ].at(-1) ?? null);
+    const launchDefaultCollapsed = launchGate instanceof HTMLDetailsElement && !launchGate.open;
+    launchGate?.querySelector(':scope > summary')?.click();
+    const capacity = await waitFor(() => {
+      const current = launchGate?.querySelector('.pmi-risk-capacity.is-high');
+      return launchGate?.open && current instanceof HTMLElement ? current : null;
+    });
     const metrics = capacity?.querySelectorAll(".pmi-risk-capacity-metric") ?? [];
     const lanes = capacity?.querySelector(".pmi-risk-capacity-lanes");
     const ownerLane = capacity?.querySelector(".pmi-risk-capacity-lane");
-    const launchGate = capacity?.closest('[data-gate-id="launch"]');
+    const checkpointDetails = capacity?.querySelector(".pmi-risk-capacity-details");
+    const checkpointSummary = checkpointDetails?.querySelector(":scope > summary");
+    const checkpointDisclosure = checkpointSummary?.querySelector(
+      ".pmi-risk-capacity-disclosure"
+    );
+    const checkpointsDefaultExpanded = checkpointDetails instanceof HTMLDetailsElement &&
+      checkpointDetails.open;
+    const checkpointDisclosureClear = Boolean(
+      checkpointDisclosure?.querySelector(".pmi-risk-capacity-disclosure-expand")?.textContent?.trim() &&
+      checkpointDisclosure?.querySelector(".pmi-risk-capacity-disclosure-collapse")?.textContent?.trim() &&
+      checkpointDisclosure?.querySelector("svg")
+    );
+    checkpointSummary?.click();
+    const checkpointsCollapseOnRequest = checkpointDetails instanceof HTMLDetailsElement &&
+      !checkpointDetails.open;
+    checkpointSummary?.click();
+    const checkpointsReopenOnRequest = checkpointDetails instanceof HTMLDetailsElement &&
+      checkpointDetails.open;
+    const overview = capacity?.closest(".pmi-risk-launch-overview");
     const riskModal = capacity?.closest(".pmi-gate-risk-modal");
     let narrowCapacityContained = false;
+    let narrowOverviewContained = false;
+    let narrowOverflowingDescendants = [];
     if (capacity instanceof HTMLElement && riskModal instanceof HTMLElement) {
       const originalWidth = riskModal.style.width;
       riskModal.style.width = "360px";
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       narrowCapacityContained = capacity.scrollWidth <= capacity.clientWidth + 1;
+      narrowOverviewContained = overview instanceof HTMLElement &&
+        overview.scrollWidth <= overview.clientWidth + 1;
+      const capacityRect = capacity.getBoundingClientRect();
+      narrowOverflowingDescendants = [...capacity.querySelectorAll('*')]
+        .filter((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.right > capacityRect.right + 1 || rect.left < capacityRect.left - 1;
+        })
+        .slice(0, 5)
+        .map((candidate) => [
+          candidate.className || candidate.tagName,
+          candidate.parentElement?.className || candidate.parentElement?.tagName,
+          candidate.textContent?.trim()
+        ].join(" | "));
       riskModal.style.width = originalWidth;
     }
 
@@ -119,13 +159,21 @@ const evaluation = `(async () => {
       setup: true,
       summaryEscalated: summary.classList.contains("is-high"),
       launchEscalated: launchGate?.classList.contains("is-high") ?? false,
+      launchDefaultCollapsed,
+      launchOpensOnRequest: launchGate instanceof HTMLDetailsElement && launchGate.open,
       capacityVisible: capacity instanceof HTMLElement,
+      checkpointsDefaultExpanded,
+      checkpointDisclosureClear,
+      checkpointsCollapseOnRequest,
+      checkpointsReopenOnRequest,
       capacityMetricsComplete: metrics.length === 4,
       bottleneckVisible: Boolean(capacity?.querySelector('[data-capacity-metric="owner"]')),
       shortfallVisible: Boolean(capacity?.querySelector('[data-capacity-metric="gap"]')),
       ownerLanesVisible: lanes instanceof HTMLElement,
       ownerLaneAccessible: Boolean(ownerLane?.getAttribute("aria-label")?.trim()),
       narrowCapacityContained,
+      narrowOverviewContained,
+      narrowOverflowingDescendants,
       settingsAvailable: Boolean(settingsInputs),
       settingsConstrained: Boolean(settingsInputs?.every((input) =>
         input instanceof HTMLInputElement &&
@@ -165,18 +213,25 @@ if (
   !report.setup ||
   !report.summaryEscalated ||
   !report.launchEscalated ||
+  !report.launchDefaultCollapsed ||
+  !report.launchOpensOnRequest ||
   !report.capacityVisible ||
+  !report.checkpointsDefaultExpanded ||
+  !report.checkpointDisclosureClear ||
+  !report.checkpointsCollapseOnRequest ||
+  !report.checkpointsReopenOnRequest ||
   !report.capacityMetricsComplete ||
   !report.bottleneckVisible ||
   !report.shortfallVisible ||
   !report.ownerLanesVisible ||
   !report.ownerLaneAccessible ||
   !report.narrowCapacityContained ||
+  !report.narrowOverviewContained ||
   !report.settingsAvailable ||
   !report.settingsConstrained
 ) {
   console.error(`Launch capacity risk failed: ${JSON.stringify(report)}`);
   process.exitCode = 1;
 } else {
-  console.log("Owner bottleneck capacity escalates risk and exposes accessible per-person settings.");
+  console.log("Launch stays collapsed until requested, then exposes expanded owner capacity checkpoints.");
 }

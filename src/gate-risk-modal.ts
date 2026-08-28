@@ -236,7 +236,11 @@ export class GateRiskModal extends Modal {
       cls: `pmi-risk-gate is-${gate.state}${gate.skipped ? " is-skipped" : ""}${nearest ? " is-nearest" : ""}${hasDelayTimeline ? " has-delay-timeline" : ""}`,
       attr: { "data-gate-id": gate.id }
     });
-    item.open = gate.state === "overdue" || gate.state === "high" || gate.state === "attention";
+    // The launch reminder is a project-level roll-up, so keep it quiet until the
+    // user asks for the full handoff picture. Stage exceptions remain expanded.
+    item.open = gate.kind !== "launch" && (
+      gate.state === "overdue" || gate.state === "high" || gate.state === "attention"
+    );
     const summary = item.createEl("summary");
     const node = summary.createSpan("pmi-risk-gate-node");
     setIcon(node, this.gateIcon(gate));
@@ -275,6 +279,11 @@ export class GateRiskModal extends Modal {
     } else if (gate.timing) {
       progress.createSpan({ text: this.timingLabel(gate.timing, t) });
     }
+    const disclosure = summary.createSpan({
+      cls: "pmi-risk-gate-disclosure",
+      attr: { "aria-hidden": "true" }
+    });
+    setIcon(disclosure, "chevron-down");
 
     const body = item.createDiv("pmi-risk-gate-body");
     if (gate.reasons.length > 0) {
@@ -437,8 +446,9 @@ export class GateRiskModal extends Modal {
     });
     const heading = overview.createDiv("pmi-risk-launch-overview-heading");
     setIcon(heading.createSpan(), "clipboard-check");
-    heading.createEl("strong", { text: t.launchOverviewTitle });
-    if (gate.capacity) this.renderLaunchCapacity(overview, gate, t);
+    const headingCopy = heading.createDiv("pmi-risk-launch-overview-copy");
+    headingCopy.createEl("strong", { text: t.launchOverviewTitle });
+    headingCopy.createEl("small", { text: t.launchOverviewHint });
     const stats = overview.createDiv("pmi-risk-launch-stats");
     const summaryItems: Array<[string, string, string]> = [
       ["passed", t.launchPassedGates, `${passed}/${upstream.length}`],
@@ -451,7 +461,7 @@ export class GateRiskModal extends Modal {
       stat.createSpan({ text: label });
       stat.createEl("strong", { text: value });
     }
-    overview.createDiv({ cls: "pmi-risk-launch-hint", text: t.launchOverviewHint });
+    if (gate.capacity) this.renderLaunchCapacity(overview, gate, t);
   }
 
   private renderLaunchCapacity(
@@ -551,7 +561,23 @@ export class GateRiskModal extends Modal {
     );
     if (visibleCheckpoints.length > 1) {
       const details = section.createEl("details", { cls: "pmi-risk-capacity-details" });
-      details.createEl("summary", { text: t.launchCapacityCheckpoints });
+      details.open = true;
+      const summary = details.createEl("summary");
+      summary.createSpan({ text: t.launchCapacityCheckpoints });
+      const disclosure = summary.createSpan({
+        cls: "pmi-risk-capacity-disclosure",
+        attr: { "aria-hidden": "true" }
+      });
+      disclosure.createSpan({
+        cls: "pmi-risk-capacity-disclosure-expand",
+        text: t.launchCapacityExpand
+      });
+      disclosure.createSpan({
+        cls: "pmi-risk-capacity-disclosure-collapse",
+        text: t.launchCapacityCollapse
+      });
+      const disclosureIcon = disclosure.createSpan("pmi-risk-capacity-disclosure-icon");
+      setIcon(disclosureIcon, "chevron-up");
       const list = details.createDiv("pmi-risk-capacity-checkpoint-list");
       for (const checkpoint of visibleCheckpoints) {
         const item = list.createDiv(`pmi-risk-capacity-checkpoint-row is-${checkpoint.state}`);

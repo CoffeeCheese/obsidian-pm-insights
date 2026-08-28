@@ -2722,7 +2722,7 @@ body .modal-container .modal.pmi-confirm-action-modal
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) minmax(145px, auto);
+  grid-template-columns: 30px minmax(0, 1fr) minmax(145px, auto) 16px;
   gap: 10px;
   align-items: center;
   min-height: 60px;
@@ -2807,6 +2807,25 @@ body .modal-container .modal.pmi-confirm-action-modal
 .pmi-risk-gate-progress {
   justify-items: end;
   text-align: end;
+}
+
+.pmi-risk-gate-disclosure {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  color: var(--text-faint);
+  transition: color 120ms ease, transform 160ms ease;
+}
+
+.pmi-risk-gate[open] > summary .pmi-risk-gate-disclosure {
+  color: var(--pmi-risk-color);
+  transform: rotate(180deg);
+}
+
+.pmi-risk-gate-disclosure svg {
+  width: 14px;
+  height: 14px;
 }
 
 .pmi-risk-gate-schedule {
@@ -2960,35 +2979,66 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 }
 
 .pmi-risk-launch-overview {
+  position: relative;
+  container-name: pmi-risk-launch-overview;
+  container-type: inline-size;
   overflow: hidden;
   margin-block-start: 2px;
-  border-block: 1px solid color-mix(
+  border: 1px solid color-mix(
     in srgb,
     var(--pmi-risk-color) 24%,
     var(--background-modifier-border)
   );
+  border-radius: var(--radius-m);
   background: color-mix(in srgb, var(--pmi-risk-color) 2%, var(--background-primary));
+}
+
+.pmi-risk-launch-overview::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: color-mix(in srgb, var(--pmi-risk-color) 70%, var(--background-primary));
 }
 
 .pmi-risk-launch-overview-heading {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 10px;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px 8px 15px;
   color: var(--text-normal);
   font-size: var(--font-ui-small);
 }
 
 .pmi-risk-launch-overview-heading svg {
+  margin-block-start: 2px;
   width: 14px;
   height: 14px;
   color: var(--pmi-risk-color);
 }
 
+.pmi-risk-launch-overview-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.pmi-risk-launch-overview-copy > small {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-normal);
+  line-height: 1.4;
+}
+
 .pmi-risk-capacity {
   --pmi-capacity-color: var(--color-green);
-  padding: 10px;
-  border-block-start: 1px solid var(--background-modifier-border);
+  container-name: pmi-risk-capacity;
+  container-type: inline-size;
+  margin: 0 10px 10px 12px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--pmi-capacity-color) 18%, var(--background-modifier-border));
+  border-radius: var(--radius-s);
   background: color-mix(in srgb, var(--pmi-capacity-color) 3%, transparent);
 }
 
@@ -3007,7 +3057,7 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 
 .pmi-risk-capacity-heading {
   gap: 7px;
-  margin-block-end: 9px;
+  margin-block-end: 10px;
   font-size: var(--font-ui-small);
 }
 
@@ -3036,13 +3086,19 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 .pmi-risk-capacity-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pmi-capacity-color) 12%, var(--background-modifier-border));
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-border);
+  gap: 1px;
 }
 
 .pmi-risk-capacity-metric {
   display: grid;
   min-width: 0;
   gap: 2px;
+  padding: 8px 9px;
+  background: color-mix(in srgb, var(--background-primary) 94%, var(--pmi-capacity-color));
 }
 
 .pmi-risk-capacity-metric > span {
@@ -3071,15 +3127,18 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
   color: var(--pmi-capacity-color);
 }
 
+.pmi-risk-capacity-metric:is(.is-gap, .is-buffer) {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pmi-capacity-color) 58%, transparent);
+}
+
 .pmi-risk-capacity-critical {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 4px 12px;
-  margin-block-start: 10px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid var(--background-modifier-border);
+  margin-block-start: 9px;
+  padding: 0 2px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
@@ -3093,6 +3152,9 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
   display: grid;
   gap: 7px;
   margin-block-start: 9px;
+  padding: 9px 10px;
+  border-inline-start: 2px solid color-mix(in srgb, var(--pmi-capacity-color) 46%, transparent);
+  background: color-mix(in srgb, var(--pmi-capacity-color) 3%, var(--background-primary));
 }
 
 .pmi-risk-capacity-lane {
@@ -3159,10 +3221,74 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 }
 
 .pmi-risk-capacity-details > summary {
-  padding-block: 7px 2px;
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-inline: -4px;
+  padding: 6px 4px 3px;
+  border-radius: var(--radius-s);
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
   cursor: pointer;
+  list-style: none;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.pmi-risk-capacity-details > summary::-webkit-details-marker { display: none; }
+
+.pmi-risk-capacity-details > summary:hover {
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--pmi-capacity-color) 5%, transparent);
+}
+
+.pmi-risk-capacity-disclosure {
+  display: inline-flex;
+  min-width: 52px;
+  min-height: 23px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 1px 6px 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--pmi-capacity-color) 34%, var(--background-modifier-border));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--pmi-capacity-color) 72%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-capacity-color) 6%, var(--background-primary));
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.pmi-risk-capacity-details > summary:is(:hover, :focus-visible) .pmi-risk-capacity-disclosure {
+  border-color: color-mix(in srgb, var(--pmi-capacity-color) 58%, var(--background-modifier-border));
+  color: color-mix(in srgb, var(--pmi-capacity-color) 88%, var(--text-normal));
+  background: color-mix(in srgb, var(--pmi-capacity-color) 10%, var(--background-primary));
+}
+
+.pmi-risk-capacity-details[open] .pmi-risk-capacity-disclosure-expand,
+.pmi-risk-capacity-details:not([open]) .pmi-risk-capacity-disclosure-collapse {
+  display: none;
+}
+
+.pmi-risk-capacity-disclosure-icon {
+  display: grid;
+  width: 12px;
+  height: 12px;
+  place-items: center;
+  transition: transform 160ms ease;
+}
+
+.pmi-risk-capacity-details:not([open]) .pmi-risk-capacity-disclosure-icon {
+  transform: rotate(180deg);
+}
+
+.pmi-risk-capacity-disclosure-icon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .pmi-risk-capacity-details > summary:focus-visible {
@@ -3176,14 +3302,13 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
   gap: 1px;
   margin-block-start: 5px;
   overflow: hidden;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
+  border-block: 1px solid var(--background-modifier-border);
   background: var(--background-modifier-border);
 }
 
 .pmi-risk-capacity-checkpoint-row {
   display: grid;
-  grid-template-columns: minmax(94px, 1fr) minmax(140px, auto) auto;
+  grid-template-columns: minmax(84px, 1fr) minmax(0, auto) minmax(48px, auto);
   align-items: center;
   gap: 8px;
   padding: 7px 8px;
@@ -3210,6 +3335,12 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 .pmi-risk-capacity-checkpoint-state {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+}
+
+.pmi-risk-capacity-checkpoint-value,
+.pmi-risk-capacity-checkpoint-state {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pmi-risk-capacity-checkpoint-row:is(.is-high, .is-overdue) .pmi-risk-capacity-checkpoint-state {
@@ -3244,18 +3375,23 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
 .pmi-risk-launch-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-block-start: 1px solid var(--background-modifier-border);
+  gap: 5px;
+  padding: 0 10px 10px 12px;
 }
 
 .pmi-risk-launch-stat {
-  display: grid;
-  gap: 2px;
+  display: flex;
   min-width: 0;
-  padding: 9px 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
 }
 
 .pmi-risk-launch-stat + .pmi-risk-launch-stat {
-  border-inline-start: 1px solid var(--background-modifier-border);
+  border-inline-start: 0;
 }
 
 .pmi-risk-launch-stat > span {
@@ -3271,14 +3407,6 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-quality-link:is(:hover, :focus-v
   font-family: var(--font-monospace);
   font-size: var(--font-ui-small);
   font-variant-numeric: tabular-nums;
-}
-
-.pmi-risk-launch-hint {
-  padding: 7px 10px;
-  border-block-start: 1px solid var(--background-modifier-border);
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  line-height: 1.45;
 }
 
 .pmi-risk-task-group h4 {
@@ -3546,13 +3674,18 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
   }
 
   .pmi-risk-gate > summary {
-    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr) 16px;
   }
 
   .pmi-risk-gate-progress {
     grid-column: 2;
     justify-items: start;
     text-align: start;
+  }
+
+  .pmi-risk-gate-disclosure {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .pmi-risk-launch-stats {
@@ -3572,13 +3705,64 @@ body .modal.pmi-gate-risk-modal button.pmi-risk-delivery-issues-link {
     grid-column: 2;
   }
 
-  .pmi-risk-launch-stat:nth-child(3) {
-    border-block-start: 1px solid var(--background-modifier-border);
-    border-inline-start: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmi-risk-gate-disclosure,
+  .pmi-risk-capacity-disclosure,
+  .pmi-risk-capacity-disclosure-icon {
+    transition: none;
+  }
+}
+
+@container pmi-risk-capacity (max-width: 440px) {
+  .pmi-risk-capacity-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pmi-risk-launch-stat:nth-child(4) {
-    border-block-start: 1px solid var(--background-modifier-border);
+  .pmi-risk-capacity-checkpoint-row {
+    grid-template-columns: minmax(80px, 1fr) auto;
+  }
+
+  .pmi-risk-capacity-checkpoint-state {
+    grid-column: 2;
+  }
+
+  .pmi-risk-capacity-checkpoint-value {
+    line-height: 1.3;
+    text-align: end;
+    white-space: normal;
+  }
+
+  .pmi-risk-capacity-lane {
+    grid-template-columns: minmax(52px, 0.65fr) minmax(56px, 2fr) auto;
+    gap: 6px;
+  }
+}
+
+@container pmi-risk-capacity (max-width: 320px) {
+  .pmi-risk-capacity-checkpoint-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pmi-risk-capacity-checkpoint-identity {
+    grid-column: 1 / -1;
+  }
+
+  .pmi-risk-capacity-checkpoint-value {
+    grid-column: 1;
+    text-align: start;
+    white-space: nowrap;
+  }
+
+  .pmi-risk-capacity-checkpoint-state {
+    grid-column: 2;
+  }
+}
+
+@container pmi-risk-launch-overview (max-width: 440px) {
+  .pmi-risk-launch-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
