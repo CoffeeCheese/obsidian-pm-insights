@@ -2,7 +2,7 @@ import { Events, type App } from "obsidian";
 
 const PROJECT_MANAGER_ID = "project-manager";
 const PROJECT_VIEW_TYPE = "pm-project";
-const COMPATIBLE_VERSION = /^1\.8\./u;
+const COMPATIBLE_VERSION = /^(?:1\.8|2\.1)\./u;
 const RENDER_TIMEOUT_MS = 2_500;
 const POLL_INTERVAL_MS = 40;
 

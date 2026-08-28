@@ -57,11 +57,16 @@ const evaluation = `(async () => {
   const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
   const originalModals = new Set(document.querySelectorAll(".modal-container"));
   let taskFailureNotice = false;
+  let taskUnsupportedVersionNotice = false;
   const captureFailureNotice = () => {
-    taskFailureNotice ||= [...document.querySelectorAll(".notice")].some((notice) =>
+    const notices = [...document.querySelectorAll(".notice")];
+    taskFailureNotice ||= notices.some((notice) =>
       notice.textContent?.includes("无法在 Project Manager 中打开此任务")
     );
-    return taskFailureNotice;
+    taskUnsupportedVersionNotice ||= notices.some((notice) =>
+      notice.textContent?.includes("当前 Project Manager 版本暂不支持从 PM 洞察打开任务详情")
+    );
+    return taskFailureNotice || taskUnsupportedVersionNotice;
   };
   const noticeObserver = new MutationObserver(captureFailureNotice);
   noticeObserver.observe(document.body, { childList: true, subtree: true });
@@ -139,6 +144,7 @@ const evaluation = `(async () => {
     taskId,
     projectPath,
     taskFailureNotice,
+    taskUnsupportedVersionNotice,
     taskModalOpened: Boolean(taskModal),
     taskModalClosed,
     taskStayedOnInsights,
@@ -176,6 +182,7 @@ if (
   !report.taskId ||
   !report.projectPath ||
   report.taskFailureNotice ||
+  report.taskUnsupportedVersionNotice ||
   !report.taskModalOpened ||
   !report.taskModalClosed ||
   !report.taskStayedOnInsights ||

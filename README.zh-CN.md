@@ -509,7 +509,7 @@ PM Insights 不会复制或重建一份任务数据。点击列表中的任务�
 
 *任务详情由 Project Manager 提供，底部源文件路径可以继续追溯到对应任务笔记；关闭窗口后会返回原来的 PM Insights 项目范围、成员和筛选上下文。*
 
-直接打开任务详情目前支持 Project Manager `1.8.x`。窗口内发生的修改由 Project Manager 负责，PM Insights 本身依旧不会写入任务笔记。
+直接打开任务详情目前支持 Project Manager `1.8.x` 和 `2.1.x`。窗口内发生的修改由 Project Manager 负责，PM Insights 本身依旧不会写入任务笔记。
 
 ## 五、统计规则与数据边界
 

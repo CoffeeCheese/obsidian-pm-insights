@@ -509,7 +509,7 @@ PM Insights never copies or rebuilds task data. It passes the current task and p
 
 *Project Manager provides the task editor, and the source path at the bottom continues to the underlying task note. Closing it returns to the same PM Insights project scope, member, and filter context.*
 
-Opening task details directly is currently supported with Project Manager `1.8.x`. Any edits inside that window are handled by Project Manager; PM Insights itself still performs no task-note writes.
+Opening task details directly is currently supported with Project Manager `1.8.x` and `2.1.x`. Any edits inside that window are handled by Project Manager; PM Insights itself still performs no task-note writes.
 
 ## V. Statistical rules and data boundaries
 
