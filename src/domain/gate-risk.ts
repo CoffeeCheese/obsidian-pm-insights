@@ -1,6 +1,8 @@
 import { aggregateDeliveryProgress } from "./delivery-progress";
+import { selectWorkloadTasks } from "./aggregate";
 import { isDateOnly, validateGateSchedule } from "./gate-schedule";
 import { scheduleDaysBetween } from "./schedule-calendar";
+import { assessLaunchCapacity, type LaunchCapacityMetric } from "./launch-capacity";
 import {
   actualGateDelayDays,
   effectiveGateSchedule,
@@ -11,6 +13,7 @@ import {
 import type {
   DeliveryProgressSettings,
   GateDelayStatus,
+  MemberAlias,
   ProjectGateActualState,
   ProjectGateDelayPlan,
   ProjectGateSchedule,
@@ -33,7 +36,12 @@ export type GateRiskReason =
   | "task-overdue"
   | "task-after-gate"
   | "gate-today"
-  | "gate-overdue";
+  | "gate-overdue"
+  | "capacity-tight"
+  | "capacity-shortfall"
+  | "capacity-unestimated"
+  | "capacity-unassigned"
+  | "capacity-unmapped";
 
 export type GateTiming = "early" | "on-time" | "late" | "unknown";
 
@@ -94,6 +102,7 @@ export interface GateRiskMetric {
   actualDelayDays?: number | null;
   forecastVarianceDays?: number | null;
   forecastMissed?: boolean;
+  capacity?: LaunchCapacityMetric;
 }
 
 export interface ProjectGateRisk {
@@ -130,6 +139,10 @@ export interface GateRiskOptions {
   gateActuals?: Record<string, ProjectGateActualState>;
   today: string;
   checkTaskDueDates?: boolean;
+  workdayHours?: number;
+  calendarDayHours?: number;
+  countParentTasks?: boolean;
+  aliases?: MemberAlias[];
 }
 
 function round(value: number): number {
@@ -509,6 +522,11 @@ function projectRisk(
     ...progress.stages.flatMap((stage) => stage.tasks),
     ...progress.acceptance.roots.map((root) => root.task)
   ]);
+  const capacityTasks = selectWorkloadTasks(tasks, {
+    projectIds: new Set([project.id]),
+    includeArchived: options.includeArchived,
+    countParentTasks: options.countParentTasks === true
+  }).included;
   const requiresLaunchConfirmation = (plan?.revisions.length ?? 0) > 0;
   const launch = assessGate({
     id: "launch",
@@ -528,6 +546,43 @@ function projectRisk(
     checkTaskDueDates,
     includeWeekends
   });
+  launch.capacity = assessLaunchCapacity({
+    tasks: capacityTasks,
+    stages: progress.stages.map((stage) => ({
+      id: stage.id,
+      name: stage.name,
+      gateDate: schedule.stageGates[stage.id] ?? schedule.launchDate,
+      tasks: stage.tasks
+    })),
+    today: options.today,
+    launchDate: schedule.launchDate,
+    includeWeekends,
+    hoursPerDay: includeWeekends ? options.calendarDayHours ?? 8 : options.workdayHours ?? 8,
+    aliases: options.aliases ?? [],
+    passed: launch.state === "passed"
+  });
+  if (launch.state !== "passed" && launch.state !== "overdue") {
+    if (launch.capacity.state === "high" || launch.capacity.state === "overdue") {
+      launch.state = "high";
+      launch.reasons.push("capacity-shortfall");
+    } else if (launch.capacity.state === "attention") {
+      if (launch.state === "normal" || launch.state === "not-started") {
+        launch.state = "attention";
+      }
+      if ((launch.capacity.utilizationPercentage ?? 0) >= 80) {
+        launch.reasons.push("capacity-tight");
+      }
+    }
+    if (launch.capacity.unestimatedTaskCount > 0) {
+      launch.reasons.push("capacity-unestimated");
+    }
+    if (launch.capacity.unassignedTaskCount > 0) {
+      launch.reasons.push("capacity-unassigned");
+    }
+    if (launch.capacity.unmappedTaskCount > 0) {
+      launch.reasons.push("capacity-unmapped");
+    }
+  }
   applyDelayContext(launch, "launch", baseline, plan, actuals, options.today);
   gates.push(launch);
 

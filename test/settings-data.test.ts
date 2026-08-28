@@ -3,6 +3,31 @@ import { DEFAULT_SETTINGS, type InsightSettings } from "../src/model";
 import { normalizeInsightSettings } from "../src/settings-data";
 
 describe("normalizeInsightSettings", () => {
+  it("defaults legacy gate risk settings to an eight-hour workday and calendar day", () => {
+    const normalized = normalizeInsightSettings({
+      gateRisk: { checkTaskDueDates: false }
+    } as unknown as Partial<InsightSettings>);
+
+    expect(normalized.gateRisk).toEqual({
+      checkTaskDueDates: false,
+      workdayHours: 8,
+      calendarDayHours: 8
+    });
+  });
+
+  it("preserves valid day-hour rules and rejects invalid saved values", () => {
+    const normalized = normalizeInsightSettings({
+      gateRisk: {
+        checkTaskDueDates: true,
+        workdayHours: 7.5,
+        calendarDayHours: 0
+      }
+    });
+
+    expect(normalized.gateRisk.workdayHours).toBe(7.5);
+    expect(normalized.gateRisk.calendarDayHours).toBe(8);
+  });
+
   it("shows delivery progress by default for existing installations", () => {
     expect(normalizeInsightSettings(null).showDeliveryProgress).toBe(true);
     expect(normalizeInsightSettings({ locale: "zh-cn" }).showDeliveryProgress).toBe(true);
@@ -14,7 +39,7 @@ describe("normalizeInsightSettings", () => {
 
   it("keeps task due-date checks enabled unless users disable them", () => {
     expect(normalizeInsightSettings(null).gateRisk.checkTaskDueDates).toBe(true);
-    expect(normalizeInsightSettings({ gateRisk: { checkTaskDueDates: false } })
+    expect(normalizeInsightSettings({ gateRisk: { checkTaskDueDates: false } } as unknown as Partial<InsightSettings>)
       .gateRisk.checkTaskDueDates).toBe(false);
     expect(normalizeInsightSettings({
       gateRisk: { checkTaskDueDates: "sometimes" }

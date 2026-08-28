@@ -230,6 +230,16 @@ export class InsightsSettingTab extends PluginSettingTab {
               type: "toggle",
               key: "checkTaskDueDates"
             }
+          },
+          {
+            name: t.workdayHours,
+            desc: t.workdayHoursDesc,
+            render: (setting) => this.renderHoursPerDay(setting, "workdayHours", t)
+          },
+          {
+            name: t.calendarDayHours,
+            desc: t.calendarDayHoursDesc,
+            render: (setting) => this.renderHoursPerDay(setting, "calendarDayHours", t)
           }
         ]
       },
@@ -380,6 +390,75 @@ export class InsightsSettingTab extends PluginSettingTab {
             await this.host.refreshInsights();
           })
       );
+    this.renderHoursPerDay(
+      new Setting(containerEl).setName(t.workdayHours).setDesc(t.workdayHoursDesc),
+      "workdayHours",
+      t
+    );
+    this.renderHoursPerDay(
+      new Setting(containerEl).setName(t.calendarDayHours).setDesc(t.calendarDayHoursDesc),
+      "calendarDayHours",
+      t
+    );
+  }
+
+  private renderHoursPerDay(
+    setting: Setting,
+    key: "workdayHours" | "calendarDayHours",
+    t: Translations
+  ): void {
+    setting.settingEl.addClass("pmi-gate-hours-setting");
+    setting.addText((input) => {
+      input.setValue(String(this.host.settings.gateRisk[key]));
+      input.inputEl.type = "number";
+      input.inputEl.min = "0.25";
+      input.inputEl.max = "24";
+      input.inputEl.step = "0.25";
+      input.inputEl.addClass("pmi-gate-hours-input");
+      input.inputEl.setAttribute(
+        "aria-label",
+        key === "workdayHours" ? t.workdayHours : t.calendarDayHours
+      );
+      input.inputEl.addEventListener("change", () => {
+        const value = Number(input.inputEl.value);
+        if (!Number.isFinite(value) || value < 0.25 || value > 24) {
+          input.setValue(String(this.host.settings.gateRisk[key]));
+          new Notice(t.hoursPerDayInvalid);
+          return;
+        }
+        const normalized = Math.round((value + Number.EPSILON) * 100) / 100;
+        void this.updateHoursPerDay(key, normalized, input, t);
+      });
+    });
+    setting.controlEl.createSpan({ cls: "pmi-gate-hours-unit", text: t.hoursPerDayUnit });
+  }
+
+  private async updateHoursPerDay(
+    key: "workdayHours" | "calendarDayHours",
+    value: number,
+    input: TextComponent,
+    t: Translations
+  ): Promise<void> {
+    const previous = this.host.settings.gateRisk[key];
+    this.host.settings.gateRisk[key] = value;
+    input.setValue(String(value));
+    input.setDisabled(true);
+    try {
+      await this.host.saveSettings();
+      await this.host.refreshInsights();
+    } catch {
+      this.host.settings.gateRisk[key] = previous;
+      input.setValue(String(previous));
+      try {
+        await this.host.saveSettings();
+        await this.host.refreshInsights();
+      } catch {
+        // Keep the original update failure as the user-facing result.
+      }
+      new Notice(t.hoursPerDayUpdateFailed);
+    } finally {
+      input.setDisabled(false);
+    }
   }
 
   private progressStageDefinition(

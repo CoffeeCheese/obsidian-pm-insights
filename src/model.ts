@@ -155,6 +155,8 @@ export interface ProjectGateActualState {
 
 export interface GateRiskSettings {
   checkTaskDueDates: boolean;
+  workdayHours: number;
+  calendarDayHours: number;
 }
 
 export interface InsightSettings {
@@ -241,7 +243,9 @@ export const DEFAULT_SETTINGS: InsightSettings = {
   countParentTasks: false,
   showDeliveryProgress: true,
   gateRisk: {
-    checkTaskDueDates: true
+    checkTaskDueDates: true,
+    workdayHours: 8,
+    calendarDayHours: 8
   },
   gateSchedules: {},
   gateDelays: {},

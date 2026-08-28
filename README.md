@@ -448,6 +448,8 @@ Open delivery gates from the calendar button in a selected project chip. Every p
 
 A stage gate evaluates its own stage. Acceptance additionally considers tasks that block acceptance. The final launch reminder summarizes the project across all stages and acceptance; it does not depend on a single preceding stage or repeat every task already listed under a stage gate.
 
+The launch reminder keeps total remaining effort visible, but it no longer treats the whole team as one serial resource. It groups stage work by resolved assignee, splits a shared task's remaining effort evenly across its assignees, and accumulates each person's work through every effective stage gate and the launch date. Different people therefore run in parallel, while one person's work across stages still accumulates. At each checkpoint, the busiest owner is compared with that person's available capacity; the worst checkpoint determines the capacity warning. A shortfall is high risk, utilization at 80% or more calls for attention, and unestimated, unassigned, or unmapped work is surfaced as a planning blind spot. Configure **Hours per person per workday** and **Hours per person per calendar day** under **Settings → PM Insights → Gate risk rules**. Existing settings remain compatible and default to eight hours per person.
+
 The launch date is a project-rhythm reminder, not a second definition of delivery completion. The acceptance result remains the final delivery standard.
 
 ![Focused PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope](docs/assets/pm-insights-gate-summary-focused.png)

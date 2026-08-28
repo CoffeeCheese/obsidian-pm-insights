@@ -42,8 +42,22 @@ function normalizeGateRiskSettings(
   return {
     checkTaskDueDates: typeof saved?.checkTaskDueDates === "boolean"
       ? saved.checkTaskDueDates
-      : DEFAULT_SETTINGS.gateRisk.checkTaskDueDates
+      : DEFAULT_SETTINGS.gateRisk.checkTaskDueDates,
+    workdayHours: normalizeHoursPerDay(
+      saved?.workdayHours,
+      DEFAULT_SETTINGS.gateRisk.workdayHours
+    ),
+    calendarDayHours: normalizeHoursPerDay(
+      saved?.calendarDayHours,
+      DEFAULT_SETTINGS.gateRisk.calendarDayHours
+    )
   };
+}
+
+function normalizeHoursPerDay(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0.25 && value <= 24
+    ? value
+    : fallback;
 }
 
 function normalizeGateSchedules(value: unknown): Record<string, ProjectGateSchedule> {

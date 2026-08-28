@@ -438,6 +438,7 @@ export class GateRiskModal extends Modal {
     const heading = overview.createDiv("pmi-risk-launch-overview-heading");
     setIcon(heading.createSpan(), "clipboard-check");
     heading.createEl("strong", { text: t.launchOverviewTitle });
+    if (gate.capacity) this.renderLaunchCapacity(overview, gate, t);
     const stats = overview.createDiv("pmi-risk-launch-stats");
     const summaryItems: Array<[string, string, string]> = [
       ["passed", t.launchPassedGates, `${passed}/${upstream.length}`],
@@ -451,6 +452,156 @@ export class GateRiskModal extends Modal {
       stat.createEl("strong", { text: value });
     }
     overview.createDiv({ cls: "pmi-risk-launch-hint", text: t.launchOverviewHint });
+  }
+
+  private renderLaunchCapacity(
+    root: HTMLElement,
+    gate: GateRiskMetric,
+    t: Translations
+  ): void {
+    const capacity = gate.capacity;
+    if (!capacity) return;
+    const section = root.createDiv(`pmi-risk-capacity is-${capacity.state}`);
+    const heading = section.createDiv("pmi-risk-capacity-heading");
+    setIcon(heading.createSpan(), "timer");
+    heading.createEl("strong", { text: t.launchCapacityTitle });
+    heading.createSpan({
+      cls: "pmi-risk-capacity-state",
+      text: this.capacityStateLabel(capacity.state, t)
+    });
+
+    const metrics = section.createDiv("pmi-risk-capacity-metrics");
+    for (const [key, label, value] of [
+      ["remaining", t.launchRemainingHours, t.hours(capacity.remainingHours)],
+      ["owner", t.launchBottleneckOwner, capacity.bottleneckAssignee ?? t.launchNoBottleneck],
+      ["load", t.launchBottleneckLoad, t.hours(capacity.bottleneckHours)],
+      [
+        capacity.balanceHours < 0 ? "gap" : "buffer",
+        capacity.balanceHours < 0 ? t.launchCapacityGap : t.launchCapacityBuffer,
+        t.hours(Math.abs(capacity.balanceHours))
+      ]
+    ] as const) {
+      const metric = metrics.createDiv({
+        cls: `pmi-risk-capacity-metric is-${key}`,
+        attr: { "data-capacity-metric": key }
+      });
+      metric.createSpan({ text: label });
+      metric.createEl("strong", { text: value });
+    }
+
+    const checkpointName = this.capacityCheckpointName(
+      capacity.checkpointId,
+      capacity.checkpointName,
+      t
+    );
+    const critical = section.createDiv("pmi-risk-capacity-critical");
+    critical.createSpan({
+      cls: "pmi-risk-capacity-checkpoint",
+      text: t.launchCapacityCritical(checkpointName, capacity.checkpointDate)
+    });
+    critical.createSpan({
+      text: t.launchCapacityFormula(
+        Math.max(capacity.daysRemaining, 0),
+        capacity.hoursPerDay,
+        capacity.availableHours,
+        gate.includeWeekends
+      )
+    });
+
+    const criticalCheckpoint = capacity.checkpoints.find((checkpoint) =>
+      checkpoint.id === capacity.checkpointId && checkpoint.gateDate === capacity.checkpointDate
+    );
+    if (criticalCheckpoint && criticalCheckpoint.owners.length > 0) {
+      const scale = Math.max(
+        criticalCheckpoint.availableHours,
+        ...criticalCheckpoint.owners.map((owner) => owner.hours),
+        1
+      );
+      const lanes = section.createDiv({
+        cls: "pmi-risk-capacity-lanes",
+        attr: { role: "list" }
+      });
+      for (const owner of criticalCheckpoint.owners) {
+        const lane = lanes.createDiv({
+          cls: `pmi-risk-capacity-lane${owner.name === capacity.bottleneckAssignee ? " is-bottleneck" : ""}`,
+          attr: {
+            role: "listitem",
+            "aria-label": t.launchCapacityOwnerAria(
+              owner.name,
+              owner.hours,
+              criticalCheckpoint.availableHours
+            )
+          }
+        });
+        lane.createSpan({ cls: "pmi-risk-capacity-owner", text: owner.name });
+        const track = lane.createDiv("pmi-risk-capacity-track");
+        track.style.setProperty("--pmi-owner-load", `${(owner.hours / scale) * 100}%`);
+        track.style.setProperty(
+          "--pmi-owner-capacity",
+          `${(criticalCheckpoint.availableHours / scale) * 100}%`
+        );
+        track.createSpan("pmi-risk-capacity-load");
+        track.createSpan("pmi-risk-capacity-limit");
+        lane.createEl("strong", { text: t.hours(owner.hours) });
+      }
+    }
+
+    const visibleCheckpoints = capacity.checkpoints.filter((checkpoint) =>
+      checkpoint.bottleneckHours > 0
+    );
+    if (visibleCheckpoints.length > 1) {
+      const details = section.createEl("details", { cls: "pmi-risk-capacity-details" });
+      details.createEl("summary", { text: t.launchCapacityCheckpoints });
+      const list = details.createDiv("pmi-risk-capacity-checkpoint-list");
+      for (const checkpoint of visibleCheckpoints) {
+        const item = list.createDiv(`pmi-risk-capacity-checkpoint-row is-${checkpoint.state}`);
+        const identity = item.createDiv("pmi-risk-capacity-checkpoint-identity");
+        identity.createEl("strong", {
+          text: this.capacityCheckpointName(checkpoint.id, checkpoint.name, t)
+        });
+        identity.createSpan({ text: checkpoint.bottleneckAssignee ?? t.launchNoBottleneck });
+        item.createSpan({
+          cls: "pmi-risk-capacity-checkpoint-value",
+          text: t.launchCapacityCheckpointLoad(
+            checkpoint.bottleneckHours,
+            checkpoint.availableHours
+          )
+        });
+        item.createSpan({
+          cls: "pmi-risk-capacity-checkpoint-state",
+          text: this.capacityStateLabel(checkpoint.state, t)
+        });
+      }
+    }
+
+    const context = section.createDiv("pmi-risk-capacity-context");
+    if (capacity.unestimatedTaskCount > 0) {
+      const blindSpot = context.createSpan("pmi-risk-capacity-unestimated");
+      setIcon(blindSpot.createSpan(), "circle-help");
+      blindSpot.createSpan({
+        text: t.launchCapacityUnestimated(capacity.unestimatedTaskCount)
+      });
+    }
+    if (capacity.unassignedTaskCount > 0) {
+      const blindSpot = context.createSpan("pmi-risk-capacity-unestimated");
+      setIcon(blindSpot.createSpan(), "user-round-x");
+      blindSpot.createSpan({
+        text: t.launchCapacityUnassigned(
+          capacity.unassignedTaskCount,
+          capacity.unassignedHours
+        )
+      });
+    }
+    if (capacity.unmappedTaskCount > 0) {
+      const blindSpot = context.createSpan("pmi-risk-capacity-unestimated");
+      setIcon(blindSpot.createSpan(), "signpost");
+      blindSpot.createSpan({ text: t.launchCapacityUnmapped(capacity.unmappedTaskCount) });
+    }
+    if (capacity.sharedTaskCount > 0) {
+      const note = context.createSpan("pmi-risk-capacity-note");
+      setIcon(note.createSpan(), "users-round");
+      note.createSpan({ text: t.launchCapacityShared(capacity.sharedTaskCount) });
+    }
   }
 
   private renderTaskGroup(
@@ -669,7 +820,51 @@ export class GateRiskModal extends Modal {
       case "task-after-gate": return t.gateReasonTaskAfterGate;
       case "gate-today": return t.gateReasonGateToday;
       case "gate-overdue": return t.gateReasonGateOverdue;
+      case "capacity-tight": return t.gateReasonCapacityTight(
+        gate.capacity?.bottleneckAssignee ?? t.launchNoBottleneck,
+        this.capacityCheckpointName(
+          gate.capacity?.checkpointId ?? "launch",
+          gate.capacity?.checkpointName ?? "",
+          t
+        ),
+        gate.capacity?.utilizationPercentage ?? 0
+      );
+      case "capacity-shortfall": return t.gateReasonCapacityShortfall(
+        gate.capacity?.bottleneckAssignee ?? t.launchNoBottleneck,
+        this.capacityCheckpointName(
+          gate.capacity?.checkpointId ?? "launch",
+          gate.capacity?.checkpointName ?? "",
+          t
+        ),
+        Math.abs(gate.capacity?.balanceHours ?? 0)
+      );
+      case "capacity-unestimated": return t.gateReasonCapacityUnestimated(
+        gate.capacity?.unestimatedTaskCount ?? 0
+      );
+      case "capacity-unassigned": return t.gateReasonCapacityUnassigned(
+        gate.capacity?.unassignedTaskCount ?? 0
+      );
+      case "capacity-unmapped": return t.gateReasonCapacityUnmapped(
+        gate.capacity?.unmappedTaskCount ?? 0
+      );
     }
+  }
+
+  private capacityStateLabel(
+    state: NonNullable<GateRiskMetric["capacity"]>["state"],
+    t: Translations
+  ): string {
+    switch (state) {
+      case "normal": return t.launchCapacityNormal;
+      case "attention": return t.launchCapacityAttention;
+      case "high": return t.launchCapacityHigh;
+      case "overdue": return t.launchCapacityOverdue;
+      case "passed": return t.launchCapacityPassed;
+    }
+  }
+
+  private capacityCheckpointName(id: string, name: string, t: Translations): string {
+    return id === "launch" ? t.launchGateLabel : deliveryStageLabel(id, name, t);
   }
 
   private timingLabel(timing: NonNullable<GateRiskMetric["timing"]>, t: Translations): string {

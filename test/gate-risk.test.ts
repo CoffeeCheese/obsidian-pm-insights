@@ -175,6 +175,111 @@ describe("aggregateGateRisk", () => {
     });
   });
 
+  it("raises launch risk when owner load exceeds its stage-milestone capacity", () => {
+    const snapshot = aggregateGateRisk([project], [
+      root(),
+      task({ id: "large", estimate: 80, logged: 0, dueDate: null })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: schedule },
+      checkTaskDueDates: false,
+      workdayHours: 8,
+      calendarDayHours: 4,
+      today: "2026-07-31"
+    });
+    const launch = snapshot.projects[0]?.gates.find((gate) => gate.kind === "launch");
+
+    expect(launch).toMatchObject({
+      state: "high",
+      reasons: ["capacity-shortfall"],
+      capacity: {
+        remainingHours: 80,
+        bottleneckAssignee: "Alex",
+        bottleneckHours: 80,
+        checkpointId: "delivery",
+        availableHours: 44,
+        balanceHours: -36,
+        hoursPerDay: 4,
+        daysRemaining: 11,
+        state: "high"
+      }
+    });
+    expect(snapshot.projects[0]?.state).toBe("high");
+  });
+
+  it("uses the workday conversion when the project clock skips weekends", () => {
+    const snapshot = aggregateGateRisk([project], [root(), task({ id: "open" })], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: { ...schedule, includeWeekends: false } },
+      checkTaskDueDates: false,
+      workdayHours: 6,
+      calendarDayHours: 3,
+      today: "2026-07-31"
+    });
+    const launch = snapshot.projects[0]?.gates.find((gate) => gate.kind === "launch");
+
+    expect(launch?.capacity).toMatchObject({
+      remainingHours: 4,
+      availableHours: 42,
+      hoursPerDay: 6,
+      daysRemaining: 7,
+      state: "normal"
+    });
+  });
+
+  it("keeps different assignees parallel when escalating the project risk", () => {
+    const snapshot = aggregateGateRisk([project], [
+      root(),
+      task({ id: "alice", assignees: ["Alice"], estimate: 60, logged: 0 }),
+      task({ id: "bob", assignees: ["Bob"], estimate: 50, logged: 0 })
+    ], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: schedule },
+      checkTaskDueDates: false,
+      calendarDayHours: 4,
+      today: "2026-07-31"
+    });
+    const capacity = snapshot.projects[0]?.gates.find((gate) => gate.kind === "launch")?.capacity;
+
+    expect(capacity).toMatchObject({
+      remainingHours: 110,
+      bottleneckAssignee: "Alice",
+      bottleneckHours: 60,
+      availableHours: 44,
+      balanceHours: -16,
+      state: "high"
+    });
+  });
+
+  it("matches the dashboard parent-task counting mode", () => {
+    const tasks = [
+      root({ estimate: 20, logged: 2 }),
+      task({ id: "child", estimate: 8, logged: 2 })
+    ];
+    const input = {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      settings,
+      gateSchedules: { p1: schedule },
+      checkTaskDueDates: false,
+      today: "2026-07-31"
+    };
+
+    const childMode = aggregateGateRisk([project], tasks, input);
+    const parentMode = aggregateGateRisk([project], tasks, { ...input, countParentTasks: true });
+    const launchCapacity = (snapshot: ReturnType<typeof aggregateGateRisk>) =>
+      snapshot.projects[0]?.gates.find((gate) => gate.kind === "launch")?.capacity;
+
+    expect(launchCapacity(childMode)?.remainingHours).toBe(6);
+    expect(launchCapacity(parentMode)?.remainingHours).toBe(18);
+  });
+
   it("does not advance planned progress while a workday-only clock is on a weekend", () => {
     const workdaySchedule = { ...schedule, includeWeekends: false };
     const friday = risk([root(), task({ id: "open" })], "2026-08-07", {
@@ -522,7 +627,14 @@ describe("aggregateGateRisk", () => {
       progress: 70,
       expectedProgress: 50,
       progressGap: 0,
-      state: "normal"
+      state: "high",
+      reasons: ["capacity-shortfall"],
+      capacity: {
+        checkpointId: "testing",
+        bottleneckAssignee: "Alex",
+        bottleneckHours: 4,
+        state: "overdue"
+      }
     });
     expect(launch?.tasks.map((candidate) => candidate.id).sort()).toEqual([
       "root",

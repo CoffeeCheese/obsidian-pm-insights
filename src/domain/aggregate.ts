@@ -124,12 +124,22 @@ export interface AggregateOptions {
   unassignedLabel: string;
 }
 
-export function aggregateInsights(
-  projects: ProjectRecord[],
+export interface WorkloadScopeOptions {
+  projectIds: Set<string>;
+  includeArchived: boolean;
+  countParentTasks: boolean;
+}
+
+export interface WorkloadTaskSelection {
+  parentTasks: TaskRecord[];
+  childTasks: TaskRecord[];
+  included: TaskRecord[];
+}
+
+export function selectWorkloadTasks(
   tasks: TaskRecord[],
-  options: AggregateOptions
-): InsightSnapshot {
-  const projectTitles = new Map(projects.map((project) => [project.id, project.title]));
+  options: WorkloadScopeOptions
+): WorkloadTaskSelection {
   const selected = tasks.filter((task) => options.projectIds.has(task.projectId));
   const parentIds = new Set(
     selected.map((task) => task.parentId).filter((id): id is string => Boolean(id))
@@ -140,8 +150,19 @@ export function aggregateInsights(
   const parentTaskIds = new Set(parentTasks.map((task) => task.id));
   const childTasks = selected.filter((task) => !parentTaskIds.has(task.id));
   const scopedTasks = options.countParentTasks ? parentTasks : childTasks;
-  const resolver = new IdentityResolver(options.aliases);
   const included = scopedTasks.filter((task) => options.includeArchived || !task.archived);
+  return { parentTasks, childTasks, included };
+}
+
+export function aggregateInsights(
+  projects: ProjectRecord[],
+  tasks: TaskRecord[],
+  options: AggregateOptions
+): InsightSnapshot {
+  const projectTitles = new Map(projects.map((project) => [project.id, project.title]));
+  const { parentTasks, childTasks, included } = selectWorkloadTasks(tasks, options);
+  const parentTaskIds = new Set(parentTasks.map((task) => task.id));
+  const resolver = new IdentityResolver(options.aliases);
 
   const members = new Map<string, MemberInsight>();
   const allTasks: TaskInsight[] = [];

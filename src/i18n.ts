@@ -248,6 +248,16 @@ const en = {
   gateReasonTaskAfterGate: "A task is planned after this gate",
   gateReasonGateToday: "Incomplete on the gate date",
   gateReasonGateOverdue: "The gate date has passed",
+  gateReasonCapacityTight: (owner: string, checkpoint: string, percentage: number) =>
+    `${owner}'s load reaches ${percentage}% by ${checkpoint}`,
+  gateReasonCapacityShortfall: (owner: string, checkpoint: string, hours: number) =>
+    `${owner} is ${hours}h over capacity by ${checkpoint}`,
+  gateReasonCapacityUnestimated: (count: number) =>
+    `${count} open task${count === 1 ? " has" : "s have"} no estimate`,
+  gateReasonCapacityUnassigned: (count: number) =>
+    `${count} estimated task${count === 1 ? " is" : "s are"} unassigned`,
+  gateReasonCapacityUnmapped: (count: number) =>
+    `${count} task${count === 1 ? " has" : "s have"} no delivery stage`,
   gateTimingEarly: "Passed early",
   gateTimingOnTime: "Passed on time",
   gateTimingLate: "Passed late",
@@ -261,6 +271,40 @@ const en = {
   launchOpenTasks: "Open tasks",
   launchAcceptanceBlockers: "Acceptance blockers",
   launchOverviewHint: "Task details are grouped under their stage gates above. Resolve them there.",
+  launchCapacityTitle: "Owner capacity",
+  launchCapacityNormal: "Capacity available",
+  launchCapacityAttention: "Limited buffer",
+  launchCapacityHigh: "Hours at risk",
+  launchCapacityOverdue: "Time exhausted",
+  launchCapacityPassed: "Launch completed",
+  launchRemainingHours: "Total remaining effort",
+  launchBottleneckOwner: "Bottleneck owner",
+  launchBottleneckLoad: "Bottleneck load",
+  launchNoBottleneck: "No assigned work",
+  launchAvailableHours: "Available per owner",
+  launchCapacityGap: "Shortfall",
+  launchCapacityBuffer: "Buffer",
+  launchCapacityCritical: (checkpoint: string, date: string) =>
+    `Critical checkpoint · ${checkpoint} · ${date}`,
+  launchCapacityFormula: (
+    days: number,
+    hours: number,
+    available: number,
+    includeWeekends: boolean
+  ) => `${englishScheduleDays(days, includeWeekends)} × ${hours}h/person/day = ${available}h/person`,
+  launchCapacityOwnerAria: (owner: string, load: number, available: number) =>
+    `${owner}: ${load}h load, ${available}h available`,
+  launchCapacityCheckpoints: "Capacity by checkpoint",
+  launchCapacityCheckpointLoad: (load: number, available: number) =>
+    `${load}h load / ${available}h available`,
+  launchCapacityUnestimated: (count: number) =>
+    `${count} open task${count === 1 ? " is" : "s are"} unestimated and excluded from remaining hours.`,
+  launchCapacityUnassigned: (count: number, hours: number) =>
+    `${count} task${count === 1 ? " is" : "s are"} unassigned (${hours}h); no owner load was assumed.`,
+  launchCapacityUnmapped: (count: number) =>
+    `${count} task${count === 1 ? " uses" : "s use"} launch as its checkpoint because no stage is mapped.`,
+  launchCapacityShared: (count: number) =>
+    `${count} shared task${count === 1 ? " is" : "s are"} split evenly across assignees.`,
   gateTaskRiskReasons: "Risk reasons",
   gateTaskRiskOverdue: (days: number, includeWeekends: boolean) =>
     `Task overdue ${englishScheduleDays(days, includeWeekends)}`,
@@ -468,6 +512,13 @@ const en = {
   gateRiskSettingsHeading: "Gate risk rules",
   checkTaskDueDates: "Check task due dates",
   checkTaskDueDatesDesc: "When enabled, missing due dates, overdue tasks, and tasks planned after a gate affect risk. When disabled, gate dates, expected progress, and acceptance blockers are still checked.",
+  workdayHours: "Hours per person per workday",
+  workdayHoursDesc: "Available capacity for each assignee on one workday.",
+  calendarDayHours: "Hours per person per calendar day",
+  calendarDayHoursDesc: "Per-assignee capacity when a project's clock includes weekends.",
+  hoursPerDayUnit: "h/person/day",
+  hoursPerDayInvalid: "Enter a number from 0.25 to 24 hours.",
+  hoursPerDayUpdateFailed: "Could not update the daily-hour rule.",
   gateDueDateRule: "Task due dates",
   gateDueDateRuleEnabled: "Included in risk",
   gateDueDateRuleDisabled: "Ignored",
@@ -719,6 +770,13 @@ const zh: typeof en = {
   gateReasonTaskAfterGate: "存在计划晚于门禁的任务",
   gateReasonGateToday: "门禁当天仍未完成",
   gateReasonGateOverdue: "门禁日期已经过去",
+  gateReasonCapacityTight: (owner: string, checkpoint: string, percentage: number) =>
+    `${owner}在${checkpoint}前的负载已达 ${percentage}%`,
+  gateReasonCapacityShortfall: (owner: string, checkpoint: string, hours: number) =>
+    `${owner}在${checkpoint}前存在 ${hours}h 工时缺口`,
+  gateReasonCapacityUnestimated: (count: number) => `${count} 个未完成任务没有工时估算`,
+  gateReasonCapacityUnassigned: (count: number) => `${count} 个已估时任务尚未分配负责人`,
+  gateReasonCapacityUnmapped: (count: number) => `${count} 个任务未映射交付阶段`,
   gateTimingEarly: "提前通过",
   gateTimingOnTime: "按时通过",
   gateTimingLate: "逾期通过",
@@ -732,6 +790,40 @@ const zh: typeof en = {
   launchOpenTasks: "待处理任务",
   launchAcceptanceBlockers: "验收阻塞",
   launchOverviewHint: "任务明细已归入上方对应阶段门禁，请按阶段查看和处理。",
+  launchCapacityTitle: "负责人容量",
+  launchCapacityNormal: "容量充足",
+  launchCapacityAttention: "余量有限",
+  launchCapacityHigh: "工时有风险",
+  launchCapacityOverdue: "可用时间已耗尽",
+  launchCapacityPassed: "已完成上线",
+  launchRemainingHours: "剩余总工作量",
+  launchBottleneckOwner: "瓶颈负责人",
+  launchBottleneckLoad: "瓶颈负载",
+  launchNoBottleneck: "暂无已分配工作",
+  launchAvailableHours: "每人可用容量",
+  launchCapacityGap: "工时缺口",
+  launchCapacityBuffer: "工时余量",
+  launchCapacityCritical: (checkpoint: string, date: string) =>
+    `关键节点 · ${checkpoint} · ${date}`,
+  launchCapacityFormula: (
+    days: number,
+    hours: number,
+    available: number,
+    includeWeekends: boolean
+  ) => `${chineseScheduleDays(days, includeWeekends)} × ${hours}h/人/日 = ${available}h/人`,
+  launchCapacityOwnerAria: (owner: string, load: number, available: number) =>
+    `${owner}：负载 ${load}h，可用 ${available}h`,
+  launchCapacityCheckpoints: "各节点负责人容量",
+  launchCapacityCheckpointLoad: (load: number, available: number) =>
+    `负载 ${load}h / 可用 ${available}h`,
+  launchCapacityUnestimated: (count: number) =>
+    `另有 ${count} 个未完成任务没有工时估算，未计入剩余工时。`,
+  launchCapacityUnassigned: (count: number, hours: number) =>
+    `另有 ${count} 个任务尚未分配负责人（${hours}h），未假设由某个人承担。`,
+  launchCapacityUnmapped: (count: number) =>
+    `${count} 个任务没有映射交付阶段，暂以上线日期作为检查节点。`,
+  launchCapacityShared: (count: number) =>
+    `${count} 个共享任务的剩余工时已在负责人之间平均分摊。`,
   gateTaskRiskReasons: "风险原因",
   gateTaskRiskOverdue: (days: number, includeWeekends: boolean) =>
     `任务逾期 ${chineseScheduleDays(days, includeWeekends)}`,
@@ -937,6 +1029,13 @@ const zh: typeof en = {
   gateRiskSettingsHeading: "门禁风险规则",
   checkTaskDueDates: "检测任务截止时间",
   checkTaskDueDatesDesc: "开启后，未设置截止日、任务已逾期和计划晚于门禁都会影响风险；关闭后仍会检测门禁日期、计划应达和验收阻塞。",
+  workdayHours: "每人每个工作日可用工时",
+  workdayHoursDesc: "每位任务负责人在一个工作日内可投入的容量。",
+  calendarDayHours: "每人每个自然日可用工时",
+  calendarDayHoursDesc: "项目时钟包含周末时，每位负责人每天可投入的容量。",
+  hoursPerDayUnit: "小时/人/日",
+  hoursPerDayInvalid: "请输入 0.25 到 24 之间的工时。",
+  hoursPerDayUpdateFailed: "无法更新每日工时规则。",
   gateDueDateRule: "任务截止时间",
   gateDueDateRuleEnabled: "参与检测",
   gateDueDateRuleDisabled: "已忽略",

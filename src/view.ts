@@ -614,6 +614,10 @@ export class InsightsView extends ItemView {
       gateDelays: this.host.settings.gateDelays,
       gateActuals: this.host.settings.gateActuals,
       checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
+      workdayHours: this.host.settings.gateRisk.workdayHours,
+      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
+      countParentTasks: this.host.settings.countParentTasks,
+      aliases: this.host.settings.aliases,
       today: this.todayDate()
     });
   }
