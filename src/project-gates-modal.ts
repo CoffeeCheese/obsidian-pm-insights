@@ -390,7 +390,7 @@ export class ProjectGatesModal extends Modal {
     if (durationFrom) {
       this.durationRows.push({ element: duration, from: durationFrom, to: () => input.value, projectDuration });
     }
-    input.addEventListener("input", () => {
+    input.addEventListener("change", () => {
       update(input.value);
       this.updateBaselineDirty();
       this.render();
@@ -820,7 +820,7 @@ export class ProjectGatesModal extends Modal {
       value: this.launchDate,
       attr: { min: acceptance.date, max: this.options.today }
     });
-    input.addEventListener("input", () => { this.launchDate = input.value; });
+    input.addEventListener("change", () => { this.launchDate = input.value; });
     if (this.actuals.launchDate) {
       const reason = fields.createEl("label");
       reason.createSpan({ text: t.gateDelayReason });
