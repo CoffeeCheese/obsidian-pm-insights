@@ -19,7 +19,8 @@
   padding: var(--pmi-page-space-block) var(--pmi-page-gutter);
 }
 
-.pmi-view {
+.pmi-view,
+.pmi-member-dashboard-modal {
   --pmi-content-max: 1320px;
   --pmi-page-gutter: clamp(24px, 4.5vw, 72px);
   --pmi-page-space-block: clamp(24px, 3vw, 44px);
@@ -6123,15 +6124,107 @@ body .modal.pmi-confirm-action-modal
   );
 }
 
-/* Personal delivery dashboard: one expandable instrument led by a deadline runway. */
+/* Personal delivery drawer: a right-side flight record led by a deadline runway. */
+body .modal-container:has(.modal.pmi-member-dashboard-modal) {
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal {
+  --pmi-member-health-color: var(--pmi-member-normal);
+  position: relative;
+  width: min(880px, calc(100vw - 24px));
+  max-width: 880px;
+  height: calc(100vh - 24px);
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pmi-member-health-color) 32%, var(--pmi-edge-strong));
+  border-radius: 18px 5px 5px 18px;
+  background: var(--background-primary);
+  box-shadow: -18px 0 56px rgb(0 0 0 / 24%);
+  container-name: pmi-member-drawer;
+  container-type: inline-size;
+  animation: pmi-member-dashboard-drawer-enter 210ms cubic-bezier(0.16, 0.82, 0.24, 1);
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal.is-attention {
+  --pmi-member-health-color: var(--pmi-member-attention);
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal.is-high {
+  --pmi-member-health-color: var(--pmi-member-high);
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal.is-overdue {
+  --pmi-member-health-color: var(--pmi-member-overdue);
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 5px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 12px,
+      color-mix(in srgb, var(--background-primary) 58%, transparent) 12px 14px
+    ),
+    var(--pmi-member-health-color);
+  pointer-events: none;
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal
+  > :is(.modal-close-button, .modal-header-button) {
+  position: absolute;
+  z-index: 6;
+  inset-block-start: 16px;
+  inset-inline-end: 16px;
+  display: grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pmi-edge-strong);
+  border-radius: 50%;
+  box-shadow: none;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--background-primary) 90%, transparent);
+  place-items: center;
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal
+  > :is(.modal-close-button, .modal-header-button):is(:hover, :focus-visible) {
+  border-color: var(--pmi-member-health-color);
+  color: var(--pmi-member-health-color);
+  background: color-mix(in srgb, var(--pmi-member-health-color) 9%, var(--background-primary));
+  outline: none;
+}
+
+body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .pmi-member-dashboard {
   --pmi-member-health-color: var(--pmi-member-normal);
-  margin-block: 0 14px;
-  overflow: hidden;
-  border: 1px solid var(--pmi-edge-strong);
-  border-radius: var(--radius-m);
-  background: var(--background-primary);
-  animation: pmi-member-dashboard-reveal 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-height: 100%;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .pmi-member-dashboard.is-attention {
@@ -6146,31 +6239,71 @@ body .modal.pmi-confirm-action-modal
   --pmi-member-health-color: var(--pmi-member-overdue);
 }
 
-@keyframes pmi-member-dashboard-reveal {
+@keyframes pmi-member-dashboard-drawer-enter {
   from {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateX(28px) scale(0.992);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0) scale(1);
   }
 }
 
-.pmi-member-dashboard-lead {
+.pmi-member-dashboard-mast {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
   align-items: center;
-  padding: 14px 16px;
+  min-height: 116px;
+  padding: 24px 62px 22px 28px;
   border-block-end: 1px solid var(--pmi-edge);
   background:
     linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--pmi-member-health-color) 10%, var(--background-primary)),
-      var(--background-primary) 54%
+      105deg,
+      color-mix(in srgb, var(--pmi-member-health-color) 9%, var(--background-primary)),
+      var(--background-primary) 48%
     );
+}
+
+.pmi-member-dashboard-title {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.pmi-member-dashboard-title h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-normal);
+  font-family: var(--font-text);
+  font-size: clamp(27px, 4.4cqi, 38px);
+  font-weight: 680;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-member-dashboard-title p {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-member-dashboard-commandbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 11px 22px 11px 28px;
+  border-block-end: 1px solid var(--pmi-edge);
+  background: var(--pmi-surface-raised);
 }
 
 .pmi-member-health {
@@ -6223,6 +6356,10 @@ body .modal.pmi-confirm-action-modal
   flex-wrap: wrap;
   gap: 5px;
   margin-block-start: 5px;
+}
+
+.pmi-member-dashboard-commandbar > .pmi-member-health-drivers {
+  margin-block-start: 0;
 }
 
 .pmi-member-health-clear {
@@ -6337,7 +6474,7 @@ body .modal.pmi-confirm-action-modal
 .pmi-member-runway,
 .pmi-member-project-mix,
 .pmi-member-ledger-section {
-  padding: 14px 16px;
+  padding: 18px 28px;
 }
 
 .pmi-member-runway,
@@ -7952,8 +8089,8 @@ body .modal.pmi-confirm-action-modal
   }
 }
 
-@container pmi-detail (max-width: 720px) {
-  .pmi-member-dashboard-lead {
+@container pmi-member-drawer (max-width: 720px) {
+  .pmi-member-dashboard-commandbar {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -7974,6 +8111,9 @@ body .modal.pmi-confirm-action-modal
   .pmi-root button.pmi-member-instrument:nth-child(2):not(.clickable-icon) {
     border-inline-end: 0;
   }
+}
+
+@container pmi-detail (max-width: 720px) {
 
   .pmi-task-filter-bar {
     grid-template:
@@ -8014,6 +8154,13 @@ body .modal.pmi-confirm-action-modal
 @container pmi-detail (max-width: 620px) {
   .pmi-detail-header {
     gap: 8px;
+  }
+}
+
+@container pmi-member-drawer (max-width: 620px) {
+  .pmi-member-dashboard-mast {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
   .pmi-member-dashboard-controls {
@@ -8056,7 +8203,7 @@ body .modal.pmi-confirm-action-modal
   }
 }
 
-@container pmi-detail (max-width: 430px) {
+@container pmi-member-drawer (max-width: 430px) {
   .pmi-member-instruments {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -8072,11 +8219,30 @@ body .modal.pmi-confirm-action-modal
     border-block-start: 0;
   }
 
-  .pmi-member-dashboard-lead,
+  .pmi-member-dashboard-mast {
+    padding-inline: 16px 54px;
+  }
+
+  .pmi-member-dashboard-commandbar,
   .pmi-member-runway,
   .pmi-member-project-mix,
   .pmi-member-ledger-section {
-    padding-inline: 11px;
+    padding-inline: 14px;
+  }
+}
+
+@media (max-width: 620px) {
+  body .modal-container:has(.modal.pmi-member-dashboard-modal) {
+    padding: 0;
+  }
+
+  body .modal-container .modal.pmi-member-dashboard-modal {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    border-block: 0;
+    border-inline-end: 0;
+    border-radius: 0;
   }
 }
 
@@ -8233,7 +8399,7 @@ body .modal.pmi-confirm-action-modal
     scroll-behavior: auto;
   }
 
-  .pmi-member-dashboard {
+  body .modal-container .modal.pmi-member-dashboard-modal {
     animation: none;
   }
 

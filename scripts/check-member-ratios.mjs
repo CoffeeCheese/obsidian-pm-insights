@@ -26,28 +26,26 @@ const evaluation = `(async () => {
     return JSON.stringify({ setup: false });
   }
   const initiallyCollapsed = toggle.getAttribute("aria-expanded") === "false";
+  const detailBefore = document.querySelector(".pmi-detail")?.getBoundingClientRect();
+  const filterBefore = document.querySelector(".pmi-task-filter-bar")?.getBoundingClientRect();
   toggle.click();
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   const expandedToggle = document.querySelector(".pmi-member-dashboard-toggle");
+  const drawer = document.querySelector(".pmi-member-dashboard-modal");
   const ledger = document.querySelector(".pmi-member-ratios");
   const dashboard = document.querySelector(".pmi-member-dashboard");
-  const header = document.querySelector(".pmi-detail-header");
   const detail = document.querySelector(".pmi-detail");
-  const identity = document.querySelector(".pmi-detail-identity");
-  const identityName = identity?.querySelector("h2");
   const filterBar = document.querySelector(".pmi-task-filter-bar");
-  const masterDetail = detail?.parentElement;
   if (
+    !(drawer instanceof HTMLElement) ||
     !(ledger instanceof HTMLElement) ||
     !(dashboard instanceof HTMLElement) ||
-    !(header instanceof HTMLElement) ||
     !(detail instanceof HTMLElement) ||
-    !(identity instanceof HTMLElement) ||
-    !(identityName instanceof HTMLElement) ||
     !(filterBar instanceof HTMLElement) ||
     !(expandedToggle instanceof HTMLButtonElement) ||
-    !(masterDetail instanceof HTMLElement)
+    !detailBefore ||
+    !filterBefore
   ) {
     if (leftSidebarWasCollapsed) leftSplit.collapse();
     return JSON.stringify({ setup: false });
@@ -55,8 +53,8 @@ const evaluation = `(async () => {
 
   const ledgerRect = ledger.getBoundingClientRect();
   const dashboardRect = dashboard.getBoundingClientRect();
+  const drawerRect = drawer.getBoundingClientRect();
   const detailRect = detail.getBoundingClientRect();
-  const identityRect = identity.getBoundingClientRect();
   const filterRect = filterBar.getBoundingClientRect();
   const groups = [...ledger.querySelectorAll(".pmi-ratio-group")];
   const metrics = [...ledger.querySelectorAll(".pmi-ratio-metric")].map((metric) => {
@@ -73,23 +71,26 @@ const evaluation = `(async () => {
     };
   });
 
-  const originalGridTemplate = masterDetail.style.gridTemplateColumns;
-  masterDetail.style.gridTemplateColumns = "minmax(290px, 1fr) 580px";
+  const originalWidth = drawer.style.width;
+  const originalMaxWidth = drawer.style.maxWidth;
+  drawer.style.width = "580px";
+  drawer.style.maxWidth = "580px";
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const narrowLedgerRect = ledger.getBoundingClientRect();
-  const narrowDetailRect = detail.getBoundingClientRect();
-  const narrowIdentityRect = identity.getBoundingClientRect();
   const narrowState = {
-    stacked: narrowLedgerRect.top >= narrowIdentityRect.bottom - 1,
-    containedByDetail:
-      narrowLedgerRect.left >= narrowDetailRect.left - 1 &&
-      narrowLedgerRect.right <= narrowDetailRect.right + 1,
-    headerHasNoHorizontalOverflow: header.scrollWidth <= header.clientWidth + 1,
+    stacked: [...ledger.querySelectorAll(".pmi-ratio-group")].every(
+      (group, index, groups) => index === 0 || group.getBoundingClientRect().top >= groups[index - 1].getBoundingClientRect().bottom - 1
+    ),
+    containedByDrawer:
+      narrowLedgerRect.left >= drawer.getBoundingClientRect().left - 1 &&
+      narrowLedgerRect.right <= drawer.getBoundingClientRect().right + 1,
+    drawerHasNoHorizontalOverflow: drawer.scrollWidth <= drawer.clientWidth + 1,
     labelsFit: [...ledger.querySelectorAll(".pmi-ratio-name")].every(
       (label) => label.scrollWidth <= label.clientWidth
     )
   };
-  masterDetail.style.gridTemplateColumns = originalGridTemplate;
+  drawer.style.width = originalWidth;
+  drawer.style.maxWidth = originalMaxWidth;
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   const report = {
@@ -101,19 +102,26 @@ const evaluation = `(async () => {
     metricCount: metrics.length,
     metrics,
     compactHeight: Math.round(ledgerRect.height * 100) / 100,
-    insideDashboard:
+    insideDrawer:
+      drawer.contains(dashboard) &&
       dashboard.contains(ledger) &&
       ledgerRect.top >= dashboardRect.top - 1 &&
       ledgerRect.bottom <= dashboardRect.bottom + 1,
-    containedByDetail:
-      ledgerRect.left >= detailRect.left - 1 && ledgerRect.right <= detailRect.right + 1,
-    headerHasNoHorizontalOverflow: header.scrollWidth <= header.clientWidth + 1,
+    detachedFromDetail: !detail.contains(dashboard),
+    drawerAnchoredRight: window.innerWidth - drawerRect.right <= 16,
+    drawerHasNoHorizontalOverflow: drawer.scrollWidth <= drawer.clientWidth + 1,
     detailHasNoHorizontalOverflow: detail.scrollWidth <= detail.clientWidth + 1,
-    identityNameFits: identityName.scrollWidth <= identityName.clientWidth + 1,
+    detailHeightStable: Math.abs(detailRect.height - detailBefore.height) <= 1,
+    filterPositionStable:
+      Math.abs(filterRect.top - filterBefore.top) <= 1 &&
+      Math.abs(filterRect.left - filterBefore.left) <= 1,
     narrowState,
-    placedAfterIdentity: dashboardRect.top >= identityRect.bottom - 1,
-    doesNotOverlapFilters: ledgerRect.bottom <= filterRect.top
+    drawerHeight: Math.round(drawerRect.height)
   };
+  drawer.querySelector(".modal-close-button, .modal-header-button")?.click();
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  report.closed = !document.querySelector(".pmi-member-dashboard-modal") &&
+    document.querySelector(".pmi-member-dashboard-toggle")?.getAttribute("aria-expanded") === "false";
   if (leftSidebarWasCollapsed) leftSplit.collapse();
   return JSON.stringify(report);
 })()`;
@@ -145,22 +153,23 @@ if (
   report.metricCount !== 6 ||
   invalidMetrics?.length > 0 ||
   !report.leftSidebarExpanded ||
-  !report.insideDashboard ||
-  !report.containedByDetail ||
-  !report.headerHasNoHorizontalOverflow ||
+  !report.insideDrawer ||
+  !report.detachedFromDetail ||
+  !report.drawerAnchoredRight ||
+  !report.drawerHasNoHorizontalOverflow ||
   !report.detailHasNoHorizontalOverflow ||
-  !report.identityNameFits ||
+  !report.detailHeightStable ||
+  !report.filterPositionStable ||
   !report.narrowState?.stacked ||
-  !report.narrowState?.containedByDetail ||
-  !report.narrowState?.headerHasNoHorizontalOverflow ||
+  !report.narrowState?.containedByDrawer ||
+  !report.narrowState?.drawerHasNoHorizontalOverflow ||
   !report.narrowState?.labelsFit ||
-  !report.placedAfterIdentity ||
-  !report.doesNotOverlapFilters
+  !report.closed
 ) {
   console.error(`Member ratio ledger failed: ${JSON.stringify({ ...report, invalidMetrics })}`);
   process.exitCode = 1;
 } else {
   console.log(
-    `Member ratio ledger expanded inside the personal dashboard with 3 groups and 6 accessible metrics in ${report.compactHeight}px.`
+    `Member dashboard opened as a ${report.drawerHeight}px right drawer with 3 groups and 6 accessible metrics; task detail stayed stable.`
   );
 }

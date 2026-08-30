@@ -1,4 +1,4 @@
-import { ItemView, setIcon, type WorkspaceLeaf } from "obsidian";
+import { ItemView, Modal, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { aggregateInsights } from "./domain/aggregate";
 import {
   aggregateDeliveryProgress,
@@ -63,6 +63,43 @@ const TASK_COLUMN_KEYBOARD_STEP = 12;
 let nextDeliveryProgressLabelId = 0;
 let nextMemberDashboardLabelId = 0;
 
+interface MemberDashboardDrawerOptions {
+  ariaLabel: string;
+  render(root: HTMLElement): MemberDashboardHealth;
+  onClose(): void;
+}
+
+class MemberDashboardDrawer extends Modal {
+  constructor(
+    app: App,
+    private readonly options: MemberDashboardDrawerOptions
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.modalEl.addClass("pmi-member-dashboard-modal");
+    this.modalEl.setAttribute("aria-label", this.options.ariaLabel);
+    this.contentEl.addClass("pmi-root");
+    this.contentEl.addClass("pmi-member-dashboard-drawer-content");
+    this.refresh();
+  }
+
+  refresh(): void {
+    this.contentEl.empty();
+    const health = this.options.render(this.contentEl);
+    for (const state of ["normal", "attention", "high", "overdue"] as const) {
+      this.modalEl.removeClass(`is-${state}`);
+    }
+    this.modalEl.addClass(`is-${health}`);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+    this.options.onClose();
+  }
+}
+
 export class InsightsView extends ItemView {
   private selectedMemberKey: string | null = null;
   private memberQuery = "";
@@ -71,7 +108,8 @@ export class InsightsView extends ItemView {
   private taskStatuses: Set<string> | null = null;
   private taskPriorities: Set<string> | null = null;
   private taskPrioritySort: TaskPrioritySort = "none";
-  private memberDashboardExpanded = false;
+  private memberDashboardModal: MemberDashboardDrawer | null = null;
+  private memberDashboardOpenMemberKey: string | null = null;
   private dashboardTaskKeys: Set<string> | null = null;
   private dashboardFilterId: string | null = null;
   private dashboardFilterLabel = "";
@@ -114,6 +152,12 @@ export class InsightsView extends ItemView {
       }
     });
     await this.render();
+  }
+
+  async onClose(): Promise<void> {
+    this.memberDashboardModal?.close();
+    this.memberDashboardModal = null;
+    this.memberDashboardOpenMemberKey = null;
   }
 
   async refresh(): Promise<void> {
@@ -454,14 +498,18 @@ export class InsightsView extends ItemView {
       settings: this.host.settings.deliveryProgress
     });
     const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
-    const memberDashboard = aggregateMemberDashboard(insights.members, {
-      today: this.todayDate(),
-      settings: this.host.settings.memberDashboard,
-      workdayHours: this.host.settings.gateRisk.workdayHours,
-      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
-      gateRisk,
-      highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
-    });
+    const buildMemberDashboard = (): MemberDashboardSnapshot => aggregateMemberDashboard(
+      insights.members,
+      {
+        today: this.todayDate(),
+        settings: this.host.settings.memberDashboard,
+        workdayHours: this.host.settings.gateRisk.workdayHours,
+        calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
+        gateRisk,
+        highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
+      }
+    );
+    const memberDashboard = buildMemberDashboard();
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -511,7 +559,7 @@ export class InsightsView extends ItemView {
 
     this.renderMemberList(master, insights.members, visibleMembers, snapshot, t);
     const selected = insights.members.find((member) => member.key === this.selectedMemberKey);
-    this.renderTaskDetail(detail, selected, snapshot, memberDashboard, t);
+    this.renderTaskDetail(detail, selected, snapshot, memberDashboard, buildMemberDashboard, t);
   }
 
   private openProjectGates(
@@ -1179,6 +1227,7 @@ export class InsightsView extends ItemView {
     member: MemberInsight | undefined,
     snapshot: ProjectManagerSnapshot,
     dashboard: MemberDashboardSnapshot,
+    buildMemberDashboard: () => MemberDashboardSnapshot,
     t: Translations
   ): void {
     const projects = snapshot.projects;
@@ -1196,31 +1245,32 @@ export class InsightsView extends ItemView {
     const memberDashboard = dashboard.members.find((candidate) =>
       candidate.memberKey === member.key);
     if (memberDashboard) {
+      const dashboardOpen = this.memberDashboardModal !== null
+        && this.memberDashboardOpenMemberKey === member.key;
       const toggle = identity.createEl("button", {
-        cls: `pmi-member-dashboard-toggle is-${memberDashboard.health}${this.memberDashboardExpanded ? " is-active" : ""}`,
+        cls: `pmi-member-dashboard-toggle is-${memberDashboard.health}${dashboardOpen ? " is-active" : ""}`,
         attr: {
           type: "button",
-          "aria-expanded": String(this.memberDashboardExpanded),
+          "aria-haspopup": "dialog",
+          "aria-expanded": String(dashboardOpen),
           "aria-controls": this.memberDashboardLabelId,
-          "aria-label": this.memberDashboardExpanded
+          "aria-label": dashboardOpen
             ? t.closeMemberDashboard(member.name)
             : t.openMemberDashboard(member.name),
-          title: `${this.memberDashboardExpanded ? t.closeMemberDashboard(member.name) : t.openMemberDashboard(member.name)} · ${this.memberDashboardHealthLabel(memberDashboard.health, t)}`,
+          title: `${dashboardOpen ? t.closeMemberDashboard(member.name) : t.openMemberDashboard(member.name)} · ${this.memberDashboardHealthLabel(memberDashboard.health, t)}`,
+          "data-member-key": member.key,
           "data-tooltip-position": "top"
         }
       });
       setIcon(toggle.createSpan("pmi-member-dashboard-toggle-icon"), "gauge");
       toggle.createSpan({ cls: "pmi-member-dashboard-toggle-state", attr: { "aria-hidden": "true" } });
       toggle.addEventListener("click", () => {
-        this.memberDashboardExpanded = !this.memberDashboardExpanded;
-        root.empty();
-        this.renderTaskDetail(root, member, snapshot, dashboard, t);
-        root.querySelector<HTMLButtonElement>(".pmi-member-dashboard-toggle")?.focus();
+        if (this.memberDashboardModal && this.memberDashboardOpenMemberKey === member.key) {
+          this.memberDashboardModal.close();
+          return;
+        }
+        this.openMemberDashboard(member, snapshot, buildMemberDashboard, t);
       });
-    }
-
-    if (memberDashboard && this.memberDashboardExpanded) {
-      this.renderMemberDashboard(root, memberDashboard, dashboard, snapshot, t);
     }
 
     const projectOptions = [...new Map(member.tasks.map((task) => [task.projectId, task.projectTitle]))]
@@ -1409,9 +1459,63 @@ export class InsightsView extends ItemView {
       this.dashboardFilterId = null;
       this.dashboardFilterLabel = "";
       root.empty();
-      this.renderTaskDetail(root, member, snapshot, dashboard, t);
+      this.renderTaskDetail(root, member, snapshot, dashboard, buildMemberDashboard, t);
     });
     renderRows();
+  }
+
+  private openMemberDashboard(
+    member: MemberInsight,
+    snapshot: ProjectManagerSnapshot,
+    buildMemberDashboard: () => MemberDashboardSnapshot,
+    t: Translations
+  ): void {
+    this.memberDashboardModal?.close();
+    let drawer: MemberDashboardDrawer;
+    drawer = new MemberDashboardDrawer(this.app, {
+      ariaLabel: t.openMemberDashboard(member.name),
+      render: (root) => {
+        const dashboard = buildMemberDashboard();
+        const metric = dashboard.members.find((candidate) => candidate.memberKey === member.key);
+        if (!metric) {
+          root.createDiv({ cls: "pmi-list-empty", text: t.noTasks });
+          return "normal";
+        }
+        this.renderMemberDashboard(root, metric, dashboard, snapshot, t);
+        return metric.health;
+      },
+      onClose: () => {
+        if (this.memberDashboardModal !== drawer) return;
+        this.memberDashboardModal = null;
+        this.memberDashboardOpenMemberKey = null;
+        const toggle = [...this.contentEl.querySelectorAll<HTMLButtonElement>(
+          ".pmi-member-dashboard-toggle"
+        )].find((candidate) => candidate.dataset.memberKey === member.key);
+        toggle?.removeClass("is-active");
+        toggle?.setAttribute("aria-expanded", "false");
+        toggle?.setAttribute("aria-label", t.openMemberDashboard(member.name));
+        window.setTimeout(() => toggle?.focus(), 0);
+      }
+    });
+    this.memberDashboardModal = drawer;
+    this.memberDashboardOpenMemberKey = member.key;
+    const toggle = [...this.contentEl.querySelectorAll<HTMLButtonElement>(
+      ".pmi-member-dashboard-toggle"
+    )].find((candidate) => candidate.dataset.memberKey === member.key);
+    toggle?.addClass("is-active");
+    toggle?.setAttribute("aria-expanded", "true");
+    toggle?.setAttribute("aria-label", t.closeMemberDashboard(member.name));
+    drawer.open();
+  }
+
+  private refreshMemberDashboardDrawer(focusSelector?: string): void {
+    const drawer = this.memberDashboardModal;
+    if (!drawer) return;
+    drawer.refresh();
+    if (!focusSelector) return;
+    window.setTimeout(() => {
+      drawer.contentEl.querySelector<HTMLElement>(focusSelector)?.focus();
+    }, 0);
   }
 
   private renderMemberDashboard(
@@ -1426,11 +1530,23 @@ export class InsightsView extends ItemView {
       attr: {
         id: this.memberDashboardLabelId,
         role: "region",
-        "aria-label": t.memberDashboard
+        "aria-label": t.memberDashboard,
+        "data-member-key": metric.memberKey
       }
     });
-    const lead = section.createDiv("pmi-member-dashboard-lead");
-    const health = lead.createDiv("pmi-member-health");
+    const mast = section.createDiv("pmi-member-dashboard-mast");
+    const identity = mast.createDiv("pmi-member-dashboard-title");
+    identity.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.memberDashboard });
+    identity.createEl("h2", { text: metric.memberName });
+    identity.createEl("p", {
+      text: t.deliveryRunwayWindow(
+        dashboard.window.startDate,
+        dashboard.window.endDate,
+        dashboard.window.days,
+        dashboard.window.includeWeekends
+      )
+    });
+    const health = mast.createDiv("pmi-member-health");
     const healthSignal = health.createSpan("pmi-member-health-signal");
     setIcon(healthSignal, this.memberDashboardHealthIcon(metric.health));
     const healthCopy = health.createDiv("pmi-member-health-copy");
@@ -1438,7 +1554,9 @@ export class InsightsView extends ItemView {
     healthCopy.createEl("strong", {
       text: this.memberDashboardHealthLabel(metric.health, t)
     });
-    const drivers = healthCopy.createDiv("pmi-member-health-drivers");
+
+    const commandBar = section.createDiv("pmi-member-dashboard-commandbar");
+    const drivers = commandBar.createDiv("pmi-member-health-drivers");
     const visibleDrivers = metric.drivers.slice(0, 3);
     if (visibleDrivers.length === 0) {
       drivers.createSpan({ cls: "pmi-member-health-clear", text: t.memberHealthClear });
@@ -1462,7 +1580,7 @@ export class InsightsView extends ItemView {
         });
       }
     }
-    this.renderMemberDashboardControls(lead, dashboard, snapshot, t);
+    this.renderMemberDashboardControls(commandBar, dashboard, snapshot, t);
 
     this.renderMemberRunway(section, metric, dashboard, snapshot, t);
 
@@ -1499,6 +1617,7 @@ export class InsightsView extends ItemView {
         attr: {
           type: "button",
           "aria-pressed": String(active),
+          "data-window-mode": mode,
           title: t.setLoadWindow(Number(mode))
         },
         text: t.compactDays(Number(mode))
@@ -1515,6 +1634,7 @@ export class InsightsView extends ItemView {
       type: "date",
       attr: {
         min: dashboard.window.startDate,
+        "data-window-mode": "custom",
         "aria-label": t.customWindowEnd
       }
     });
@@ -1536,6 +1656,7 @@ export class InsightsView extends ItemView {
         this.clearDashboardTaskFilter();
         await this.host.saveSettings();
         this.renderDashboard(snapshot, t);
+        this.refreshMemberDashboardDrawer(".pmi-member-weekend-toggle input");
       })();
     });
   }
@@ -1553,6 +1674,7 @@ export class InsightsView extends ItemView {
     this.clearDashboardTaskFilter();
     await this.host.saveSettings();
     this.renderDashboard(snapshot, t);
+    this.refreshMemberDashboardDrawer(`[data-window-mode="${mode}"]`);
   }
 
   private renderMemberRunway(
@@ -1855,12 +1977,13 @@ export class InsightsView extends ItemView {
       this.dashboardFilterLabel = label;
       this.dashboardTaskKeys = new Set(taskKeys);
     }
+    this.memberDashboardModal?.close();
     this.renderDashboard(snapshot, t);
     window.setTimeout(() => {
-      const escaped = CSS.escape(id);
-      this.contentEl.querySelector<HTMLElement>(
-        `[data-dashboard-filter-id="${escaped}"]`
-      )?.focus();
+      const focusTarget = this.dashboardTaskKeys === null
+        ? this.contentEl.querySelector<HTMLElement>(".pmi-member-dashboard-toggle")
+        : this.contentEl.querySelector<HTMLElement>(".pmi-dashboard-filter-chip");
+      focusTarget?.focus();
     }, 0);
   }
 

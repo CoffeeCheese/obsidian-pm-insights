@@ -1012,7 +1012,7 @@ const zh: typeof en = {
   memberSearch: "查找成员…",
   memberDashboard: "个人仪表盘",
   openMemberDashboard: (name: string) => `打开${name}的个人仪表盘`,
-  closeMemberDashboard: (name: string) => `收起${name}的个人仪表盘`,
+  closeMemberDashboard: (name: string) => `关闭${name}的个人仪表盘`,
   clearDashboardFilter: "清除洞察筛选",
   deliveryHealth: "交付健康度",
   memberHealthNormal: "正常推进",
