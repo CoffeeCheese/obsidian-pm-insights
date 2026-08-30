@@ -35,12 +35,16 @@ const evaluation = `(async () => {
   const drawer = document.querySelector(".pmi-member-dashboard-modal");
   const ledger = document.querySelector(".pmi-member-ratios");
   const dashboard = document.querySelector(".pmi-member-dashboard");
+  const drawerContent = drawer?.querySelector(".pmi-member-dashboard-drawer-content");
+  const runway = document.querySelector(".pmi-member-runway");
   const detail = document.querySelector(".pmi-detail");
   const filterBar = document.querySelector(".pmi-task-filter-bar");
   if (
     !(drawer instanceof HTMLElement) ||
     !(ledger instanceof HTMLElement) ||
     !(dashboard instanceof HTMLElement) ||
+    !(drawerContent instanceof HTMLElement) ||
+    !(runway instanceof HTMLElement) ||
     !(detail instanceof HTMLElement) ||
     !(filterBar instanceof HTMLElement) ||
     !(expandedToggle instanceof HTMLButtonElement) ||
@@ -54,6 +58,7 @@ const evaluation = `(async () => {
   const ledgerRect = ledger.getBoundingClientRect();
   const dashboardRect = dashboard.getBoundingClientRect();
   const drawerRect = drawer.getBoundingClientRect();
+  const runwayRect = runway.getBoundingClientRect();
   const detailRect = detail.getBoundingClientRect();
   const filterRect = filterBar.getBoundingClientRect();
   const groups = [...ledger.querySelectorAll(".pmi-ratio-group")];
@@ -109,6 +114,9 @@ const evaluation = `(async () => {
       ledgerRect.bottom <= dashboardRect.bottom + 1,
     detachedFromDetail: !detail.contains(dashboard),
     drawerAnchoredRight: window.innerWidth - drawerRect.right <= 16,
+    drawerHasPlainSurface: getComputedStyle(drawerContent).backgroundImage === "none",
+    runwayIsInset:
+      runwayRect.left >= drawerRect.left + 12 && runwayRect.right <= drawerRect.right - 12,
     drawerHasNoHorizontalOverflow: drawer.scrollWidth <= drawer.clientWidth + 1,
     detailHasNoHorizontalOverflow: detail.scrollWidth <= detail.clientWidth + 1,
     detailHeightStable: Math.abs(detailRect.height - detailBefore.height) <= 1,
@@ -156,6 +164,8 @@ if (
   !report.insideDrawer ||
   !report.detachedFromDetail ||
   !report.drawerAnchoredRight ||
+  !report.drawerHasPlainSurface ||
+  !report.runwayIsInset ||
   !report.drawerHasNoHorizontalOverflow ||
   !report.detailHasNoHorizontalOverflow ||
   !report.detailHeightStable ||

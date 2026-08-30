@@ -6214,6 +6214,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  background: var(--background-primary);
   overscroll-behavior: contain;
 }
 
@@ -6221,10 +6222,11 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   --pmi-member-health-color: var(--pmi-member-normal);
   min-height: 100%;
   margin: 0;
+  padding-block-end: 24px;
   overflow: visible;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: var(--background-primary);
 }
 
 .pmi-member-dashboard.is-attention {
@@ -6474,12 +6476,22 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
 .pmi-member-runway,
 .pmi-member-project-mix,
 .pmi-member-ledger-section {
-  padding: 18px 28px;
+  margin: 14px 22px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--pmi-edge);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--background-primary) 97%, var(--interactive-accent) 3%);
 }
 
-.pmi-member-runway,
-.pmi-member-project-mix {
-  border-block-end: 1px solid var(--pmi-edge);
+.pmi-member-runway {
+  margin-block-start: 18px;
+  background:
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--pmi-runway-capacity) 6%, transparent),
+      transparent 42%
+    ),
+    var(--background-primary);
 }
 
 .pmi-member-section-heading {
@@ -6722,7 +6734,11 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
 .pmi-member-instruments {
   display: grid;
   grid-template-columns: minmax(132px, 0.72fr) minmax(132px, 0.72fr) minmax(240px, 1.56fr);
-  border-block-end: 1px solid var(--pmi-edge);
+  margin: 14px 22px 0;
+  overflow: hidden;
+  border: 1px solid var(--pmi-edge);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
 }
 
 .pmi-root button.pmi-member-instrument:not(.clickable-icon),
@@ -6734,7 +6750,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   border-radius: 0;
   box-shadow: none;
   color: var(--text-normal);
-  background: var(--background-primary);
+  background: transparent;
   text-align: start;
 }
 
@@ -7045,9 +7061,9 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
 
 .pmi-member-ledger-section .pmi-member-ratios {
   overflow: hidden;
-  border: 1px solid var(--pmi-edge);
-  border-radius: var(--radius-s);
-  background: var(--pmi-surface-raised);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .pmi-ratio-group {
@@ -8173,6 +8189,13 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
     border-inline-start: 0;
   }
 
+  .pmi-member-runway,
+  .pmi-member-instruments,
+  .pmi-member-project-mix,
+  .pmi-member-ledger-section {
+    margin-inline: 16px;
+  }
+
   .pmi-runway-heading {
     align-items: flex-start;
   }
@@ -8228,6 +8251,13 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   .pmi-member-project-mix,
   .pmi-member-ledger-section {
     padding-inline: 14px;
+  }
+
+  .pmi-member-runway,
+  .pmi-member-instruments,
+  .pmi-member-project-mix,
+  .pmi-member-ledger-section {
+    margin-inline: 12px;
   }
 }
 
