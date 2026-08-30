@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:ui:headers": "node scripts/check-task-header-spacing.mjs",
     "test:ui:member-ratios": "node scripts/check-member-ratios.mjs",
+    "test:ui:theme-surface": "node scripts/check-theme-surface.mjs",
     "test:ui:alias-guide": "node scripts/check-alias-guide.mjs",
     "test:ui:progress-checkbox": "node scripts/check-progress-checkbox-autosave.mjs",
     "test:ui:progress-save-contrast": "node scripts/check-progress-save-contrast.mjs",

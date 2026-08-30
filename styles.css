@@ -17,6 +17,8 @@
 .workspace-leaf-content[data-type="project-manager-insights-view"] .view-content.pmi-root {
   box-sizing: border-box;
   padding: var(--pmi-page-space-block) var(--pmi-page-gutter);
+  background-color: var(--pmi-canvas);
+  background-image: none;
 }
 
 .pmi-view,
@@ -24,10 +26,11 @@
   --pmi-content-max: 1320px;
   --pmi-page-gutter: clamp(24px, 4.5vw, 72px);
   --pmi-page-space-block: clamp(24px, 3vw, 44px);
-  --pmi-edge: color-mix(in srgb, var(--text-muted) 26%, transparent);
-  --pmi-edge-strong: color-mix(in srgb, var(--text-muted) 48%, transparent);
-  --pmi-surface: color-mix(in srgb, var(--background-primary) 94%, var(--interactive-accent) 6%);
-  --pmi-surface-raised: color-mix(in srgb, var(--background-primary) 97%, var(--text-normal) 3%);
+  --pmi-canvas: color-mix(in srgb, var(--background-primary) 98%, #eef5f5 2%);
+  --pmi-edge: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  --pmi-edge-strong: color-mix(in srgb, var(--text-muted) 32%, transparent);
+  --pmi-surface: color-mix(in srgb, var(--background-primary) 94%, #dcebec 6%);
+  --pmi-surface-raised: color-mix(in srgb, var(--background-primary) 97%, #b7cdd1 3%);
   --pmi-accent-soft: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
   --pmi-remaining: color-mix(in srgb, var(--interactive-accent) 46%, var(--background-modifier-border));
   --pmi-overrun: var(--color-red);
@@ -58,9 +61,8 @@
 .pmi-root {
   min-height: 100%;
   overflow: auto;
-  background:
-    linear-gradient(var(--pmi-edge) 1px, transparent 1px) 0 0 / 100% 32px,
-    var(--background-primary);
+  background-color: var(--pmi-canvas);
+  background-image: none;
 }
 
 .pmi-sr-only {
@@ -80,8 +82,7 @@
   justify-content: space-between;
   gap: 24px;
   margin: 0 auto 24px;
-  padding-block-end: 18px;
-  border-block-end: 1px solid var(--pmi-edge-strong);
+  padding-block-end: 6px;
 }
 
 .pmi-eyebrow {
