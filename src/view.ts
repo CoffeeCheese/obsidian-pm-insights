@@ -18,6 +18,16 @@ import { reconcileProjectGateActuals } from "./domain/gate-delay";
 import { GateRiskModal } from "./gate-risk-modal";
 import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
+import { scheduleDaysBetween } from "./domain/schedule-calendar";
+import {
+  aggregateMemberDashboard,
+  memberDashboardTaskKey,
+  type MemberDashboardComparison,
+  type MemberDashboardDriver,
+  type MemberDashboardHealth,
+  type MemberDashboardMetric,
+  type MemberDashboardSnapshot
+} from "./domain/member-dashboard";
 import type {
   DeliveryStageId,
   InsightSettings,
@@ -51,6 +61,7 @@ const TASK_COLUMN_GAP = 10;
 const TASK_TABLE_INLINE_PADDING = 22;
 const TASK_COLUMN_KEYBOARD_STEP = 12;
 let nextDeliveryProgressLabelId = 0;
+let nextMemberDashboardLabelId = 0;
 
 export class InsightsView extends ItemView {
   private selectedMemberKey: string | null = null;
@@ -60,6 +71,10 @@ export class InsightsView extends ItemView {
   private taskStatuses: Set<string> | null = null;
   private taskPriorities: Set<string> | null = null;
   private taskPrioritySort: TaskPrioritySort = "none";
+  private memberDashboardExpanded = false;
+  private dashboardTaskKeys: Set<string> | null = null;
+  private dashboardFilterId: string | null = null;
+  private dashboardFilterLabel = "";
   private dashboardEl: HTMLElement | null = null;
   private projectSummaryEl: HTMLElement | null = null;
   private projectScopeEl: HTMLElement | null = null;
@@ -67,6 +82,8 @@ export class InsightsView extends ItemView {
   private renderVersion = 0;
   private readonly deliveryProgressLabelId =
     `pmi-delivery-progress-label-${++nextDeliveryProgressLabelId}`;
+  private readonly memberDashboardLabelId =
+    `pmi-member-dashboard-${++nextMemberDashboardLabelId}`;
 
   constructor(leaf: WorkspaceLeaf, private readonly host: InsightsViewHost) {
     super(leaf);
@@ -280,6 +297,7 @@ export class InsightsView extends ItemView {
         this.taskProjectIds = null;
         this.taskStatuses = null;
         this.taskPriorities = null;
+        this.clearDashboardTaskFilter();
         await this.host.saveSettings();
         this.renderDashboard(snapshot, t);
       })();
@@ -436,6 +454,14 @@ export class InsightsView extends ItemView {
       settings: this.host.settings.deliveryProgress
     });
     const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
+    const memberDashboard = aggregateMemberDashboard(insights.members, {
+      today: this.todayDate(),
+      settings: this.host.settings.memberDashboard,
+      workdayHours: this.host.settings.gateRisk.workdayHours,
+      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
+      gateRisk,
+      highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
+    });
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -476,13 +502,16 @@ export class InsightsView extends ItemView {
         this.taskProjectIds = null;
         this.taskStatuses = null;
         this.taskPriorities = null;
+        this.dashboardTaskKeys = null;
+        this.dashboardFilterId = null;
+        this.dashboardFilterLabel = "";
       }
       this.selectedMemberKey = nextMemberKey;
     }
 
     this.renderMemberList(master, insights.members, visibleMembers, snapshot, t);
     const selected = insights.members.find((member) => member.key === this.selectedMemberKey);
-    this.renderTaskDetail(detail, selected, snapshot.projects, snapshot.priorities, t);
+    this.renderTaskDetail(detail, selected, snapshot, memberDashboard, t);
   }
 
   private openProjectGates(
@@ -1114,6 +1143,9 @@ export class InsightsView extends ItemView {
       this.taskProjectIds = null;
       this.taskStatuses = null;
       this.taskPriorities = null;
+      this.dashboardTaskKeys = null;
+      this.dashboardFilterId = null;
+      this.dashboardFilterLabel = "";
       this.renderDashboard(snapshot, t);
     });
   }
@@ -1145,10 +1177,12 @@ export class InsightsView extends ItemView {
   private renderTaskDetail(
     root: HTMLElement,
     member: MemberInsight | undefined,
-    projects: ProjectRecord[],
-    priorities: PriorityRecord[],
+    snapshot: ProjectManagerSnapshot,
+    dashboard: MemberDashboardSnapshot,
     t: Translations
   ): void {
+    const projects = snapshot.projects;
+    const priorities = snapshot.priorities;
     const header = root.createDiv("pmi-pane-header pmi-detail-header");
     const identity = header.createDiv("pmi-detail-identity");
     identity.createEl("h2", { text: member?.name ?? t.tasks });
@@ -1159,7 +1193,35 @@ export class InsightsView extends ItemView {
       return;
     }
 
-    this.renderMemberRatios(header, member, t);
+    const memberDashboard = dashboard.members.find((candidate) =>
+      candidate.memberKey === member.key);
+    if (memberDashboard) {
+      const toggle = identity.createEl("button", {
+        cls: `pmi-member-dashboard-toggle is-${memberDashboard.health}${this.memberDashboardExpanded ? " is-active" : ""}`,
+        attr: {
+          type: "button",
+          "aria-expanded": String(this.memberDashboardExpanded),
+          "aria-controls": this.memberDashboardLabelId,
+          "aria-label": this.memberDashboardExpanded
+            ? t.closeMemberDashboard(member.name)
+            : t.openMemberDashboard(member.name),
+          title: `${this.memberDashboardExpanded ? t.closeMemberDashboard(member.name) : t.openMemberDashboard(member.name)} · ${this.memberDashboardHealthLabel(memberDashboard.health, t)}`,
+          "data-tooltip-position": "top"
+        }
+      });
+      setIcon(toggle.createSpan("pmi-member-dashboard-toggle-icon"), "gauge");
+      toggle.createSpan({ cls: "pmi-member-dashboard-toggle-state", attr: { "aria-hidden": "true" } });
+      toggle.addEventListener("click", () => {
+        this.memberDashboardExpanded = !this.memberDashboardExpanded;
+        root.empty();
+        this.renderTaskDetail(root, member, snapshot, dashboard, t);
+        root.querySelector<HTMLButtonElement>(".pmi-member-dashboard-toggle")?.focus();
+      });
+    }
+
+    if (memberDashboard && this.memberDashboardExpanded) {
+      this.renderMemberDashboard(root, memberDashboard, dashboard, snapshot, t);
+    }
 
     const projectOptions = [...new Map(member.tasks.map((task) => [task.projectId, task.projectTitle]))]
       .map(([value, label]) => ({
@@ -1240,7 +1302,10 @@ export class InsightsView extends ItemView {
         const matchesPriority =
           this.taskPriorities === null ||
           this.taskPriorities.has(task.priority ?? TASK_PRIORITY_NONE);
-        return matchesText && matchesProject && matchesStatus && matchesPriority;
+        const matchesDashboard = this.dashboardTaskKeys === null
+          || this.dashboardTaskKeys.has(memberDashboardTaskKey(task));
+        return matchesText && matchesProject && matchesStatus && matchesPriority
+          && matchesDashboard;
       });
       const priorityRanks = new Map(
         priorityOptions.map((priority, index) => [priority.value, index])
@@ -1260,12 +1325,30 @@ export class InsightsView extends ItemView {
           return this.taskPrioritySort === "high-to-low" ? rankDifference : -rankDifference;
         })
         .map(({ task }) => task);
-      result.setText(t.taskFilterResult(tasks.length, member.tasks.length));
+      result.empty();
+      result.createSpan({ text: t.taskFilterResult(tasks.length, member.tasks.length) });
+      if (this.dashboardTaskKeys !== null) {
+        const dashboardFilter = result.createEl("button", {
+          cls: "pmi-dashboard-filter-chip",
+          attr: {
+            type: "button",
+            title: t.clearDashboardFilter,
+            "aria-label": `${t.clearDashboardFilter}: ${this.dashboardFilterLabel}`
+          }
+        });
+        dashboardFilter.createSpan({ text: this.dashboardFilterLabel });
+        setIcon(dashboardFilter.createSpan(), "x");
+        dashboardFilter.addEventListener("click", () => {
+          this.clearDashboardTaskFilter();
+          this.renderDashboard(snapshot, t);
+        });
+      }
       reset.disabled =
         this.taskQuery.length === 0 &&
         this.taskProjectIds === null &&
         this.taskStatuses === null &&
-        this.taskPriorities === null;
+        this.taskPriorities === null &&
+        this.dashboardTaskKeys === null;
       this.renderTaskRows(root, sortedTasks, projects, priorities, t, () => {
         this.taskPrioritySort =
           this.taskPrioritySort === "none"
@@ -1322,15 +1405,516 @@ export class InsightsView extends ItemView {
       this.taskProjectIds = null;
       this.taskStatuses = null;
       this.taskPriorities = null;
+      this.dashboardTaskKeys = null;
+      this.dashboardFilterId = null;
+      this.dashboardFilterLabel = "";
       root.empty();
-      this.renderTaskDetail(root, member, projects, priorities, t);
+      this.renderTaskDetail(root, member, snapshot, dashboard, t);
     });
     renderRows();
   }
 
+  private renderMemberDashboard(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    dashboard: MemberDashboardSnapshot,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const section = root.createDiv({
+      cls: `pmi-member-dashboard is-${metric.health}`,
+      attr: {
+        id: this.memberDashboardLabelId,
+        role: "region",
+        "aria-label": t.memberDashboard
+      }
+    });
+    const lead = section.createDiv("pmi-member-dashboard-lead");
+    const health = lead.createDiv("pmi-member-health");
+    const healthSignal = health.createSpan("pmi-member-health-signal");
+    setIcon(healthSignal, this.memberDashboardHealthIcon(metric.health));
+    const healthCopy = health.createDiv("pmi-member-health-copy");
+    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.deliveryHealth });
+    healthCopy.createEl("strong", {
+      text: this.memberDashboardHealthLabel(metric.health, t)
+    });
+    const drivers = healthCopy.createDiv("pmi-member-health-drivers");
+    const visibleDrivers = metric.drivers.slice(0, 3);
+    if (visibleDrivers.length === 0) {
+      drivers.createSpan({ cls: "pmi-member-health-clear", text: t.memberHealthClear });
+    } else {
+      for (const item of visibleDrivers) {
+        const label = this.memberDashboardDriverLabel(item, metric, t);
+        const id = `driver-${item.kind}`;
+        const button = drivers.createEl("button", {
+          cls: `pmi-member-health-driver is-${item.state}${this.dashboardFilterId === id ? " is-active" : ""}`,
+          attr: {
+            type: "button",
+            "aria-pressed": String(this.dashboardFilterId === id),
+            "data-dashboard-filter-id": id,
+            title: t.filterTasksByInsight(label)
+          }
+        });
+        button.createSpan({ text: label });
+        setIcon(button.createSpan(), "arrow-down-to-line");
+        button.addEventListener("click", () => {
+          this.applyDashboardTaskFilter(id, label, item.taskKeys, snapshot, t);
+        });
+      }
+    }
+    this.renderMemberDashboardControls(lead, dashboard, snapshot, t);
+
+    this.renderMemberRunway(section, metric, dashboard, snapshot, t);
+
+    const instruments = section.createDiv("pmi-member-instruments");
+    this.renderMemberProgressInstrument(instruments, metric, snapshot, t);
+    this.renderMemberLoadInstrument(instruments, metric, snapshot, t);
+    this.renderMemberComparison(instruments, metric, dashboard.comparison, t);
+
+    this.renderMemberProjectMix(section, metric, dashboard, snapshot, t);
+    const ledgerSection = section.createDiv("pmi-member-ledger-section");
+    const ledgerHeading = ledgerSection.createDiv("pmi-member-section-heading");
+    const ledgerTitle = ledgerHeading.createDiv();
+    setIcon(ledgerTitle.createSpan(), "scan-line");
+    ledgerTitle.createEl("strong", { text: t.memberRatios });
+    ledgerHeading.createSpan({ text: t.teamMedianSample(dashboard.comparison.sampleSize) });
+    this.renderMemberRatios(ledgerSection, metric.ratios, dashboard.comparison, t);
+  }
+
+  private renderMemberDashboardControls(
+    root: HTMLElement,
+    dashboard: MemberDashboardSnapshot,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const controls = root.createDiv("pmi-member-dashboard-controls");
+    const windows = controls.createDiv({
+      cls: "pmi-member-window-options",
+      attr: { role: "group", "aria-label": t.loadWindow }
+    });
+    for (const mode of ["7", "14", "30"] as const) {
+      const active = this.host.settings.memberDashboard.windowMode === mode;
+      const button = windows.createEl("button", {
+        cls: `pmi-member-window-option${active ? " is-active" : ""}`,
+        attr: {
+          type: "button",
+          "aria-pressed": String(active),
+          title: t.setLoadWindow(Number(mode))
+        },
+        text: t.compactDays(Number(mode))
+      });
+      button.addEventListener("click", () => {
+        void this.updateMemberDashboardWindow(mode, snapshot, t);
+      });
+    }
+    const custom = controls.createEl("label", {
+      cls: `pmi-member-window-custom${this.host.settings.memberDashboard.windowMode === "custom" ? " is-active" : ""}`
+    });
+    custom.createSpan({ text: t.customWindow });
+    const date = custom.createEl("input", {
+      type: "date",
+      attr: {
+        min: dashboard.window.startDate,
+        "aria-label": t.customWindowEnd
+      }
+    });
+    date.value = this.host.settings.memberDashboard.windowMode === "custom"
+        && this.host.settings.memberDashboard.customEndDate >= dashboard.window.startDate
+      ? this.host.settings.memberDashboard.customEndDate
+      : dashboard.window.endDate;
+    date.addEventListener("change", () => {
+      if (!date.value || date.value < dashboard.window.startDate) return;
+      void this.updateMemberDashboardWindow("custom", snapshot, t, date.value);
+    });
+    const weekend = controls.createEl("label", { cls: "pmi-member-weekend-toggle" });
+    const weekendInput = weekend.createEl("input", { type: "checkbox" });
+    weekendInput.checked = dashboard.window.includeWeekends;
+    weekend.createSpan({ text: t.includeWeekendsInCapacity });
+    weekendInput.addEventListener("change", () => {
+      void (async () => {
+        this.host.settings.memberDashboard.includeWeekends = weekendInput.checked;
+        this.clearDashboardTaskFilter();
+        await this.host.saveSettings();
+        this.renderDashboard(snapshot, t);
+      })();
+    });
+  }
+
+  private async updateMemberDashboardWindow(
+    mode: "7" | "14" | "30" | "custom",
+    snapshot: ProjectManagerSnapshot,
+    t: Translations,
+    customEndDate?: string
+  ): Promise<void> {
+    this.host.settings.memberDashboard.windowMode = mode;
+    if (mode === "custom" && customEndDate) {
+      this.host.settings.memberDashboard.customEndDate = customEndDate;
+    }
+    this.clearDashboardTaskFilter();
+    await this.host.saveSettings();
+    this.renderDashboard(snapshot, t);
+  }
+
+  private renderMemberRunway(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    dashboard: MemberDashboardSnapshot,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const runway = root.createDiv("pmi-member-runway");
+    const heading = runway.createDiv("pmi-member-section-heading pmi-runway-heading");
+    const title = heading.createDiv();
+    setIcon(title.createSpan(), "milestone");
+    const titleCopy = title.createDiv();
+    titleCopy.createEl("strong", { text: t.deliveryRunway });
+    titleCopy.createSpan({
+      text: t.deliveryRunwayWindow(
+        dashboard.window.startDate,
+        dashboard.window.endDate,
+        dashboard.window.days,
+        dashboard.window.includeWeekends
+      )
+    });
+    const outcome = heading.createDiv({
+      cls: `pmi-runway-outcome${metric.balanceHours < 0 ? " is-gap" : " is-buffer"}`
+    });
+    outcome.createSpan({ text: metric.balanceHours < 0 ? t.capacityGap : t.capacityBuffer });
+    outcome.createEl("strong", { text: t.hours(Math.abs(metric.balanceHours)) });
+
+    const scroll = runway.createDiv("pmi-runway-scroll");
+    const track = scroll.createDiv("pmi-runway-track");
+    track.style.setProperty("--pmi-runway-min-width", `${Math.max(620, metric.checkpoints.length * 112)}px`);
+    const rail = track.createDiv("pmi-runway-rail");
+    rail.createSpan("pmi-runway-capacity-line");
+    const start = track.createDiv("pmi-runway-boundary is-start");
+    start.createSpan("pmi-runway-boundary-dot");
+    start.createSpan({ text: t.today });
+    const end = track.createDiv("pmi-runway-boundary is-end");
+    setIcon(end.createSpan("pmi-runway-boundary-flag"), "flag");
+    end.createSpan({ text: this.shortDate(dashboard.window.endDate) });
+
+    if (metric.checkpoints.length === 0) {
+      track.createDiv({ cls: "pmi-runway-empty", text: t.noWindowCommitments });
+    }
+    const totalCalendarDays = Math.max(1, scheduleDaysBetween(
+      dashboard.window.startDate,
+      dashboard.window.endDate,
+      true
+    ));
+    for (const [index, checkpoint] of metric.checkpoints.entries()) {
+      const elapsed = Math.max(0, scheduleDaysBetween(
+        dashboard.window.startDate,
+        checkpoint.date,
+        true
+      ));
+      const position = Math.min(100, (elapsed / totalCalendarDays) * 100);
+      const id = `checkpoint-${checkpoint.date}`;
+      const label = t.checkpointFilterLabel(checkpoint.date, checkpoint.dueTaskCount);
+      const point = track.createEl("button", {
+        cls: `pmi-runway-checkpoint is-${checkpoint.state}${index % 2 === 1 ? " is-lower" : ""}${this.dashboardFilterId === id ? " is-active" : ""}`,
+        attr: {
+          type: "button",
+          "aria-pressed": String(this.dashboardFilterId === id),
+          "data-dashboard-filter-id": id,
+          "aria-label": t.runwayCheckpointAria(
+            checkpoint.date,
+            checkpoint.dueTaskCount,
+            checkpoint.remainingHours,
+            checkpoint.availableHours,
+            this.memberDashboardHealthLabel(checkpoint.state, t)
+          )
+        }
+      });
+      point.style.setProperty("--pmi-runway-position", `${position}%`);
+      point.createSpan("pmi-runway-checkpoint-stem");
+      point.createSpan("pmi-runway-checkpoint-dot");
+      const copy = point.createSpan("pmi-runway-checkpoint-copy");
+      copy.createSpan({ text: this.shortDate(checkpoint.date) });
+      copy.createEl("strong", { text: t.capacityPair(checkpoint.remainingHours, checkpoint.availableHours) });
+      point.addEventListener("click", () => {
+        this.applyDashboardTaskFilter(id, label, checkpoint.taskKeys, snapshot, t);
+      });
+    }
+    const runwayLegend = runway.createDiv("pmi-runway-legend");
+    runwayLegend.createSpan({ text: t.runwayLegendCommitment });
+    runwayLegend.createSpan({ text: t.runwayLegendCapacity });
+    runwayLegend.createSpan({ text: t.runwayLegendNode });
+  }
+
+  private renderMemberProgressInstrument(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const instrument = root.createEl("button", {
+      cls: `pmi-member-instrument is-progress${this.dashboardFilterId === "window-progress" ? " is-active" : ""}`,
+      attr: {
+        type: "button",
+        "aria-pressed": String(this.dashboardFilterId === "window-progress"),
+        "data-dashboard-filter-id": "window-progress",
+        title: t.filterWindowTasks
+      }
+    });
+    const head = instrument.createDiv("pmi-member-instrument-head");
+    setIcon(head.createSpan(), "route");
+    head.createSpan({ text: t.windowProgress });
+    const percentage = metric.ratios.plannedClosure.percentage;
+    instrument.createEl("strong", {
+      cls: "pmi-member-instrument-value",
+      text: percentage === null ? t.ratioUnavailable : t.percentage(percentage)
+    });
+    instrument.createSpan({
+      cls: "pmi-member-instrument-primary",
+      text: t.plannedClosureDetail(
+        metric.ratios.plannedClosure.numerator,
+        metric.ratios.plannedClosure.denominator
+      )
+    });
+    instrument.createSpan({
+      cls: "pmi-member-instrument-secondary",
+      text: t.taskClosureDetail(metric.completedTaskCount, metric.windowTaskCount)
+    });
+    instrument.addEventListener("click", () => {
+      this.applyDashboardTaskFilter("window-progress", t.windowProgress, metric.windowTaskKeys, snapshot, t);
+    });
+  }
+
+  private renderMemberLoadInstrument(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const activeKeys = metric.tasks.filter((task) => task.inWindow && !task.task.completed)
+      .map((task) => task.key);
+    const loadState = metric.committedHours > metric.availableHours
+      ? "high"
+      : (metric.loadPercentage ?? 0) >= 80
+        ? "attention"
+        : "normal";
+    const instrument = root.createEl("button", {
+      cls: `pmi-member-instrument is-load is-${loadState}${this.dashboardFilterId === "window-load" ? " is-active" : ""}`,
+      attr: {
+        type: "button",
+        "aria-pressed": String(this.dashboardFilterId === "window-load"),
+        "data-dashboard-filter-id": "window-load",
+        title: t.filterWindowLoad
+      }
+    });
+    const head = instrument.createDiv("pmi-member-instrument-head");
+    setIcon(head.createSpan(), "timer");
+    head.createSpan({ text: t.plannedLoad });
+    instrument.createEl("strong", {
+      cls: "pmi-member-instrument-value",
+      text: metric.loadPercentage === null ? t.ratioUnavailable : t.percentage(metric.loadPercentage)
+    });
+    instrument.createSpan({
+      cls: "pmi-member-instrument-primary",
+      text: t.capacityPair(metric.committedHours, metric.availableHours)
+    });
+    instrument.createSpan({
+      cls: "pmi-member-instrument-secondary",
+      text: t.remainingWorkContext(metric.allRemainingHours, metric.laterHours)
+    });
+    instrument.addEventListener("click", () => {
+      this.applyDashboardTaskFilter("window-load", t.plannedLoad, activeKeys, snapshot, t);
+    });
+  }
+
+  private renderMemberComparison(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    comparison: MemberDashboardComparison,
+    t: Translations
+  ): void {
+    const panel = root.createDiv("pmi-member-comparison");
+    const heading = panel.createDiv("pmi-member-instrument-head");
+    setIcon(heading.createSpan(), "users-round");
+    heading.createSpan({ text: t.teamComparison });
+    heading.createEl("small", { text: t.teamMedianSample(comparison.sampleSize) });
+    const rows = [
+      [t.plannedLoad, metric.loadPercentage, comparison.loadPercentage],
+      [t.plannedClosureRate, metric.ratios.plannedClosure.percentage, comparison.plannedClosurePercentage],
+      [t.overdueTasks, metric.overduePercentage, comparison.overduePercentage],
+      [t.overrunTaskRate, metric.ratios.overrunTasks.percentage, comparison.overrunPercentage]
+    ] as const;
+    for (const [label, value, benchmark] of rows) {
+      const row = panel.createDiv("pmi-member-comparison-row");
+      const copy = row.createDiv("pmi-member-comparison-copy");
+      copy.createSpan({ text: label });
+      copy.createEl("strong", { text: value === null ? t.ratioUnavailable : t.percentage(value) });
+      const track = row.createDiv({
+        cls: "pmi-member-comparison-track",
+        attr: { "aria-label": t.teamComparisonAria(label, value, benchmark, comparison.sampleSize) }
+      });
+      const scale = Math.max(100, value ?? 0, benchmark ?? 0);
+      const fill = track.createSpan("pmi-member-comparison-fill");
+      fill.style.width = `${Math.min(100, ((value ?? 0) / scale) * 100)}%`;
+      if (benchmark !== null) {
+        const marker = track.createSpan("pmi-member-comparison-marker");
+        marker.style.left = `${Math.min(100, (benchmark / scale) * 100)}%`;
+      }
+    }
+    const structure = panel.createDiv("pmi-member-comparison-structure");
+    structure.createSpan({ text: t.projectSpreadComparison(metric.projectCount, comparison.projectCount) });
+    structure.createSpan({ text: t.sharedWorkComparison(metric.sharedPercentage, comparison.sharedPercentage) });
+    structure.createSpan({ text: t.highPriorityComparison(metric.highPriorityPercentage, comparison.highPriorityPercentage) });
+  }
+
+  private renderMemberProjectMix(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    dashboard: MemberDashboardSnapshot,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const section = root.createDiv("pmi-member-project-mix");
+    const heading = section.createDiv("pmi-member-section-heading");
+    const title = heading.createDiv();
+    setIcon(title.createSpan(), "layers-3");
+    title.createEl("strong", { text: t.workComposition });
+    heading.createSpan({ text: t.windowRemainingByProject });
+    if (metric.projects.length === 0) {
+      section.createDiv({ cls: "pmi-member-dashboard-empty", text: t.noEstimatedProjectLoad });
+      return;
+    }
+    const tracks = section.createDiv("pmi-project-mix-tracks");
+    this.renderProjectMixTrack(
+      tracks,
+      metric.projects,
+      metric.memberName,
+      true,
+      dashboard.teamProjects
+    );
+    this.renderProjectMixTrack(
+      tracks,
+      dashboard.teamProjects,
+      t.teamOverall,
+      false,
+      dashboard.teamProjects
+    );
+    const legend = section.createDiv("pmi-project-mix-legend");
+    for (const [index, project] of metric.projects.entries()) {
+      const team = dashboard.teamProjects.find((candidate) => candidate.projectId === project.projectId);
+      const id = `project-${project.projectId}`;
+      const label = t.projectMixFilterLabel(project.projectTitle);
+      const colorIndex = dashboard.teamProjects.findIndex((candidate) =>
+        candidate.projectId === project.projectId);
+      const button = legend.createEl("button", {
+        cls: `pmi-project-mix-item is-${((colorIndex < 0 ? index : colorIndex) % 8) + 1}${this.dashboardFilterId === id ? " is-active" : ""}`,
+        attr: {
+          type: "button",
+          "aria-pressed": String(this.dashboardFilterId === id),
+          "data-dashboard-filter-id": id,
+          title: t.filterTasksByInsight(label)
+        }
+      });
+      button.createSpan("pmi-project-mix-swatch");
+      const copy = button.createSpan("pmi-project-mix-copy");
+      copy.createEl("strong", { text: project.projectTitle });
+      copy.createSpan({ text: t.projectMixComparison(project.percentage, team?.percentage ?? null, project.hours) });
+      button.addEventListener("click", () => {
+        this.applyDashboardTaskFilter(id, label, project.taskKeys, snapshot, t);
+      });
+    }
+  }
+
+  private renderProjectMixTrack(
+    root: HTMLElement,
+    projects: MemberDashboardMetric["projects"],
+    label: string,
+    interactive: boolean,
+    colorProjects: MemberDashboardMetric["projects"]
+  ): void {
+    const row = root.createDiv("pmi-project-mix-track-row");
+    row.createSpan({ text: label });
+    const track = row.createDiv("pmi-project-mix-track");
+    for (const project of projects) {
+      const index = colorProjects.findIndex((candidate) =>
+        candidate.projectId === project.projectId);
+      const segment = track.createSpan({
+        cls: `pmi-project-mix-segment is-${((Math.max(index, 0)) % 8) + 1}${interactive ? " is-personal" : ""}`,
+        attr: { title: `${project.projectTitle}: ${project.percentage ?? 0}%`, "aria-hidden": "true" }
+      });
+      segment.style.width = `${project.percentage ?? 0}%`;
+    }
+  }
+
+  private applyDashboardTaskFilter(
+    id: string,
+    label: string,
+    taskKeys: string[],
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    if (this.dashboardFilterId === id) this.clearDashboardTaskFilter();
+    else {
+      this.dashboardFilterId = id;
+      this.dashboardFilterLabel = label;
+      this.dashboardTaskKeys = new Set(taskKeys);
+    }
+    this.renderDashboard(snapshot, t);
+    window.setTimeout(() => {
+      const escaped = CSS.escape(id);
+      this.contentEl.querySelector<HTMLElement>(
+        `[data-dashboard-filter-id="${escaped}"]`
+      )?.focus();
+    }, 0);
+  }
+
+  private clearDashboardTaskFilter(): void {
+    this.dashboardTaskKeys = null;
+    this.dashboardFilterId = null;
+    this.dashboardFilterLabel = "";
+  }
+
+  private memberDashboardDriverLabel(
+    driver: MemberDashboardDriver,
+    metric: MemberDashboardMetric,
+    t: Translations
+  ): string {
+    switch (driver.kind) {
+      case "overdue": return t.memberDriverOverdue(driver.taskCount);
+      case "capacity": return driver.hours > 0
+        ? t.memberDriverCapacityGap(driver.hours)
+        : t.memberDriverCapacityTight(metric.loadPercentage ?? 0);
+      case "gate": return t.memberDriverGate(driver.taskCount);
+      case "unestimated": return t.memberDriverUnestimated(driver.taskCount);
+      case "unscheduled": return t.memberDriverUnscheduled(driver.taskCount);
+      case "overrun": return t.memberDriverOverrun(driver.taskCount);
+    }
+  }
+
+  private memberDashboardHealthLabel(health: MemberDashboardHealth, t: Translations): string {
+    switch (health) {
+      case "normal": return t.memberHealthNormal;
+      case "attention": return t.memberHealthAttention;
+      case "high": return t.memberHealthHigh;
+      case "overdue": return t.memberHealthOverdue;
+    }
+  }
+
+  private memberDashboardHealthIcon(health: MemberDashboardHealth): string {
+    switch (health) {
+      case "normal": return "circle-check-big";
+      case "attention": return "circle-alert";
+      case "high": return "shield-alert";
+      case "overdue": return "clock-alert";
+    }
+  }
+
+  private shortDate(date: string): string {
+    const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" })
+      .format(new Date(year, month - 1, day));
+  }
+
   private renderMemberRatios(
     root: HTMLElement,
-    member: MemberInsight,
+    ratios: MemberInsight["ratios"],
+    comparison: MemberDashboardComparison,
     t: Translations
   ): void {
     const ledger = root.createDiv({
@@ -1345,6 +1929,7 @@ export class InsightsView extends ItemView {
         label: string;
         hint: string;
         metric: RatioMetric;
+        benchmark: number | null;
         sample: (numerator: number, denominator: number) => string;
         warning?: boolean;
       }>;
@@ -1357,13 +1942,15 @@ export class InsightsView extends ItemView {
           {
             label: t.taskClosureRate,
             hint: t.taskClosureRateHint,
-            metric: member.ratios.taskClosure,
+            metric: ratios.taskClosure,
+            benchmark: null,
             sample: t.ratioTasks
           },
           {
             label: t.plannedClosureRate,
             hint: t.plannedClosureRateHint,
-            metric: member.ratios.plannedClosure,
+            metric: ratios.plannedClosure,
+            benchmark: comparison.plannedClosurePercentage,
             sample: t.ratioHours
           }
         ]
@@ -1376,15 +1963,17 @@ export class InsightsView extends ItemView {
           {
             label: t.timeConsumptionRate,
             hint: t.timeConsumptionRateHint,
-            metric: member.ratios.timeConsumption,
+            metric: ratios.timeConsumption,
+            benchmark: null,
             sample: t.ratioHours
           },
           {
             label: t.overrunTaskRate,
             hint: t.overrunTaskRateHint,
-            metric: member.ratios.overrunTasks,
+            metric: ratios.overrunTasks,
+            benchmark: comparison.overrunPercentage,
             sample: t.ratioTasks,
-            warning: member.ratios.overrunTasks.numerator > 0
+            warning: ratios.overrunTasks.numerator > 0
           }
         ]
       },
@@ -1396,13 +1985,15 @@ export class InsightsView extends ItemView {
           {
             label: t.estimateAccuracyRate,
             hint: t.estimateAccuracyRateHint,
-            metric: member.ratios.estimateAccuracy,
+            metric: ratios.estimateAccuracy,
+            benchmark: null,
             sample: t.ratioTasks
           },
           {
             label: t.estimateCoverageRate,
             hint: t.estimateCoverageRateHint,
-            metric: member.ratios.estimateCoverage,
+            metric: ratios.estimateCoverage,
+            benchmark: comparison.estimateCoveragePercentage,
             sample: t.ratioTasks
           }
         ]
@@ -1429,6 +2020,10 @@ export class InsightsView extends ItemView {
         });
         metric.createSpan({ cls: "pmi-ratio-name", text: item.label });
         metric.createEl("strong", { text: percentage });
+        metric.createSpan({
+          cls: "pmi-ratio-benchmark",
+          text: t.compactTeamMedian(item.benchmark, comparison.sampleSize)
+        });
       }
     }
   }

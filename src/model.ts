@@ -159,6 +159,14 @@ export interface GateRiskSettings {
   calendarDayHours: number;
 }
 
+export type MemberDashboardWindowMode = "7" | "14" | "30" | "custom";
+
+export interface MemberDashboardSettings {
+  windowMode: MemberDashboardWindowMode;
+  customEndDate: string;
+  includeWeekends: boolean;
+}
+
 export interface InsightSettings {
   locale: "auto" | "en" | "zh-cn";
   aliases: MemberAlias[];
@@ -168,6 +176,7 @@ export interface InsightSettings {
   showDeliveryProgress: boolean;
   deliveryProgress: DeliveryProgressSettings;
   gateRisk: GateRiskSettings;
+  memberDashboard: MemberDashboardSettings;
   gateSchedules: Record<string, ProjectGateSchedule>;
   gateDelays: Record<string, ProjectGateDelayPlan>;
   gateActuals: Record<string, ProjectGateActualState>;
@@ -246,6 +255,11 @@ export const DEFAULT_SETTINGS: InsightSettings = {
     checkTaskDueDates: true,
     workdayHours: 8,
     calendarDayHours: 8
+  },
+  memberDashboard: {
+    windowMode: "14",
+    customEndDate: "",
+    includeWeekends: false
   },
   gateSchedules: {},
   gateDelays: {},

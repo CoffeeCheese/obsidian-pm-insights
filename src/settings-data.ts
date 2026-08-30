@@ -11,6 +11,8 @@ import {
   type GateDelayStatus,
   type GateRiskSettings,
   type InsightSettings,
+  type MemberDashboardSettings,
+  type MemberDashboardWindowMode,
   type ProjectGateActualState,
   type ProjectGateDelayPlan,
   type ProjectGateForecast,
@@ -30,9 +32,33 @@ export function normalizeInsightSettings(
       : DEFAULT_SETTINGS.showDeliveryProgress,
     deliveryProgress: normalizeDeliveryProgressSettings(saved?.deliveryProgress),
     gateRisk: normalizeGateRiskSettings(saved?.gateRisk),
+    memberDashboard: normalizeMemberDashboardSettings(saved?.memberDashboard),
     gateSchedules: normalizeGateSchedules(saved?.gateSchedules),
     gateDelays: normalizeGateDelays(saved?.gateDelays),
     gateActuals: normalizeGateActuals(saved?.gateActuals)
+  };
+}
+
+const MEMBER_DASHBOARD_WINDOWS = new Set<MemberDashboardWindowMode>([
+  "7",
+  "14",
+  "30",
+  "custom"
+]);
+
+function normalizeMemberDashboardSettings(
+  saved: Partial<MemberDashboardSettings> | undefined
+): MemberDashboardSettings {
+  return {
+    windowMode: MEMBER_DASHBOARD_WINDOWS.has(saved?.windowMode as MemberDashboardWindowMode)
+      ? saved?.windowMode as MemberDashboardWindowMode
+      : DEFAULT_SETTINGS.memberDashboard.windowMode,
+    customEndDate: typeof saved?.customEndDate === "string"
+      ? saved.customEndDate.trim()
+      : DEFAULT_SETTINGS.memberDashboard.customEndDate,
+    includeWeekends: typeof saved?.includeWeekends === "boolean"
+      ? saved.includeWeekends
+      : DEFAULT_SETTINGS.memberDashboard.includeWeekends
   };
 }
 

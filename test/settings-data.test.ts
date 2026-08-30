@@ -33,6 +33,37 @@ describe("normalizeInsightSettings", () => {
     expect(normalizeInsightSettings({ locale: "zh-cn" }).showDeliveryProgress).toBe(true);
   });
 
+  it("defaults and preserves the personal dashboard planning window", () => {
+    expect(normalizeInsightSettings(null).memberDashboard).toEqual({
+      windowMode: "14",
+      customEndDate: "",
+      includeWeekends: false
+    });
+    expect(normalizeInsightSettings({
+      memberDashboard: {
+        windowMode: "custom",
+        customEndDate: "2026-09-18",
+        includeWeekends: true
+      }
+    }).memberDashboard).toEqual({
+      windowMode: "custom",
+      customEndDate: "2026-09-18",
+      includeWeekends: true
+    });
+  });
+
+  it("rejects invalid personal dashboard window modes", () => {
+    const normalized = normalizeInsightSettings({
+      memberDashboard: {
+        windowMode: "quarter",
+        customEndDate: 42,
+        includeWeekends: "yes"
+      }
+    } as unknown as Partial<InsightSettings>);
+
+    expect(normalized.memberDashboard).toEqual(DEFAULT_SETTINGS.memberDashboard);
+  });
+
   it("preserves a saved hidden delivery progress preference", () => {
     expect(normalizeInsightSettings({ showDeliveryProgress: false }).showDeliveryProgress).toBe(false);
   });

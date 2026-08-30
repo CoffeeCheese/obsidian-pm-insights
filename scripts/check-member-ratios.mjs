@@ -16,11 +16,22 @@ const evaluation = `(async () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
-  for (let attempt = 0; attempt < 30 && !document.querySelector(".pmi-member-ratios"); attempt += 1) {
+  for (let attempt = 0; attempt < 30 && !document.querySelector(".pmi-member-dashboard-toggle"); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
+  const toggle = document.querySelector(".pmi-member-dashboard-toggle");
+  if (!(toggle instanceof HTMLButtonElement)) {
+    if (leftSidebarWasCollapsed) leftSplit.collapse();
+    return JSON.stringify({ setup: false });
+  }
+  const initiallyCollapsed = toggle.getAttribute("aria-expanded") === "false";
+  toggle.click();
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const expandedToggle = document.querySelector(".pmi-member-dashboard-toggle");
   const ledger = document.querySelector(".pmi-member-ratios");
+  const dashboard = document.querySelector(".pmi-member-dashboard");
   const header = document.querySelector(".pmi-detail-header");
   const detail = document.querySelector(".pmi-detail");
   const identity = document.querySelector(".pmi-detail-identity");
@@ -29,11 +40,13 @@ const evaluation = `(async () => {
   const masterDetail = detail?.parentElement;
   if (
     !(ledger instanceof HTMLElement) ||
+    !(dashboard instanceof HTMLElement) ||
     !(header instanceof HTMLElement) ||
     !(detail instanceof HTMLElement) ||
     !(identity instanceof HTMLElement) ||
     !(identityName instanceof HTMLElement) ||
     !(filterBar instanceof HTMLElement) ||
+    !(expandedToggle instanceof HTMLButtonElement) ||
     !(masterDetail instanceof HTMLElement)
   ) {
     if (leftSidebarWasCollapsed) leftSplit.collapse();
@@ -41,7 +54,7 @@ const evaluation = `(async () => {
   }
 
   const ledgerRect = ledger.getBoundingClientRect();
-  const headerRect = header.getBoundingClientRect();
+  const dashboardRect = dashboard.getBoundingClientRect();
   const detailRect = detail.getBoundingClientRect();
   const identityRect = identity.getBoundingClientRect();
   const filterRect = filterBar.getBoundingClientRect();
@@ -81,23 +94,24 @@ const evaluation = `(async () => {
 
   const report = {
     setup: true,
+    initiallyCollapsed,
+    expanded: expandedToggle.getAttribute("aria-expanded") === "true",
     leftSidebarExpanded: !leftSplit.collapsed,
     groupCount: groups.length,
     metricCount: metrics.length,
     metrics,
     compactHeight: Math.round(ledgerRect.height * 100) / 100,
-    insideHeader:
-      ledger.parentElement === header &&
-      ledgerRect.top >= headerRect.top - 1 &&
-      ledgerRect.bottom <= headerRect.bottom + 1,
+    insideDashboard:
+      dashboard.contains(ledger) &&
+      ledgerRect.top >= dashboardRect.top - 1 &&
+      ledgerRect.bottom <= dashboardRect.bottom + 1,
     containedByDetail:
       ledgerRect.left >= detailRect.left - 1 && ledgerRect.right <= detailRect.right + 1,
     headerHasNoHorizontalOverflow: header.scrollWidth <= header.clientWidth + 1,
     detailHasNoHorizontalOverflow: detail.scrollWidth <= detail.clientWidth + 1,
     identityNameFits: identityName.scrollWidth <= identityName.clientWidth + 1,
     narrowState,
-    placedAfterIdentity:
-      ledgerRect.top >= identityRect.bottom - 1 || ledgerRect.left >= identityRect.right,
+    placedAfterIdentity: dashboardRect.top >= identityRect.bottom - 1,
     doesNotOverlapFilters: ledgerRect.bottom <= filterRect.top
   };
   if (leftSidebarWasCollapsed) leftSplit.collapse();
@@ -125,12 +139,13 @@ const invalidMetrics = report.metrics?.filter(
 );
 if (
   !report.setup ||
+  !report.initiallyCollapsed ||
+  !report.expanded ||
   report.groupCount !== 3 ||
   report.metricCount !== 6 ||
   invalidMetrics?.length > 0 ||
-  report.compactHeight > 72 ||
   !report.leftSidebarExpanded ||
-  !report.insideHeader ||
+  !report.insideDashboard ||
   !report.containedByDetail ||
   !report.headerHasNoHorizontalOverflow ||
   !report.detailHasNoHorizontalOverflow ||
@@ -146,6 +161,6 @@ if (
   process.exitCode = 1;
 } else {
   console.log(
-    `Member ratio strip rendered beside the identity with 3 groups and 6 accessible metrics in ${report.compactHeight}px.`
+    `Member ratio ledger expanded inside the personal dashboard with 3 groups and 6 accessible metrics in ${report.compactHeight}px.`
   );
 }
