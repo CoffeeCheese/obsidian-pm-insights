@@ -498,18 +498,17 @@ export class InsightsView extends ItemView {
       settings: this.host.settings.deliveryProgress
     });
     const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
-    const buildMemberDashboard = (): MemberDashboardSnapshot => aggregateMemberDashboard(
-      insights.members,
-      {
-        today: this.todayDate(),
-        settings: this.host.settings.memberDashboard,
-        workdayHours: this.host.settings.gateRisk.workdayHours,
-        calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
-        gateRisk,
-        highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
-      }
-    );
-    const memberDashboard = buildMemberDashboard();
+    const buildMemberDashboard = (
+      currentGateRisk = this.calculateGateRisk(snapshot, selectedIds)
+    ): MemberDashboardSnapshot => aggregateMemberDashboard(insights.members, {
+      today: this.todayDate(),
+      settings: this.host.settings.memberDashboard,
+      workdayHours: this.host.settings.gateRisk.workdayHours,
+      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
+      gateRisk: currentGateRisk,
+      highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
+    });
+    const memberDashboard = buildMemberDashboard(gateRisk);
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -584,6 +583,7 @@ export class InsightsView extends ItemView {
         await this.host.saveSettings();
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
+        this.refreshMemberDashboardDrawer();
       }
     }).open();
   }
@@ -1555,6 +1555,8 @@ export class InsightsView extends ItemView {
       text: this.memberDashboardHealthLabel(metric.health, t)
     });
 
+    this.renderMemberGateSetupNotice(section, metric, snapshot, t);
+
     const commandBar = section.createDiv("pmi-member-dashboard-commandbar");
     const drivers = commandBar.createDiv("pmi-member-health-drivers");
     const visibleDrivers = metric.drivers.slice(0, 3);
@@ -1597,6 +1599,43 @@ export class InsightsView extends ItemView {
     ledgerTitle.createEl("strong", { text: t.memberRatios });
     ledgerHeading.createSpan({ text: t.teamMedianSample(dashboard.comparison.sampleSize) });
     this.renderMemberRatios(ledgerSection, metric.ratios, dashboard.comparison, t);
+  }
+
+  private renderMemberGateSetupNotice(
+    root: HTMLElement,
+    metric: MemberDashboardMetric,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const affectedIds = new Set(metric.unconfiguredProjectIds);
+    const affectedProjects = snapshot.projects.filter((project) => affectedIds.has(project.id));
+    if (affectedProjects.length === 0) return;
+
+    const notice = root.createDiv({
+      cls: "pmi-member-gate-notice",
+      attr: { role: "status" }
+    });
+    const signal = notice.createSpan("pmi-member-gate-notice-signal");
+    setIcon(signal, "calendar-warning");
+    const copy = notice.createDiv("pmi-member-gate-notice-copy");
+    copy.createEl("strong", { text: t.memberGateSetupTitle });
+    copy.createEl("p", { text: t.memberGateSetupBody(affectedProjects.length) });
+    const actions = notice.createDiv("pmi-member-gate-notice-actions");
+    for (const project of affectedProjects) {
+      const action = actions.createEl("button", {
+        cls: "pmi-member-gate-notice-action",
+        attr: {
+          type: "button",
+          "aria-label": t.configureProjectGates(project.title),
+          title: t.configureProjectGates(project.title)
+        }
+      });
+      action.createSpan({ cls: "pmi-member-gate-notice-project-icon", text: project.icon });
+      action.createSpan({ cls: "pmi-member-gate-notice-project", text: project.title });
+      action.createSpan({ cls: "pmi-member-gate-notice-action-label", text: t.memberGateSetupAction });
+      setIcon(action.createSpan("pmi-member-gate-notice-chevron"), "chevron-right");
+      action.addEventListener("click", () => this.openProjectGates(project, snapshot, t));
+    }
   }
 
   private renderMemberDashboardControls(

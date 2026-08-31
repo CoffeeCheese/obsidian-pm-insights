@@ -254,6 +254,46 @@ describe("member dashboard", () => {
     expect(snapshot.members[0]?.unscheduledTaskCount).toBe(1);
   });
 
+  it("reports unconfigured gate projects only when they contain the member's work", () => {
+    const adaTask = task("ada-unconfigured");
+    const baoTask = task("bao-configured", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      assignees: ["Bao"],
+      resolvedAssignees: ["Bao"]
+    });
+    const risk = riskSnapshot();
+    const firstProject = risk.projects[0];
+    if (!firstProject) throw new Error("Expected the risk fixture to include p1");
+    firstProject.configured = false;
+    firstProject.state = "unconfigured";
+    firstProject.gates = [];
+    risk.projects.push({
+      project: { id: "p2", title: "Project two", path: "Projects/P2.md", icon: "📋" },
+      configured: true,
+      state: "normal",
+      gates: [],
+      nearestGate: null
+    });
+
+    const snapshot = aggregateMemberDashboard([
+      member("Ada", [adaTask]),
+      member("Bao", [baoTask])
+    ], {
+      today: "2026-08-31",
+      settings,
+      workdayHours: 8,
+      calendarDayHours: 8,
+      gateRisk: risk,
+      highPriorityIds: new Set()
+    });
+
+    expect(snapshot.members.find((item) => item.memberName === "Ada")
+      ?.unconfiguredProjectIds).toEqual(["p1"]);
+    expect(snapshot.members.find((item) => item.memberName === "Bao")
+      ?.unconfiguredProjectIds).toEqual([]);
+  });
+
   it("attributes a task planned after its stage gate without pulling its hours into the window", () => {
     const afterGate = task("after-gate", {
       dueDate: "2026-09-10",

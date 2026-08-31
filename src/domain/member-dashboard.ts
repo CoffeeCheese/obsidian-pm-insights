@@ -91,6 +91,7 @@ export interface MemberDashboardMetric {
   memberName: string;
   health: MemberDashboardHealth;
   tasks: MemberDashboardTask[];
+  unconfiguredProjectIds: string[];
   windowTaskKeys: string[];
   allRemainingHours: number;
   committedHours: number;
@@ -425,7 +426,8 @@ function memberMetric(
   member: MemberInsight,
   contexts: Map<string, TaskGateContext>,
   window: MemberDashboardWindow,
-  highPriorityIds: Set<string>
+  highPriorityIds: Set<string>,
+  unconfiguredProjectIds: Set<string>
 ): MemberDashboardMetric {
   const tasks = member.tasks
     .filter((task) => !isCancelled(task) && !task.archived)
@@ -571,6 +573,9 @@ function memberMetric(
     memberName: member.name,
     health,
     tasks,
+    unconfiguredProjectIds: unique(tasks
+      .map((task) => task.task.projectId)
+      .filter((projectId) => unconfiguredProjectIds.has(projectId))),
     windowTaskKeys: windowTasks.map((task) => task.key),
     allRemainingHours,
     committedHours,
@@ -641,9 +646,12 @@ export function aggregateMemberDashboard(
     hoursPerDay: includeWeekends ? options.calendarDayHours : options.workdayHours
   };
   const contexts = gateContexts(options.gateRisk);
+  const unconfiguredProjectIds = new Set(options.gateRisk.projects
+    .filter((project) => !project.configured)
+    .map((project) => project.project.id));
   const people = members.filter((member) => member.kind === "member");
   const drafts = people.map((member) =>
-    memberMetric(member, contexts, window, options.highPriorityIds));
+    memberMetric(member, contexts, window, options.highPriorityIds, unconfiguredProjectIds));
   const comparison: MemberDashboardComparison = {
     sampleSize: drafts.length,
     loadPercentage: median(drafts.map((member) => member.loadPercentage)),

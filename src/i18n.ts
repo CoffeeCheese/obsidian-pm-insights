@@ -414,6 +414,10 @@ const en = {
   memberHealthHigh: "High risk",
   memberHealthOverdue: "Overdue",
   memberHealthClear: "No delivery risk is currently driving intervention",
+  memberGateSetupTitle: "Delivery gates need setup",
+  memberGateSetupBody: (count: number) =>
+    `${count} related project${count === 1 ? " is" : "s are"} missing a complete gate schedule. Work without task due dates cannot enter the runway, window progress, or planned load; the delivery ledger remains available.`,
+  memberGateSetupAction: "Set gates",
   memberDriverOverdue: (count: number) => `${count} overdue task${count === 1 ? "" : "s"}`,
   memberDriverCapacityGap: (hours: number) => `${hours}h capacity shortfall`,
   memberDriverCapacityTight: (percentage: number) => `${percentage}% planned load`,
@@ -1020,6 +1024,10 @@ const zh: typeof en = {
   memberHealthHigh: "高风险",
   memberHealthOverdue: "已逾期",
   memberHealthClear: "当前没有需要介入的交付风险",
+  memberGateSetupTitle: "交付门禁待设置",
+  memberGateSetupBody: (count: number) =>
+    `${count} 个相关项目尚未完整设置门禁。缺少任务截止时间的工作无法进入交付跑道、窗口内进展和计划负载；个人交付账本仍可正常查看。`,
+  memberGateSetupAction: "设置门禁",
   memberDriverOverdue: (count: number) => `${count} 个任务已逾期`,
   memberDriverCapacityGap: (hours: number) => `容量缺口 ${hours}h`,
   memberDriverCapacityTight: (percentage: number) => `计划负载 ${percentage}%`,
