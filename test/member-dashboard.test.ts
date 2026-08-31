@@ -145,6 +145,51 @@ describe("member dashboard", () => {
     })).toBe("2026-09-18");
   });
 
+  it("keeps the delivery ledger scoped to all member tasks when past work leaves the planning window", () => {
+    const completed = task("completed-before-window", {
+      dueDate: "2026-08-28",
+      estimate: 8,
+      logged: 7,
+      completed: true
+    });
+    const ada = member("Ada", [completed]);
+    ada.ratios = {
+      taskClosure: { numerator: 1, denominator: 1, percentage: 100 },
+      plannedClosure: { numerator: 8, denominator: 8, percentage: 100 },
+      timeConsumption: { numerator: 7, denominator: 8, percentage: 87.5 },
+      overrunTasks: { numerator: 0, denominator: 1, percentage: 0 },
+      estimateAccuracy: { numerator: 1, denominator: 1, percentage: 100 },
+      estimateCoverage: { numerator: 1, denominator: 1, percentage: 100 }
+    };
+
+    const snapshot = aggregateMemberDashboard([ada], {
+      today: "2026-08-31",
+      settings,
+      workdayHours: 8,
+      calendarDayHours: 8,
+      gateRisk: riskSnapshot([completed]),
+      highPriorityIds: new Set()
+    });
+
+    expect(snapshot.members[0]).toMatchObject({
+      windowTaskCount: 0,
+      committedHours: 0,
+      ratios: ada.ratios,
+      windowRatios: {
+        taskClosure: { numerator: 0, denominator: 0, percentage: null },
+        plannedClosure: { numerator: 0, denominator: 0, percentage: null }
+      }
+    });
+    expect(snapshot.comparison).toMatchObject({
+      ledgerTaskClosurePercentage: 100,
+      ledgerPlannedClosurePercentage: 100,
+      ledgerTimeConsumptionPercentage: 87.5,
+      ledgerOverrunPercentage: 0,
+      ledgerEstimateAccuracyPercentage: 100,
+      ledgerEstimateCoveragePercentage: 100
+    });
+  });
+
   it("splits shared work and catches an overloaded intermediate deadline", () => {
     const personal = task("personal", { dueDate: "2026-09-02", estimate: 16, remaining: 16 });
     const shared = task("shared", {

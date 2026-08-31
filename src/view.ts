@@ -1782,7 +1782,7 @@ export class InsightsView extends ItemView {
     const head = instrument.createDiv("pmi-member-instrument-head");
     setIcon(head.createSpan(), "route");
     head.createSpan({ text: t.windowProgress });
-    const percentage = metric.ratios.plannedClosure.percentage;
+    const percentage = metric.windowRatios.plannedClosure.percentage;
     instrument.createEl("strong", {
       cls: "pmi-member-instrument-value",
       text: percentage === null ? t.ratioUnavailable : t.percentage(percentage)
@@ -1790,8 +1790,8 @@ export class InsightsView extends ItemView {
     instrument.createSpan({
       cls: "pmi-member-instrument-primary",
       text: t.plannedClosureDetail(
-        metric.ratios.plannedClosure.numerator,
-        metric.ratios.plannedClosure.denominator
+        metric.windowRatios.plannedClosure.numerator,
+        metric.windowRatios.plannedClosure.denominator
       )
     });
     instrument.createSpan({
@@ -1858,9 +1858,9 @@ export class InsightsView extends ItemView {
     heading.createEl("small", { text: t.teamMedianSample(comparison.sampleSize) });
     const rows = [
       [t.plannedLoad, metric.loadPercentage, comparison.loadPercentage],
-      [t.plannedClosureRate, metric.ratios.plannedClosure.percentage, comparison.plannedClosurePercentage],
+      [t.plannedClosureRate, metric.windowRatios.plannedClosure.percentage, comparison.plannedClosurePercentage],
       [t.overdueTasks, metric.overduePercentage, comparison.overduePercentage],
-      [t.overrunTaskRate, metric.ratios.overrunTasks.percentage, comparison.overrunPercentage]
+      [t.overrunTaskRate, metric.windowRatios.overrunTasks.percentage, comparison.overrunPercentage]
     ] as const;
     for (const [label, value, benchmark] of rows) {
       const row = panel.createDiv("pmi-member-comparison-row");
@@ -2066,14 +2066,14 @@ export class InsightsView extends ItemView {
             label: t.taskClosureRate,
             hint: t.taskClosureRateHint,
             metric: ratios.taskClosure,
-            benchmark: null,
+            benchmark: comparison.ledgerTaskClosurePercentage,
             sample: t.ratioTasks
           },
           {
             label: t.plannedClosureRate,
             hint: t.plannedClosureRateHint,
             metric: ratios.plannedClosure,
-            benchmark: comparison.plannedClosurePercentage,
+            benchmark: comparison.ledgerPlannedClosurePercentage,
             sample: t.ratioHours
           }
         ]
@@ -2087,14 +2087,14 @@ export class InsightsView extends ItemView {
             label: t.timeConsumptionRate,
             hint: t.timeConsumptionRateHint,
             metric: ratios.timeConsumption,
-            benchmark: null,
+            benchmark: comparison.ledgerTimeConsumptionPercentage,
             sample: t.ratioHours
           },
           {
             label: t.overrunTaskRate,
             hint: t.overrunTaskRateHint,
             metric: ratios.overrunTasks,
-            benchmark: comparison.overrunPercentage,
+            benchmark: comparison.ledgerOverrunPercentage,
             sample: t.ratioTasks,
             warning: ratios.overrunTasks.numerator > 0
           }
@@ -2109,14 +2109,14 @@ export class InsightsView extends ItemView {
             label: t.estimateAccuracyRate,
             hint: t.estimateAccuracyRateHint,
             metric: ratios.estimateAccuracy,
-            benchmark: null,
+            benchmark: comparison.ledgerEstimateAccuracyPercentage,
             sample: t.ratioTasks
           },
           {
             label: t.estimateCoverageRate,
             hint: t.estimateCoverageRateHint,
             metric: ratios.estimateCoverage,
-            benchmark: comparison.estimateCoveragePercentage,
+            benchmark: comparison.ledgerEstimateCoveragePercentage,
             sample: t.ratioTasks
           }
         ]

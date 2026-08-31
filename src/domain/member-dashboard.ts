@@ -75,10 +75,15 @@ export interface MemberDashboardComparison {
   plannedClosurePercentage: number | null;
   overduePercentage: number | null;
   overrunPercentage: number | null;
+  ledgerTaskClosurePercentage: number | null;
+  ledgerPlannedClosurePercentage: number | null;
+  ledgerTimeConsumptionPercentage: number | null;
+  ledgerOverrunPercentage: number | null;
+  ledgerEstimateAccuracyPercentage: number | null;
   projectCount: number | null;
   sharedPercentage: number | null;
   highPriorityPercentage: number | null;
-  estimateCoveragePercentage: number | null;
+  ledgerEstimateCoveragePercentage: number | null;
 }
 
 export interface MemberDashboardMetric {
@@ -104,6 +109,7 @@ export interface MemberDashboardMetric {
   highPriorityPercentage: number | null;
   overduePercentage: number | null;
   ratios: MemberRatios;
+  windowRatios: MemberRatios;
   checkpoints: MemberDashboardCheckpoint[];
   drivers: MemberDashboardDriver[];
   projects: MemberDashboardProjectLoad[];
@@ -559,7 +565,7 @@ function memberMetric(
   const highPriorityTaskCount = windowTasks.filter((task) =>
     task.task.priority !== null && highPriorityIds.has(task.task.priority)
   ).length;
-  const ratios = memberRatios(windowTasks);
+  const windowRatios = memberRatios(windowTasks);
   return {
     memberKey: member.key,
     memberName: member.name,
@@ -582,7 +588,8 @@ function memberMetric(
     sharedPercentage: ratio(sharedTaskCount, windowTasks.length).percentage,
     highPriorityPercentage: ratio(highPriorityTaskCount, windowTasks.length).percentage,
     overduePercentage: ratio(overdueTasks.length, activeWindowTasks.length).percentage,
-    ratios,
+    ratios: member.ratios,
+    windowRatios,
     checkpoints,
     drivers,
     projects: projectLoads(tasks)
@@ -641,13 +648,24 @@ export function aggregateMemberDashboard(
     sampleSize: drafts.length,
     loadPercentage: median(drafts.map((member) => member.loadPercentage)),
     plannedClosurePercentage: median(drafts.map((member) =>
-      member.ratios.plannedClosure.percentage)),
+      member.windowRatios.plannedClosure.percentage)),
     overduePercentage: median(drafts.map((member) => member.overduePercentage)),
-    overrunPercentage: median(drafts.map((member) => member.ratios.overrunTasks.percentage)),
+    overrunPercentage: median(drafts.map((member) =>
+      member.windowRatios.overrunTasks.percentage)),
+    ledgerTaskClosurePercentage: median(drafts.map((member) =>
+      member.ratios.taskClosure.percentage)),
+    ledgerPlannedClosurePercentage: median(drafts.map((member) =>
+      member.ratios.plannedClosure.percentage)),
+    ledgerTimeConsumptionPercentage: median(drafts.map((member) =>
+      member.ratios.timeConsumption.percentage)),
+    ledgerOverrunPercentage: median(drafts.map((member) =>
+      member.ratios.overrunTasks.percentage)),
+    ledgerEstimateAccuracyPercentage: median(drafts.map((member) =>
+      member.ratios.estimateAccuracy.percentage)),
     projectCount: median(drafts.map((member) => member.projectCount)),
     sharedPercentage: median(drafts.map((member) => member.sharedPercentage)),
     highPriorityPercentage: median(drafts.map((member) => member.highPriorityPercentage)),
-    estimateCoveragePercentage: median(drafts.map((member) =>
+    ledgerEstimateCoveragePercentage: median(drafts.map((member) =>
       member.ratios.estimateCoverage.percentage))
   };
   return {
