@@ -88,7 +88,7 @@ Type · hierarchy · status · dates · hours · assignees · tags
 After you select one or more Project Manager projects, PM Insights adds:
 
 - **Project scope:** know exactly which projects every module is currently analyzing.
-- **Team and individual:** move from cross-project workload into member tasks, shared work, and a personal delivery ledger.
+- **Team and individual:** move from cross-project workload into member tasks, shared work, a focused personal dashboard, and a delivery ledger.
 - **Delivery and acceptance:** derive stage completion and requirement acceptance from hierarchy, stage tags, and task statuses.
 - **Data quality:** find missing estimates, assignees, classifications, conflicting stage tags, and missing prerequisites.
 - **Schedule and risk:** compare actual stage progress, expected progress, task due dates, project gate dates, and owner capacity.
@@ -119,7 +119,7 @@ Statistical boundaries and getting started
 | --- | --- |
 | **Project scope** | Which projects are included in the current dashboard? |
 | **Team workload** | How much was planned, logged, remains, and has run over? |
-| **Member insight** | What does each person own, and how much work is personal or shared? |
+| **Member insight** | What does each person own, how is their current window progressing, and where does their delivery risk differ from the team? |
 | **Delivery progress** | Which stage has the work reached, and how far is it from acceptance? |
 | **Delivery exceptions** | Which tasks are not classified correctly or are blocking acceptance? |
 | **Gate risk** | Are actual progress and owner capacity keeping pace with stage gates and the final launch plan? |
@@ -199,6 +199,29 @@ The team snapshot combines the selected projects into four practical workload me
 
 Choose a member from the team overview to inspect personal and shared tasks separately. A shared task appears for every related member but contributes only once to the team total. Unassigned and unestimated work remains visible rather than disappearing because its data is incomplete.
 
+#### Open a focused personal dashboard
+
+After selecting a member, use the gauge button beside their name to open a dedicated right-side drawer. It keeps the main member detail compact while bringing the person's progress, upcoming commitments, capacity, and delivery quality into one focused view.
+
+![Focused personal dashboard drawer using fictional English demo data, showing delivery health, a configurable runway, window progress, planned load, team comparison, work composition, and the delivery ledger](docs/assets/pm-insights-member-dashboard-focused.png)
+
+*The screenshot uses fictional README demo projects and members. Insight chips and runway nodes can be selected to close the drawer and filter the source task list behind it.*
+
+The personal dashboard combines six connected views:
+
+| View | What it explains |
+| --- | --- |
+| **Delivery health** | The most urgent reason for intervention, such as overdue work, a capacity shortfall, a gate blocker, missing estimates, missing deadlines, or work over plan. |
+| **Personal delivery runway** | Cumulative remaining commitments at each effective deadline compared with the person's capacity available by that checkpoint. |
+| **Window progress** | Completed tasks and completed planned hours among active work due by the window end, including unfinished overdue work; completed work is included only when its effective deadline is on or after today. |
+| **Planned load** | Remaining estimated work due by the window end, including overdue commitments, ÷ available personal capacity. |
+| **Team comparison** | The person's load, planned-hours completion, overdue work, over-budget work, project spread, shared work, and high-priority mix against the team's middle value after sorting each measure; for an even team, the two middle values are averaged. |
+| **Work composition and delivery ledger** | How the person's remaining hours split by project, plus all-time completion, time-against-plan, and planning-completeness ratios. |
+
+The load window starts today. Choose 7, 14, or 30 schedule days, or set a custom end date. **Include weekends** immediately switches both the counted days and daily-capacity rule; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
+
+For runway and window statistics, a task uses its own due date first, then its stage gate, then the project launch date as its effective deadline. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. If a related project has no complete delivery-gate schedule, the drawer explains that work without task due dates cannot enter the runway, window progress, or planned load and offers a direct **Set gates** action; the all-time delivery ledger remains available.
+
 #### Normalize member names
 
 Member aliases can combine different assignee spellings into one reporting name—for example, “Alex,” “A. Chen,” and “Chen” can all roll up to “Alex Chen.” Source task content is not changed.
@@ -207,16 +230,16 @@ Member aliases can combine different assignee spellings into one reporting name�
 
 #### Six ratios grouped around three questions
 
-The compact ledger beside each member organizes six ratios around three questions: is work closing cleanly, does effort follow the plan, and is the underlying data complete enough to support a judgment?
+The ledger at the bottom of the personal dashboard organizes six ratios around three plain-language questions: is work being completed, is time tracking following the plan, and is planning data complete enough to support a judgment? Every metric is shown beside a **Team reference** derived from the middle available value after sorting, or the average of the two middle values for an even-sized team.
 
 | Group | Ratio | Calculation |
 | --- | --- | --- |
-| **Delivery** | Task closure | Completed, non-cancelled tasks ÷ all non-cancelled tasks. |
-| **Delivery** | Planned work closed | Planned hours on completed tasks ÷ all estimated hours. |
-| **Time** | Time consumed | Logged hours on estimated tasks ÷ their planned hours. |
-| **Time** | Tasks over budget | Started, estimated tasks over plan ÷ all started, estimated tasks. |
-| **Data foundation** | Estimate accuracy | Completed, started tasks logged within ±20% of estimate ÷ all valid samples. |
-| **Data foundation** | Estimate coverage | Estimated, non-cancelled tasks ÷ all non-cancelled tasks. |
+| **Completion** | Tasks completed | Completed, non-cancelled tasks ÷ all non-cancelled tasks. |
+| **Completion** | Planned hours completed | Planned hours on completed tasks ÷ all estimated hours. |
+| **Time against plan** | Planned time used | Logged hours on estimated tasks ÷ their planned hours. Values above 100% mean more time was logged than planned. |
+| **Time against plan** | Tasks over their plan | Started, estimated tasks over plan ÷ all started, estimated tasks. |
+| **Planning completeness** | Time estimates on target | Completed, started tasks logged within ±20% of estimate ÷ all valid samples. |
+| **Planning completeness** | Tasks with planned hours | Estimated, non-cancelled tasks ÷ all non-cancelled tasks. |
 
 #### Read the no-sample state correctly
 
@@ -577,7 +600,7 @@ After installation:
 
 1. Select the **PM Insights** ribbon icon, or run **PM Insights: Open workload insights** from the command palette.
 2. Select one or more projects.
-3. Select a member to inspect their tasks and personal delivery ledger.
+3. Select a member, then use the gauge beside their name to open the personal dashboard; select any insight to filter the related source tasks.
 4. Open **Settings → PM Insights** to configure member aliases, delivery stages, weights, acceptance rules, and gate-risk behavior.
 5. When you need schedule analysis, configure each project's gate dates from its chip in the current-scope bar.
 
