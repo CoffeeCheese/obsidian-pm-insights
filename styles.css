@@ -7241,24 +7241,22 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
 }
 
 .pmi-ratio-benchmark {
-  overflow: hidden;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-family: var(--font-monospace);
-  font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1.25;
 }
 
 .pmi-ratio-name {
+  display: -webkit-box;
+  min-height: 2.4em;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pmi-ratio-name {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--text-muted);
   font-size: 10px;
   font-weight: var(--font-medium);
+  line-height: 1.2;
 }
 
 .pmi-ratio-metric + .pmi-ratio-metric {

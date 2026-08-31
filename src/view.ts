@@ -1597,7 +1597,10 @@ export class InsightsView extends ItemView {
     const ledgerTitle = ledgerHeading.createDiv();
     setIcon(ledgerTitle.createSpan(), "scan-line");
     ledgerTitle.createEl("strong", { text: t.memberRatios });
-    ledgerHeading.createSpan({ text: t.teamMedianSample(dashboard.comparison.sampleSize) });
+    ledgerHeading.createSpan({
+      text: t.teamReferenceSample(dashboard.comparison.sampleSize),
+      attr: { title: t.teamReferenceMethod(dashboard.comparison.sampleSize) }
+    });
     this.renderMemberRatios(ledgerSection, metric.ratios, dashboard.comparison, t);
   }
 
@@ -1894,7 +1897,10 @@ export class InsightsView extends ItemView {
     const heading = panel.createDiv("pmi-member-instrument-head");
     setIcon(heading.createSpan(), "users-round");
     heading.createSpan({ text: t.teamComparison });
-    heading.createEl("small", { text: t.teamMedianSample(comparison.sampleSize) });
+    heading.createEl("small", {
+      text: t.teamReferenceSample(comparison.sampleSize),
+      attr: { title: t.teamReferenceMethod(comparison.sampleSize) }
+    });
     const rows = [
       [t.plannedLoad, metric.loadPercentage, comparison.loadPercentage],
       [t.plannedClosureRate, metric.windowRatios.plannedClosure.percentage, comparison.plannedClosurePercentage],
@@ -2173,18 +2179,20 @@ export class InsightsView extends ItemView {
             ? t.ratioUnavailable
             : t.percentage(item.metric.percentage);
         const sample = item.sample(item.metric.numerator, item.metric.denominator);
+        const teamReference = t.teamReferenceMethod(comparison.sampleSize);
         const metric = row.createDiv({
           cls: `pmi-ratio-metric${item.warning ? " is-warning" : ""}`,
           attr: {
             title: item.hint,
-            "aria-label": `${item.label}: ${percentage}; ${sample}. ${item.hint}`
+            "aria-label": `${item.label}: ${percentage}; ${sample}. ${item.hint} ${teamReference}`
           }
         });
         metric.createSpan({ cls: "pmi-ratio-name", text: item.label });
         metric.createEl("strong", { text: percentage });
         metric.createSpan({
           cls: "pmi-ratio-benchmark",
-          text: t.compactTeamMedian(item.benchmark, comparison.sampleSize)
+          text: t.compactTeamReference(item.benchmark),
+          attr: { title: teamReference }
         });
       }
     }

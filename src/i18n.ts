@@ -463,22 +463,25 @@ const en = {
   remainingWorkContext: (remaining: number, later: number) =>
     `${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h total remaining · ${later.toLocaleString(undefined, { maximumFractionDigits: 2 })}h later`,
   teamComparison: "Team comparison",
-  teamMedianSample: (count: number) => `Median · ${count} member${count === 1 ? "" : "s"}`,
-  compactTeamMedian: (value: number | null, count: number) =>
-    `Median ${value === null ? "—" : `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`} · n=${count}`,
+  teamReferenceSample: (count: number) =>
+    `Compared with ${count} team member${count === 1 ? "" : "s"}`,
+  teamReferenceMethod: (count: number) =>
+    `The team reference is the middle result after sorting ${count} member${count === 1 ? "" : "s"}.`,
+  compactTeamReference: (value: number | null) =>
+    `Team reference: ${value === null ? "No data" : `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
   overdueTasks: "Overdue tasks",
   teamComparisonAria: (
     label: string,
     value: number | null,
-    median: number | null,
+    reference: number | null,
     count: number
-  ) => `${label}: ${value ?? "unavailable"}%; team median ${median ?? "unavailable"}% across ${count} members`,
-  projectSpreadComparison: (value: number, median: number | null) =>
-    `${value} active projects · median ${median ?? "—"}`,
-  sharedWorkComparison: (value: number | null, median: number | null) =>
-    `Shared ${value === null ? "—" : `${value}%`} · median ${median === null ? "—" : `${median}%`}`,
-  highPriorityComparison: (value: number | null, median: number | null) =>
-    `High priority ${value === null ? "—" : `${value}%`} · median ${median === null ? "—" : `${median}%`}`,
+  ) => `${label}: personal ${value ?? "unavailable"}%; team reference ${reference ?? "unavailable"}%, based on the middle result after sorting ${count} members`,
+  projectSpreadComparison: (value: number, reference: number | null) =>
+    `${value} active projects · team reference ${reference ?? "no data"}`,
+  sharedWorkComparison: (value: number | null, reference: number | null) =>
+    `Shared ${value === null ? "no data" : `${value}%`} · team reference ${reference === null ? "no data" : `${reference}%`}`,
+  highPriorityComparison: (value: number | null, reference: number | null) =>
+    `High priority ${value === null ? "no data" : `${value}%`} · team reference ${reference === null ? "no data" : `${reference}%`}`,
   workComposition: "Work composition",
   windowRemainingByProject: "Estimated remaining work in this window",
   noEstimatedProjectLoad: "No estimated project load can be placed in this window.",
@@ -487,21 +490,21 @@ const en = {
   projectMixComparison: (value: number | null, team: number | null, hours: number) =>
     `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h · ${value ?? 0}% personal / ${team ?? 0}% team`,
   memberRatios: "Delivery ledger",
-  deliveryRatios: "Delivery",
-  timeRatios: "Time",
-  dataRatios: "Data foundation",
-  taskClosureRate: "Task closure",
-  taskClosureRateHint: "Completed non-cancelled tasks out of all non-cancelled tasks.",
-  plannedClosureRate: "Planned work closed",
-  plannedClosureRateHint: "Planned hours on completed tasks out of all estimated hours.",
-  timeConsumptionRate: "Time consumed",
-  timeConsumptionRateHint: "Logged hours on estimated tasks compared with their planned hours.",
-  overrunTaskRate: "Tasks over budget",
-  overrunTaskRateHint: "Started estimated tasks whose logged hours exceed their plan.",
-  estimateAccuracyRate: "Estimate accuracy",
-  estimateAccuracyRateHint: "Completed tasks whose logged hours are within 20% of their estimate.",
-  estimateCoverageRate: "Estimate coverage",
-  estimateCoverageRateHint: "Non-cancelled tasks that have a time estimate.",
+  deliveryRatios: "Completion",
+  timeRatios: "Time against plan",
+  dataRatios: "Planning completeness",
+  taskClosureRate: "Tasks completed",
+  taskClosureRateHint: "Completed tasks as a share of all active, non-cancelled tasks.",
+  plannedClosureRate: "Planned hours completed",
+  plannedClosureRateHint: "Planned hours on completed tasks as a share of all planned hours.",
+  timeConsumptionRate: "Planned time used",
+  timeConsumptionRateHint: "Logged hours as a share of planned hours; above 100% means the plan has been exceeded.",
+  overrunTaskRate: "Tasks over their plan",
+  overrunTaskRateHint: "Started tasks with a plan whose logged hours have exceeded their planned hours.",
+  estimateAccuracyRate: "Time estimates on target",
+  estimateAccuracyRateHint: "Completed tasks with planned and logged hours whose actual time stayed within 20% above or below plan.",
+  estimateCoverageRate: "Tasks with planned hours",
+  estimateCoverageRateHint: "Active, non-cancelled tasks that include planned hours.",
   ratioUnavailable: "—",
   percentage: (value: number) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
@@ -1072,22 +1075,24 @@ const zh: typeof en = {
   remainingWorkContext: (remaining: number, later: number) =>
     `全部剩余 ${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h · 后续 ${later.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
   teamComparison: "团队对比",
-  teamMedianSample: (count: number) => `中位数 · ${count} 人`,
-  compactTeamMedian: (value: number | null, count: number) =>
-    `中位 ${value === null ? "—" : `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`} · n=${count}`,
+  teamReferenceSample: (count: number) => `与团队 ${count} 人对比`,
+  teamReferenceMethod: (count: number) =>
+    `将团队 ${count} 人的结果从低到高排列，取排在中间的结果作为团队参考。`,
+  compactTeamReference: (value: number | null) =>
+    `团队参考：${value === null ? "暂无数据" : `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
   overdueTasks: "逾期任务",
   teamComparisonAria: (
     label: string,
     value: number | null,
-    median: number | null,
+    reference: number | null,
     count: number
-  ) => `${label}：${value ?? "无样本"}%；${count} 人团队中位数 ${median ?? "无样本"}%`,
-  projectSpreadComparison: (value: number, median: number | null) =>
-    `并行 ${value} 个项目 · 中位 ${median ?? "—"}`,
-  sharedWorkComparison: (value: number | null, median: number | null) =>
-    `共享 ${value === null ? "—" : `${value}%`} · 中位 ${median === null ? "—" : `${median}%`}`,
-  highPriorityComparison: (value: number | null, median: number | null) =>
-    `高优先级 ${value === null ? "—" : `${value}%`} · 中位 ${median === null ? "—" : `${median}%`}`,
+  ) => `${label}：个人 ${value ?? "暂无数据"}%；团队参考 ${reference ?? "暂无数据"}%，取 ${count} 位成员排序后的中间结果`,
+  projectSpreadComparison: (value: number, reference: number | null) =>
+    `并行 ${value} 个项目 · 团队参考 ${reference ?? "暂无数据"} 个`,
+  sharedWorkComparison: (value: number | null, reference: number | null) =>
+    `共享工作 ${value === null ? "暂无数据" : `${value}%`} · 团队参考 ${reference === null ? "暂无数据" : `${reference}%`}`,
+  highPriorityComparison: (value: number | null, reference: number | null) =>
+    `高优先级工作 ${value === null ? "暂无数据" : `${value}%`} · 团队参考 ${reference === null ? "暂无数据" : `${reference}%`}`,
   workComposition: "工作构成",
   windowRemainingByProject: "当前窗口内按项目拆分的剩余估时",
   noEstimatedProjectLoad: "当前窗口没有可按项目拆分的已估时负载。",
@@ -1096,21 +1101,21 @@ const zh: typeof en = {
   projectMixComparison: (value: number | null, team: number | null, hours: number) =>
     `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h · 个人 ${value ?? 0}% / 团队 ${team ?? 0}%`,
   memberRatios: "个人交付账本",
-  deliveryRatios: "交付",
-  timeRatios: "工时",
-  dataRatios: "数据基础",
-  taskClosureRate: "任务闭环",
-  taskClosureRateHint: "已完成且未取消的任务，占全部未取消任务的比例。",
-  plannedClosureRate: "计划工时闭环",
-  plannedClosureRateHint: "已完成任务的计划工时，占全部已估算工时的比例。",
-  timeConsumptionRate: "工时消耗",
-  timeConsumptionRateHint: "已估算任务的登记工时，相对于计划工时的比例。",
-  overrunTaskRate: "超支任务",
-  overrunTaskRateHint: "已开工且有估算的任务中，登记工时超过计划的比例。",
-  estimateAccuracyRate: "估算命中",
-  estimateAccuracyRateHint: "已完成任务中，登记工时处于计划工时正负 20% 范围内的比例。",
-  estimateCoverageRate: "估算覆盖",
-  estimateCoverageRateHint: "全部未取消任务中，填写了计划工时的比例。",
+  deliveryRatios: "完成情况",
+  timeRatios: "工时执行",
+  dataRatios: "计划完整度",
+  taskClosureRate: "任务完成率",
+  taskClosureRateHint: "已完成任务占全部有效、未取消任务的比例。",
+  plannedClosureRate: "计划工时完成率",
+  plannedClosureRateHint: "已完成任务的计划工时，占全部计划工时的比例。",
+  timeConsumptionRate: "计划工时使用率",
+  timeConsumptionRateHint: "已登记工时占计划工时的比例；超过 100% 表示整体已超出计划。",
+  overrunTaskRate: "工时超支任务",
+  overrunTaskRateHint: "已开始且填写了计划工时的任务中，登记工时超过计划工时的任务比例。",
+  estimateAccuracyRate: "估时准确率",
+  estimateAccuracyRateHint: "已完成且同时有计划、登记工时的任务中，实际工时与计划相差不超过正负 20% 的任务比例。",
+  estimateCoverageRate: "已估时任务占比",
+  estimateCoverageRateHint: "全部有效、未取消任务中，已填写计划工时的任务比例。",
   ratioUnavailable: "—",
   percentage: (value: number) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`,
