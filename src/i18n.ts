@@ -405,6 +405,45 @@ const en = {
   members: "Assignees",
   memberSearch: "Find an assignee…",
   memberDashboard: "Personal dashboard",
+  personalDeliveryBrief: "Personal delivery brief",
+  deliveryWindowRange: "Planning range",
+  deliveryWindows: "Delivery windows",
+  deliveryWindowCount: (count: number) => `${count} window${count === 1 ? "" : "s"}`,
+  noDeliveryWindows: "No delivery window in this range",
+  noDeliveryWindowsHint: "Extend the range or assign this member's work to a configured stage.",
+  deliveryWindowFilterLabel: (date: string, count: number) =>
+    `${date} delivery window · ${count} task${count === 1 ? "" : "s"}`,
+  personalDeliveryWindowAria: (
+    date: string,
+    count: number,
+    remaining: number,
+    capacity: number,
+    state: string
+  ) => `${date}: ${count} tasks, ${remaining}h remaining, ${capacity}h cumulative capacity, ${state}`,
+  compactTaskCount: (count: number) => `${count} task${count === 1 ? "" : "s"}`,
+  deliveryProgressLabel: "Window progress",
+  personalWindowProgressDetail: (closed: number, total: number, hours: number, planned: number) =>
+    `${closed}/${total} tasks · ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}/${planned.toLocaleString(undefined, { maximumFractionDigits: 2 })}h closed`,
+  remainingAtWindow: "Remaining in window",
+  cumulativeCapacity: "Cumulative load / capacity",
+  personalWorkload: "Workload",
+  personalWorkloadDetail: (remaining: number, available: number, balance: number) =>
+    `${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h scheduled / ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}h available · ${balance < 0 ? `${Math.abs(balance).toLocaleString(undefined, { maximumFractionDigits: 2 })}h short` : `${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}h buffer`}`,
+  teamCompletionRisk: "Completion risk in team",
+  personalRiskDetail: (risk: number, assessed: number) =>
+    `${risk} of ${assessed} open task${assessed === 1 ? "" : "s"} at risk`,
+  personalRiskAboveTeam: (median: number | null) =>
+    `Above team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskBelowTeam: (median: number | null) =>
+    `Below team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskAtTeam: (median: number | null) =>
+    `At team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskNoTeamReference: "No comparable team sample",
+  memberDriverDueAfterStage: (count: number) =>
+    `${count} task due after its stage${count === 1 ? "" : "s"}`,
+  personalPlanningBlindSpots: "Planning blind spots",
+  personalConfidencePartial: (blind: number, unestimated: number, unresolved: number) =>
+    `${blind} task${blind === 1 ? "" : "s"} reduce confidence · ${unestimated} unestimated · ${unresolved} without a resolved stage`,
   openMemberDashboard: (name: string) => `Open ${name}'s personal dashboard`,
   closeMemberDashboard: (name: string) => `Close ${name}'s personal dashboard`,
   clearDashboardFilter: "Clear insight filter",
@@ -1019,6 +1058,44 @@ const zh: typeof en = {
   members: "成员",
   memberSearch: "查找成员…",
   memberDashboard: "个人仪表盘",
+  personalDeliveryBrief: "个人交付简报",
+  deliveryWindowRange: "规划范围",
+  deliveryWindows: "交付窗口",
+  deliveryWindowCount: (count: number) => `${count} 个窗口`,
+  noDeliveryWindows: "当前范围内没有交付窗口",
+  noDeliveryWindowsHint: "可以延长规划范围，或将该成员的任务归入已配置的交付阶段。",
+  deliveryWindowFilterLabel: (date: string, count: number) =>
+    `${date} 交付窗口 · ${count} 个任务`,
+  personalDeliveryWindowAria: (
+    date: string,
+    count: number,
+    remaining: number,
+    capacity: number,
+    state: string
+  ) => `${date}：${count} 个任务，剩余 ${remaining} 小时，累计容量 ${capacity} 小时，${state}`,
+  compactTaskCount: (count: number) => `${count} 项`,
+  deliveryProgressLabel: "窗口进展",
+  personalWindowProgressDetail: (closed: number, total: number, hours: number, planned: number) =>
+    `已完成 ${closed}/${total} 项 · 已闭环 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}/${planned.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  remainingAtWindow: "窗口剩余",
+  cumulativeCapacity: "累计负载 / 容量",
+  personalWorkload: "工作负载",
+  personalWorkloadDetail: (remaining: number, available: number, balance: number) =>
+    `已排期 ${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 可用 ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}h · ${balance < 0 ? `缺口 ${Math.abs(balance).toLocaleString(undefined, { maximumFractionDigits: 2 })}h` : `余量 ${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`}`,
+  teamCompletionRisk: "团队任务完成风险",
+  personalRiskDetail: (risk: number, assessed: number) =>
+    `${assessed} 个未完成任务中，${risk} 个存在风险`,
+  personalRiskAboveTeam: (median: number | null) =>
+    `高于团队中位值${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskBelowTeam: (median: number | null) =>
+    `低于团队中位值${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskAtTeam: (median: number | null) =>
+    `与团队中位值一致${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
+  personalRiskNoTeamReference: "暂无可比较的团队样本",
+  memberDriverDueAfterStage: (count: number) => `${count} 个任务截止日晚于所属阶段`,
+  personalPlanningBlindSpots: "计划盲点",
+  personalConfidencePartial: (blind: number, unestimated: number, unresolved: number) =>
+    `${blind} 个任务降低判断可信度 · ${unestimated} 个未估时 · ${unresolved} 个阶段未明确`,
   openMemberDashboard: (name: string) => `打开${name}的个人仪表盘`,
   closeMemberDashboard: (name: string) => `关闭${name}的个人仪表盘`,
   clearDashboardFilter: "清除洞察筛选",

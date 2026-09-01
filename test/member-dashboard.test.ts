@@ -5,6 +5,7 @@ import {
   memberDashboardWindowEnd
 } from "../src/domain/member-dashboard";
 import type { GateRiskSnapshot } from "../src/domain/gate-risk";
+import { DEFAULT_SETTINGS } from "../src/model";
 import type {
   MemberDashboardSettings,
   MemberInsight,
@@ -142,6 +143,11 @@ const settings: MemberDashboardSettings = {
   includeWeekends: false
 };
 
+const deliveryDependencies = {
+  deliveryProgressSettings: DEFAULT_SETTINGS.deliveryProgress,
+  includeArchived: false
+};
+
 describe("member dashboard", () => {
   it("resolves preset and custom windows against the selected calendar", () => {
     expect(memberDashboardWindowEnd("2026-08-31", settings)).toBe("2026-09-09");
@@ -178,6 +184,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([completed]),
       allTasks: [completed],
       highPriorityIds: new Set()
@@ -217,6 +224,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([personal, shared]),
       allTasks: [personal, shared],
       highPriorityIds: new Set(["critical", "high"])
@@ -246,6 +254,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([staged]),
       allTasks: [staged, launchOnly, unknown],
       highPriorityIds: new Set()
@@ -278,6 +287,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([development], [testing]),
       allTasks: [development, testing],
       highPriorityIds: new Set()
@@ -341,6 +351,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: risk,
       allTasks: [projectOne, projectTwo],
       highPriorityIds: new Set()
@@ -367,6 +378,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([development], [testing]),
       allTasks: [parent, development, testing],
       highPriorityIds: new Set()
@@ -409,6 +421,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: risk,
       allTasks: [adaTask, baoTask],
       highPriorityIds: new Set()
@@ -431,6 +444,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([afterGate]),
       allTasks: [afterGate],
       highPriorityIds: new Set()
@@ -471,6 +485,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([unestimated, archived, cancelled]),
       allTasks: [unestimated, archived, cancelled],
       highPriorityIds: new Set()
@@ -511,6 +526,7 @@ describe("member dashboard", () => {
       settings,
       workdayHours: 8,
       calendarDayHours: 8,
+      ...deliveryDependencies,
       gateRisk: riskSnapshot([adaTask, baoTask, unassignedTask]),
       allTasks: [adaTask, baoTask, unassignedTask],
       highPriorityIds: new Set()

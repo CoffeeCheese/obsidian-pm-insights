@@ -1,5 +1,11 @@
 import type { GateRiskSnapshot } from "./gate-risk";
-import type { MemberInsight, TaskInsight, TaskRecord } from "../model";
+import { aggregateDeliveryProgress } from "./delivery-progress";
+import type {
+  DeliveryProgressSettings,
+  MemberInsight,
+  TaskInsight,
+  TaskRecord
+} from "../model";
 
 export interface MemberProjectCommitment {
   projectId: string;
@@ -52,13 +58,29 @@ function addStageReference(
 
 function indexTaskStages(
   allTasks: readonly TaskRecord[],
-  gateRisk: GateRiskSnapshot
+  gateRisk: GateRiskSnapshot,
+  deliveryProgressSettings: DeliveryProgressSettings,
+  includeArchived: boolean
 ): Map<string, Map<string, StageReference>> {
   const tasksByKey = new Map(allTasks.map((task) => [taskKey(task), task]));
+  const tasksByProject = new Map<string, TaskRecord[]>();
+  for (const task of allTasks) {
+    const tasks = tasksByProject.get(task.projectId) ?? [];
+    tasks.push(task);
+    tasksByProject.set(task.projectId, tasks);
+  }
   const stagesByTask = new Map<string, Map<string, StageReference>>();
 
   for (const project of gateRisk.projects) {
     const stages = project.gates.filter((gate) => gate.kind === "stage");
+    const classifiedStages = new Map(aggregateDeliveryProgress(
+      tasksByProject.get(project.project.id) ?? [],
+      {
+        projectIds: new Set([project.project.id]),
+        includeArchived,
+        settings: deliveryProgressSettings
+      }
+    ).stages.map((stage) => [stage.id, stage.tasks]));
     stages.forEach((gate, order) => {
       const stage: StageReference = {
         id: gate.id,
@@ -66,7 +88,11 @@ function indexTaskStages(
         date: gate.gateDate,
         order
       };
-      for (const stageTask of gate.tasks) {
+      const stageTasks = new Map([
+        ...(classifiedStages.get(gate.id) ?? []),
+        ...gate.tasks
+      ].map((task) => [taskKey(task), task]));
+      for (const stageTask of stageTasks.values()) {
         let current: TaskRecord | undefined = tasksByKey.get(taskKey(stageTask)) ?? stageTask;
         const seen = new Set<string>();
         while (current) {
@@ -158,8 +184,15 @@ export function resolveMemberDeliveryCommitments(input: {
   members: readonly MemberInsight[];
   allTasks: readonly TaskRecord[];
   gateRisk: GateRiskSnapshot;
+  deliveryProgressSettings: DeliveryProgressSettings;
+  includeArchived: boolean;
 }): Map<string, MemberDeliveryPlan> {
-  const stagesByTask = indexTaskStages(input.allTasks, input.gateRisk);
+  const stagesByTask = indexTaskStages(
+    input.allTasks,
+    input.gateRisk,
+    input.deliveryProgressSettings,
+    input.includeArchived
+  );
   return new Map(input.members.map((member) => [
     member.key,
     resolveMemberDeliveryPlan(member.tasks, stagesByTask, input.gateRisk)

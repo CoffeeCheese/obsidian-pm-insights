@@ -1,0 +1,383 @@
+import { aggregateMemberDashboard, type MemberDashboardHealth, type MemberDashboardOptions } from "./member-dashboard";
+import {
+  resolveMemberDeliveryCommitments,
+  type MemberProjectCommitment
+} from "./member-delivery-commitments";
+import type { MemberInsight } from "../model";
+
+export type DeliveryRiskSignalKind =
+  | "overdue"
+  | "capacity"
+  | "gate"
+  | "due-after-stage"
+  | "overrun";
+
+export interface PersonalDashboardTaskRef {
+  key: string;
+}
+
+export interface PersonalDeliveryCommitment {
+  projectId: string;
+  projectTitle: string;
+  stageId: string;
+  stageName: string;
+  taskCount: number;
+  taskKeys: string[];
+}
+
+export interface PersonalDeliveryProgress {
+  completedPlannedHours: number;
+  totalPlannedHours: number;
+  percentage: number | null;
+  completedTaskCount: number;
+  taskCount: number;
+}
+
+export interface PersonalDeliveryRiskSignal {
+  kind: DeliveryRiskSignalKind;
+  state: MemberDashboardHealth;
+  taskCount: number;
+  hours: number;
+  taskKeys: string[];
+}
+
+export interface PersonalDeliveryWindow {
+  date: string;
+  commitments: PersonalDeliveryCommitment[];
+  progress: PersonalDeliveryProgress;
+  remainingHours: number;
+  cumulativeRemainingHours: number;
+  cumulativeCapacityHours: number;
+  balanceHours: number;
+  state: MemberDashboardHealth;
+  signals: PersonalDeliveryRiskSignal[];
+  taskKeys: string[];
+}
+
+export interface PersonalWorkload {
+  scheduledRemainingHours: number;
+  availableHours: number;
+  balanceHours: number;
+  utilizationPercentage: number | null;
+  allRemainingHours: number;
+  laterHours: number;
+  taskKeys: string[];
+}
+
+export type TeamRiskRelation = "below" | "same" | "above" | "unavailable";
+
+export interface TeamCompletionRisk {
+  atRiskTaskCount: number;
+  assessedOpenTaskCount: number;
+  percentage: number | null;
+  teamMedianPercentage: number | null;
+  relation: TeamRiskRelation;
+  sampleSize: number;
+  signals: PersonalDeliveryRiskSignal[];
+  taskKeys: string[];
+}
+
+export interface PersonalDashboardConfidence {
+  level: "complete" | "partial";
+  blindTaskCount: number;
+  unestimatedTaskCount: number;
+  unresolvedTaskCount: number;
+  unconfiguredProjectIds: string[];
+  taskKeys: string[];
+}
+
+export interface PersonalDeliveryDashboard {
+  member: { key: string; name: string };
+  state: MemberDashboardHealth;
+  deliveryWindows: PersonalDeliveryWindow[];
+  workload: PersonalWorkload;
+  teamRisk: TeamCompletionRisk;
+  confidence: PersonalDashboardConfidence;
+}
+
+export interface PersonalDashboardCatalog {
+  window: {
+    startDate: string;
+    endDate: string;
+    days: number;
+    includeWeekends: boolean;
+    hoursPerDay: number;
+  };
+  dashboards: PersonalDeliveryDashboard[];
+}
+
+export interface PersonalDashboardInput extends MemberDashboardOptions {
+  members: MemberInsight[];
+}
+
+interface DashboardDraft extends Omit<PersonalDeliveryDashboard, "teamRisk"> {
+  teamRisk: Omit<TeamCompletionRisk, "teamMedianPercentage" | "relation" | "sampleSize">;
+}
+
+const HEALTH_SEVERITY: Record<MemberDashboardHealth, number> = {
+  normal: 0,
+  attention: 1,
+  high: 2,
+  overdue: 3
+};
+
+const SIGNAL_ORDER: Record<DeliveryRiskSignalKind, number> = {
+  overdue: 0,
+  capacity: 1,
+  gate: 2,
+  "due-after-stage": 3,
+  overrun: 4
+};
+
+function round(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values)];
+}
+
+function percentage(numerator: number, denominator: number): number | null {
+  return denominator > 0 ? round((numerator / denominator) * 100) : null;
+}
+
+function median(values: Array<number | null>): number | null {
+  const available = values.filter((value): value is number => value !== null)
+    .sort((left, right) => left - right);
+  if (available.length === 0) return null;
+  const middle = Math.floor(available.length / 2);
+  if (available.length % 2 === 1) return available[middle] ?? null;
+  return round(((available[middle - 1] ?? 0) + (available[middle] ?? 0)) / 2);
+}
+
+function worseHealth(
+  left: MemberDashboardHealth,
+  right: MemberDashboardHealth
+): MemberDashboardHealth {
+  return HEALTH_SEVERITY[right] > HEALTH_SEVERITY[left] ? right : left;
+}
+
+function signal(
+  kind: DeliveryRiskSignalKind,
+  state: MemberDashboardHealth,
+  taskKeys: readonly string[],
+  hours = 0
+): PersonalDeliveryRiskSignal | null {
+  const keys = unique(taskKeys);
+  if (keys.length === 0 && hours <= 0) return null;
+  return { kind, state, taskCount: keys.length, hours: round(hours), taskKeys: keys };
+}
+
+function taskDate(value: string | null | undefined): string | null {
+  return value ? value.slice(0, 10) : null;
+}
+
+function aggregateSignals(
+  signals: readonly PersonalDeliveryRiskSignal[]
+): PersonalDeliveryRiskSignal[] {
+  const byKind = new Map<DeliveryRiskSignalKind, PersonalDeliveryRiskSignal>();
+  for (const item of signals) {
+    const current = byKind.get(item.kind);
+    if (!current) {
+      byKind.set(item.kind, { ...item, taskKeys: [...item.taskKeys] });
+      continue;
+    }
+    current.state = worseHealth(current.state, item.state);
+    current.hours = round(Math.max(current.hours, item.hours));
+    current.taskKeys = unique([...current.taskKeys, ...item.taskKeys]);
+    current.taskCount = current.taskKeys.length;
+  }
+  return [...byKind.values()].sort((left, right) =>
+    HEALTH_SEVERITY[right.state] - HEALTH_SEVERITY[left.state]
+      || SIGNAL_ORDER[left.kind] - SIGNAL_ORDER[right.kind]);
+}
+
+function commitmentView(
+  commitment: MemberProjectCommitment,
+  taskKeys: string[]
+): PersonalDeliveryCommitment {
+  return {
+    projectId: commitment.projectId,
+    projectTitle: commitment.projectTitle,
+    stageId: commitment.stageId,
+    stageName: commitment.stageName,
+    taskCount: taskKeys.length,
+    taskKeys
+  };
+}
+
+export function buildPersonalDashboards(input: PersonalDashboardInput): PersonalDashboardCatalog {
+  const people = input.members.filter((member) => member.kind === "member");
+  const raw = aggregateMemberDashboard(people, input);
+  const plans = resolveMemberDeliveryCommitments({
+    members: people,
+    allTasks: input.allTasks,
+    gateRisk: input.gateRisk,
+    deliveryProgressSettings: input.deliveryProgressSettings,
+    includeArchived: input.includeArchived
+  });
+
+  const drafts: DashboardDraft[] = raw.members.map((metric) => {
+    const plan = plans.get(metric.memberKey) ?? { commitments: [], unresolved: [] };
+    const tasksByKey = new Map(metric.tasks.map((task) => [task.key, task]));
+    const commitmentsByDate = new Map<string, PersonalDeliveryCommitment[]>();
+
+    for (const commitment of plan.commitments) {
+      const keys = commitment.taskKeys.filter((key) => tasksByKey.has(key));
+      const hasOpenWork = keys.some((key) => !tasksByKey.get(key)?.task.completed);
+      if (keys.length === 0
+          || commitment.deliveryDate > raw.window.endDate
+          || (commitment.deliveryDate < raw.window.startDate && !hasOpenWork)) continue;
+      const commitments = commitmentsByDate.get(commitment.deliveryDate) ?? [];
+      commitments.push(commitmentView(commitment, keys));
+      commitmentsByDate.set(commitment.deliveryDate, commitments);
+    }
+
+    let cumulativeKeys: string[] = [];
+    const deliveryWindows = [...commitmentsByDate.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([date, commitments]): PersonalDeliveryWindow => {
+        const taskKeys = unique(commitments.flatMap((item) => item.taskKeys));
+        cumulativeKeys = unique([...cumulativeKeys, ...taskKeys]);
+        const tasks = taskKeys.flatMap((key) => {
+          const task = tasksByKey.get(key);
+          return task ? [task] : [];
+        });
+        const cumulativeTasks = cumulativeKeys.flatMap((key) => {
+          const task = tasksByKey.get(key);
+          return task ? [task] : [];
+        });
+        const openTasks = tasks.filter((task) => !task.task.completed);
+        const totalPlannedHours = round(tasks.reduce(
+          (total, task) => total + task.allocatedEstimate, 0));
+        const completedPlannedHours = round(tasks.reduce((total, task) =>
+          total + (task.task.completed ? task.allocatedEstimate : 0), 0));
+        const remainingHours = round(openTasks.reduce(
+          (total, task) => total + task.allocatedRemaining, 0));
+        const cumulativeRemainingHours = round(cumulativeTasks.reduce((total, task) =>
+          total + (task.task.completed ? 0 : task.allocatedRemaining), 0));
+        const checkpoint = metric.checkpoints.find((item) => item.date === date)
+          ?? (date < raw.window.startDate
+            ? metric.checkpoints.find((item) => item.date === raw.window.startDate)
+            : undefined);
+        const cumulativeCapacityHours = checkpoint?.availableHours ?? 0;
+        const balanceHours = round(cumulativeCapacityHours - cumulativeRemainingHours);
+        const overdueKeys = openTasks
+          .filter((task) => date < raw.window.startDate || task.overdue)
+          .map((task) => task.key);
+        const dueAfterStageKeys = openTasks.filter((task) => {
+          const dueDate = taskDate(task.task.dueDate);
+          return dueDate !== null && dueDate > date;
+        }).map((task) => task.key);
+        const gateKeys = openTasks.filter((task) =>
+          task.gateRisk !== null && !dueAfterStageKeys.includes(task.key)
+        ).map((task) => task.key);
+        const overrunKeys = openTasks.filter((task) =>
+          task.allocatedEstimate > 0 && task.allocatedLogged > task.allocatedEstimate
+        ).map((task) => task.key);
+        const signals = [
+          signal("overdue", "overdue", overdueKeys),
+          signal("capacity", "high", cumulativeKeys, Math.max(0, -balanceHours)),
+          signal("gate", gateKeys.reduce<MemberDashboardHealth>((state, key) =>
+            worseHealth(state, tasksByKey.get(key)?.gateRisk ?? "normal"), "normal"), gateKeys),
+          signal("due-after-stage", "high", dueAfterStageKeys),
+          signal("overrun", "attention", overrunKeys)
+        ].filter((item): item is PersonalDeliveryRiskSignal => item !== null)
+          .filter((item) => item.kind !== "capacity" || balanceHours < 0);
+        const state = signals.reduce<MemberDashboardHealth>((current, item) =>
+          worseHealth(current, item.state),
+        checkpoint?.state ?? "normal");
+        return {
+          date,
+          commitments: commitments.sort((left, right) =>
+            left.projectTitle.localeCompare(right.projectTitle)
+              || left.stageName.localeCompare(right.stageName)),
+          progress: {
+            completedPlannedHours,
+            totalPlannedHours,
+            percentage: percentage(completedPlannedHours, totalPlannedHours),
+            completedTaskCount: tasks.filter((task) => task.task.completed).length,
+            taskCount: tasks.length
+          },
+          remainingHours,
+          cumulativeRemainingHours,
+          cumulativeCapacityHours,
+          balanceHours,
+          state,
+          signals: aggregateSignals(signals),
+          taskKeys
+        };
+      });
+
+    const riskSignals = aggregateSignals(deliveryWindows.flatMap((item) => item.signals));
+    const assessedOpenKeys = unique(deliveryWindows.flatMap((item) => item.taskKeys))
+      .filter((key) => !tasksByKey.get(key)?.task.completed);
+    const atRiskKeys = unique(riskSignals.flatMap((item) => item.taskKeys))
+      .filter((key) => assessedOpenKeys.includes(key));
+    const loadTaskKeys = metric.tasks
+      .filter((task) => task.inWindow && !task.task.completed)
+      .map((task) => task.key);
+    const unresolvedKeys = unique(plan.unresolved.flatMap((item) => item.taskKeys))
+      .filter((key) => tasksByKey.has(key));
+    const unestimatedKeys = metric.tasks
+      .filter((task) => !task.task.completed && task.allocatedEstimate <= 0
+        && (task.inWindow || task.effectiveDeadline === null))
+      .map((task) => task.key);
+    const blindKeys = unique([...unresolvedKeys, ...unestimatedKeys]);
+
+    return {
+      member: { key: metric.memberKey, name: metric.memberName },
+      state: metric.health,
+      deliveryWindows,
+      workload: {
+        scheduledRemainingHours: metric.committedHours,
+        availableHours: metric.availableHours,
+        balanceHours: metric.balanceHours,
+        utilizationPercentage: metric.loadPercentage,
+        allRemainingHours: metric.allRemainingHours,
+        laterHours: metric.laterHours,
+        taskKeys: loadTaskKeys
+      },
+      teamRisk: {
+        atRiskTaskCount: atRiskKeys.length,
+        assessedOpenTaskCount: assessedOpenKeys.length,
+        percentage: percentage(atRiskKeys.length, assessedOpenKeys.length),
+        signals: riskSignals,
+        taskKeys: atRiskKeys
+      },
+      confidence: {
+        level: blindKeys.length > 0 ? "partial" : "complete",
+        blindTaskCount: blindKeys.length,
+        unestimatedTaskCount: unique(unestimatedKeys).length,
+        unresolvedTaskCount: unique(unresolvedKeys).length,
+        unconfiguredProjectIds: metric.unconfiguredProjectIds,
+        taskKeys: blindKeys
+      }
+    };
+  });
+
+  const teamMedian = median(drafts.map((draft) => draft.teamRisk.percentage));
+  const sampleSize = drafts.filter((draft) => draft.teamRisk.percentage !== null).length;
+  return {
+    window: raw.window,
+    dashboards: drafts.map((draft): PersonalDeliveryDashboard => {
+      const value = draft.teamRisk.percentage;
+      const relation: TeamRiskRelation = value === null || teamMedian === null
+        ? "unavailable"
+        : value > teamMedian
+          ? "above"
+          : value < teamMedian
+            ? "below"
+            : "same";
+      return {
+        ...draft,
+        teamRisk: {
+          ...draft.teamRisk,
+          teamMedianPercentage: teamMedian,
+          relation,
+          sampleSize
+        }
+      };
+    })
+  };
+}

@@ -201,51 +201,23 @@ Choose a member from the team overview to inspect personal and shared tasks sepa
 
 #### Open a focused personal dashboard
 
-After selecting a member, use the gauge button beside their name to open a dedicated right-side drawer. It keeps the main member detail compact while bringing the person's progress, upcoming commitments, capacity, and delivery quality into one focused view.
-
-![Focused personal dashboard drawer using fictional English demo data, showing delivery health, a configurable runway, window progress, planned load, team comparison, work composition, and the delivery ledger](docs/assets/pm-insights-member-dashboard-focused.png)
-
-*The screenshot uses fictional README demo projects and members. Insight chips and runway nodes can be selected to close the drawer and filter the source task list behind it.*
-
-The personal dashboard combines six connected views:
+After selecting a member, use the gauge button beside their name to open a dedicated right-side drawer. The personal dashboard is a compact delivery brief built around three questions:
 
 | View | What it explains |
 | --- | --- |
-| **Delivery health** | The most urgent reason for intervention, such as overdue work, a capacity shortfall, a gate blocker, missing estimates, unresolved delivery stages, or work over plan. |
-| **Personal delivery runway** | Cumulative remaining commitments at each stage-derived delivery date compared with the person's capacity available by that checkpoint. |
-| **Window progress** | Completed tasks and completed planned hours among active work due by the window end, including unfinished overdue work; completed work is included only when its effective deadline is on or after today. |
-| **Planned load** | Remaining estimated work due by the window end, including overdue commitments, ÷ available personal capacity. |
-| **Team comparison** | The person's load, planned-hours completion, overdue work, over-budget work, project spread, shared work, and high-priority mix against the team's middle value after sorting each measure; for an even team, the two middle values are averaged. |
-| **Work composition and delivery ledger** | How the person's remaining hours split by project, plus all-time completion, time-against-plan, and planning-completeness ratios. |
+| **Delivery windows** | Each stage-derived delivery date, the project and stage commitments grouped at that date, completed tasks and planned hours, remaining work, cumulative capacity, and concrete risk signals. Windows sharing a date are combined instead of repeated. |
+| **Workload** | Remaining estimated work due by the selected range, including unfinished overdue work, compared with the member's available personal capacity. |
+| **Completion risk in team** | The share of assessed open tasks affected by overdue work, stage timing, capacity shortfall, gate risk, or overrun, compared with the team's middle value. Unassigned work is excluded from the team sample. |
 
-The load window starts today. Choose 7, 14, or 30 schedule days, or set a custom end date. **Include weekends** immediately switches both the counted days and daily-capacity rule; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
+Select a delivery window, workload summary, risk summary, or planning-confidence note to close the drawer and filter the related source tasks. The planning range starts today. Choose 7, 14, or 30 schedule days, or set a custom end date. **Include weekends** immediately switches both the counted days and daily-capacity rule; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
 
-For runway and window statistics, each member's work is grouped by project and placed at the gate date of its farthest mapped delivery stage. Parent work inherits the stages covered by its executable descendants, and cross-stage work uses the latest stage in the configured delivery order. Task due dates remain schedule-risk signals but do not position runway commitments, and the project launch date is never used as a fallback. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. If a related project has no complete delivery-gate schedule, or work has no resolved delivery stage, that work stays outside the runway, window progress, and planned load while remaining visible in the all-time delivery ledger.
+Each member's work is grouped by project and placed at the gate date of its farthest mapped delivery stage. Parent work inherits the stages covered by its executable descendants, and cross-stage work uses the latest stage in the configured delivery order. Task due dates remain schedule-risk signals but do not position delivery commitments, and the project launch date is never used as a fallback. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. Missing estimates and unresolved stages appear as planning blind spots and reduce confidence without inventing hours.
 
 #### Normalize member names
 
 Member aliases can combine different assignee spellings into one reporting name—for example, “Alex,” “A. Chen,” and “Chen” can all roll up to “Alex Chen.” Source task content is not changed.
 
-### 3. Personal delivery ledger: understand execution quality
-
-#### Six ratios grouped around three questions
-
-The ledger at the bottom of the personal dashboard organizes six ratios around three plain-language questions: is work being completed, is time tracking following the plan, and is planning data complete enough to support a judgment? Every metric is shown beside a **Team reference** derived from the middle available value after sorting, or the average of the two middle values for an even-sized team.
-
-| Group | Ratio | Calculation |
-| --- | --- | --- |
-| **Completion** | Tasks completed | Completed, non-cancelled tasks ÷ all non-cancelled tasks. |
-| **Completion** | Planned hours completed | Planned hours on completed tasks ÷ all estimated hours. |
-| **Time against plan** | Planned time used | Logged hours on estimated tasks ÷ their planned hours. Values above 100% mean more time was logged than planned. |
-| **Time against plan** | Tasks over their plan | Started, estimated tasks over plan ÷ all started, estimated tasks. |
-| **Planning completeness** | Time estimates on target | Completed, started tasks logged within ±20% of estimate ÷ all valid samples. |
-| **Planning completeness** | Tasks with planned hours | Estimated, non-cancelled tasks ÷ all non-cancelled tasks. |
-
-#### Read the no-sample state correctly
-
-An em dash `—` means there is no valid sample yet; it does not mean the result is zero.
-
-### 4. Delivery progress: see stage movement and acceptance outcomes
+### 3. Delivery progress: see stage movement and acceptance outcomes
 
 Delivery progress is not a single completion percentage across every task. It starts from the complete task trees in the selected projects, uses subtasks to observe each business stage, uses root tasks to decide whether a requirement is ready for acceptance, and finally combines the configured stage weights into total delivery progress.
 
@@ -425,7 +397,7 @@ You decide whether completed root tasks still receive full prerequisite validati
 
 Selecting an exception opens the Project Manager task editor above the current modal. Closing the task editor returns to the same exception category and project context, so an investigation can continue without starting over.
 
-### 5. Delivery gates: use planned checkpoints to detect schedule risk
+### 4. Delivery gates: use planned checkpoints to detect schedule risk
 
 #### Set the project clock and gates on the original baseline
 
@@ -528,7 +500,7 @@ The **Delivery gate risk** modal places project rhythm and supporting evidence i
 
 Neutral and healthy states use restrained colors. Warning color is reserved for conditions that actually need attention.
 
-### 6. Task traceability: move from a metric back to the source task
+### 5. Task traceability: move from a metric back to the source task
 
 #### Combine filters and adjust the task table
 

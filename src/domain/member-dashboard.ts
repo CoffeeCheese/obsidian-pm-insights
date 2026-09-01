@@ -6,6 +6,7 @@ import {
   type MemberDeliveryPlan
 } from "./member-delivery-commitments";
 import type {
+  DeliveryProgressSettings,
   MemberDashboardSettings,
   MemberInsight,
   MemberRatios,
@@ -135,6 +136,8 @@ export interface MemberDashboardOptions {
   calendarDayHours: number;
   gateRisk: GateRiskSnapshot;
   allTasks: readonly TaskRecord[];
+  deliveryProgressSettings: DeliveryProgressSettings;
+  includeArchived: boolean;
   highPriorityIds: Set<string>;
 }
 
@@ -642,7 +645,9 @@ export function aggregateMemberDashboard(
   const deliveryPlans = resolveMemberDeliveryCommitments({
     members: people,
     allTasks: options.allTasks,
-    gateRisk: options.gateRisk
+    gateRisk: options.gateRisk,
+    deliveryProgressSettings: options.deliveryProgressSettings,
+    includeArchived: options.includeArchived
   });
   const drafts = people.map((member) =>
     memberMetric(

@@ -20,7 +20,6 @@ import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
 import { scheduleDaysBetween } from "./domain/schedule-calendar";
 import {
-  aggregateMemberDashboard,
   memberDashboardTaskKey,
   type MemberDashboardComparison,
   type MemberDashboardDriver,
@@ -28,6 +27,13 @@ import {
   type MemberDashboardMetric,
   type MemberDashboardSnapshot
 } from "./domain/member-dashboard";
+import {
+  buildPersonalDashboards,
+  type DeliveryRiskSignalKind,
+  type PersonalDashboardCatalog,
+  type PersonalDeliveryDashboard,
+  type PersonalDeliveryRiskSignal
+} from "./domain/personal-delivery-dashboard";
 import type {
   DeliveryStageId,
   InsightSettings,
@@ -500,13 +506,16 @@ export class InsightsView extends ItemView {
     const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
     const buildMemberDashboard = (
       currentGateRisk = this.calculateGateRisk(snapshot, selectedIds)
-    ): MemberDashboardSnapshot => aggregateMemberDashboard(insights.members, {
+    ): PersonalDashboardCatalog => buildPersonalDashboards({
+      members: insights.members,
       today: this.todayDate(),
       settings: this.host.settings.memberDashboard,
       workdayHours: this.host.settings.gateRisk.workdayHours,
       calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
       gateRisk: currentGateRisk,
       allTasks: snapshot.tasks,
+      deliveryProgressSettings: this.host.settings.deliveryProgress,
+      includeArchived: this.host.settings.includeArchived,
       highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
     });
     const memberDashboard = buildMemberDashboard(gateRisk);
@@ -1227,8 +1236,8 @@ export class InsightsView extends ItemView {
     root: HTMLElement,
     member: MemberInsight | undefined,
     snapshot: ProjectManagerSnapshot,
-    dashboard: MemberDashboardSnapshot,
-    buildMemberDashboard: () => MemberDashboardSnapshot,
+    dashboard: PersonalDashboardCatalog,
+    buildMemberDashboard: () => PersonalDashboardCatalog,
     t: Translations
   ): void {
     const projects = snapshot.projects;
@@ -1243,13 +1252,13 @@ export class InsightsView extends ItemView {
       return;
     }
 
-    const memberDashboard = dashboard.members.find((candidate) =>
-      candidate.memberKey === member.key);
+    const memberDashboard = dashboard.dashboards.find((candidate) =>
+      candidate.member.key === member.key);
     if (memberDashboard) {
       const dashboardOpen = this.memberDashboardModal !== null
         && this.memberDashboardOpenMemberKey === member.key;
       const toggle = identity.createEl("button", {
-        cls: `pmi-member-dashboard-toggle is-${memberDashboard.health}${dashboardOpen ? " is-active" : ""}`,
+        cls: `pmi-member-dashboard-toggle is-${memberDashboard.state}${dashboardOpen ? " is-active" : ""}`,
         attr: {
           type: "button",
           "aria-haspopup": "dialog",
@@ -1258,7 +1267,7 @@ export class InsightsView extends ItemView {
           "aria-label": dashboardOpen
             ? t.closeMemberDashboard(member.name)
             : t.openMemberDashboard(member.name),
-          title: `${dashboardOpen ? t.closeMemberDashboard(member.name) : t.openMemberDashboard(member.name)} · ${this.memberDashboardHealthLabel(memberDashboard.health, t)}`,
+          title: `${dashboardOpen ? t.closeMemberDashboard(member.name) : t.openMemberDashboard(member.name)} · ${this.memberDashboardHealthLabel(memberDashboard.state, t)}`,
           "data-member-key": member.key,
           "data-tooltip-position": "top"
         }
@@ -1468,7 +1477,7 @@ export class InsightsView extends ItemView {
   private openMemberDashboard(
     member: MemberInsight,
     snapshot: ProjectManagerSnapshot,
-    buildMemberDashboard: () => MemberDashboardSnapshot,
+    buildMemberDashboard: () => PersonalDashboardCatalog,
     t: Translations
   ): void {
     this.memberDashboardModal?.close();
@@ -1477,13 +1486,13 @@ export class InsightsView extends ItemView {
       ariaLabel: t.openMemberDashboard(member.name),
       render: (root) => {
         const dashboard = buildMemberDashboard();
-        const metric = dashboard.members.find((candidate) => candidate.memberKey === member.key);
+        const metric = dashboard.dashboards.find((candidate) => candidate.member.key === member.key);
         if (!metric) {
           root.createDiv({ cls: "pmi-list-empty", text: t.noTasks });
           return "normal";
         }
         this.renderMemberDashboard(root, metric, dashboard, snapshot, t);
-        return metric.health;
+        return metric.state;
       },
       onClose: () => {
         if (this.memberDashboardModal !== drawer) return;
@@ -1521,24 +1530,24 @@ export class InsightsView extends ItemView {
 
   private renderMemberDashboard(
     root: HTMLElement,
-    metric: MemberDashboardMetric,
-    dashboard: MemberDashboardSnapshot,
+    metric: PersonalDeliveryDashboard,
+    dashboard: PersonalDashboardCatalog,
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
     const section = root.createDiv({
-      cls: `pmi-member-dashboard is-${metric.health}`,
+      cls: `pmi-member-dashboard pmi-personal-delivery-dashboard is-${metric.state}`,
       attr: {
         id: this.memberDashboardLabelId,
         role: "region",
         "aria-label": t.memberDashboard,
-        "data-member-key": metric.memberKey
+        "data-member-key": metric.member.key
       }
     });
     const mast = section.createDiv("pmi-member-dashboard-mast");
     const identity = mast.createDiv("pmi-member-dashboard-title");
-    identity.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.memberDashboard });
-    identity.createEl("h2", { text: metric.memberName });
+    identity.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.personalDeliveryBrief });
+    identity.createEl("h2", { text: metric.member.name });
     identity.createEl("p", {
       text: t.deliveryRunwayWindow(
         dashboard.window.startDate,
@@ -1549,69 +1558,257 @@ export class InsightsView extends ItemView {
     });
     const health = mast.createDiv("pmi-member-health");
     const healthSignal = health.createSpan("pmi-member-health-signal");
-    setIcon(healthSignal, this.memberDashboardHealthIcon(metric.health));
+    setIcon(healthSignal, this.memberDashboardHealthIcon(metric.state));
     const healthCopy = health.createDiv("pmi-member-health-copy");
-    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.deliveryHealth });
+    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.teamCompletionRisk });
     healthCopy.createEl("strong", {
-      text: this.memberDashboardHealthLabel(metric.health, t)
+      text: this.memberDashboardHealthLabel(metric.state, t)
+    });
+    healthCopy.createSpan({
+      cls: "pmi-personal-risk-relation",
+      text: this.teamRiskRelationLabel(metric, t)
     });
 
     this.renderMemberGateSetupNotice(section, metric, snapshot, t);
 
-    const commandBar = section.createDiv("pmi-member-dashboard-commandbar");
-    const drivers = commandBar.createDiv("pmi-member-health-drivers");
-    const visibleDrivers = metric.drivers.slice(0, 3);
-    if (visibleDrivers.length === 0) {
-      drivers.createSpan({ cls: "pmi-member-health-clear", text: t.memberHealthClear });
-    } else {
-      for (const item of visibleDrivers) {
-        const label = this.memberDashboardDriverLabel(item, metric, t);
-        const id = `driver-${item.kind}`;
-        const button = drivers.createEl("button", {
-          cls: `pmi-member-health-driver is-${item.state}${this.dashboardFilterId === id ? " is-active" : ""}`,
-          attr: {
-            type: "button",
-            "aria-pressed": String(this.dashboardFilterId === id),
-            "data-dashboard-filter-id": id,
-            title: t.filterTasksByInsight(label)
-          }
-        });
-        button.createSpan({ text: label });
-        setIcon(button.createSpan(), "arrow-down-to-line");
-        button.addEventListener("click", () => {
-          this.applyDashboardTaskFilter(id, label, item.taskKeys, snapshot, t);
-        });
-      }
+    const toolbar = section.createDiv("pmi-personal-dashboard-toolbar");
+    toolbar.createSpan({ text: t.deliveryWindowRange });
+    this.renderMemberDashboardControls(toolbar, dashboard, snapshot, t);
+
+    this.renderPersonalDeliveryWindows(section, metric, snapshot, t);
+    this.renderPersonalSummary(section, metric, snapshot, t);
+
+    if (metric.confidence.blindTaskCount > 0) {
+      const label = t.personalConfidencePartial(
+        metric.confidence.blindTaskCount,
+        metric.confidence.unestimatedTaskCount,
+        metric.confidence.unresolvedTaskCount
+      );
+      const note = section.createEl("button", {
+        cls: "pmi-personal-confidence-note",
+        attr: {
+          type: "button",
+          title: t.filterTasksByInsight(label),
+          "aria-label": t.filterTasksByInsight(label)
+        }
+      });
+      setIcon(note.createSpan(), "scan-search");
+      note.createSpan({ text: label });
+      setIcon(note.createSpan("pmi-personal-summary-arrow"), "arrow-down-to-line");
+      note.addEventListener("click", () => {
+        this.applyDashboardTaskFilter(
+          "confidence",
+          t.personalPlanningBlindSpots,
+          metric.confidence.taskKeys,
+          snapshot,
+          t
+        );
+      });
     }
-    this.renderMemberDashboardControls(commandBar, dashboard, snapshot, t);
+  }
 
-    this.renderMemberRunway(section, metric, dashboard, snapshot, t);
+  private renderPersonalDeliveryWindows(
+    root: HTMLElement,
+    metric: PersonalDeliveryDashboard,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const section = root.createDiv("pmi-personal-windows");
+    const heading = section.createDiv("pmi-personal-section-heading");
+    const title = heading.createDiv();
+    setIcon(title.createSpan(), "milestone");
+    title.createDiv().createEl("strong", { text: t.deliveryWindows });
+    heading.createSpan({ text: t.deliveryWindowCount(metric.deliveryWindows.length) });
 
-    const instruments = section.createDiv("pmi-member-instruments");
-    this.renderMemberProgressInstrument(instruments, metric, snapshot, t);
-    this.renderMemberLoadInstrument(instruments, metric, snapshot, t);
-    this.renderMemberComparison(instruments, metric, dashboard.comparison, t);
+    if (metric.deliveryWindows.length === 0) {
+      const empty = section.createDiv("pmi-personal-windows-empty");
+      setIcon(empty.createSpan(), "calendar-check-2");
+      const copy = empty.createDiv();
+      copy.createEl("strong", { text: t.noDeliveryWindows });
+      copy.createSpan({ text: t.noDeliveryWindowsHint });
+      return;
+    }
 
-    this.renderMemberProjectMix(section, metric, dashboard, snapshot, t);
-    const ledgerSection = section.createDiv("pmi-member-ledger-section");
-    const ledgerHeading = ledgerSection.createDiv("pmi-member-section-heading");
-    const ledgerTitle = ledgerHeading.createDiv();
-    setIcon(ledgerTitle.createSpan(), "scan-line");
-    ledgerTitle.createEl("strong", { text: t.memberRatios });
-    ledgerHeading.createSpan({
-      text: t.teamReferenceSample(dashboard.comparison.sampleSize),
-      attr: { title: t.teamReferenceMethod(dashboard.comparison.sampleSize) }
+    const list = section.createDiv({ cls: "pmi-personal-window-list", attr: { role: "list" } });
+    for (const window of metric.deliveryWindows) {
+      const id = `delivery-window-${window.date}`;
+      const label = t.deliveryWindowFilterLabel(window.date, window.progress.taskCount);
+      const row = list.createEl("button", {
+        cls: `pmi-personal-window is-${window.state}${this.dashboardFilterId === id ? " is-active" : ""}`,
+        attr: {
+          type: "button",
+          role: "listitem",
+          "aria-pressed": String(this.dashboardFilterId === id),
+          "aria-label": t.personalDeliveryWindowAria(
+            window.date,
+            window.progress.taskCount,
+            window.remainingHours,
+            window.cumulativeCapacityHours,
+            this.memberDashboardHealthLabel(window.state, t)
+          ),
+          title: t.filterTasksByInsight(label)
+        }
+      });
+      const date = row.createDiv("pmi-personal-window-date");
+      date.createSpan({ text: this.shortDate(window.date) });
+      date.createEl("small", { text: window.date.slice(0, 4) });
+      date.createSpan("pmi-personal-window-dot");
+
+      const content = row.createDiv("pmi-personal-window-content");
+      const commitments = content.createDiv("pmi-personal-window-commitments");
+      for (const commitment of window.commitments) {
+        const item = commitments.createDiv("pmi-personal-window-commitment");
+        item.createEl("strong", { text: commitment.projectTitle });
+        item.createSpan({ text: commitment.stageName });
+        item.createEl("small", { text: t.compactTaskCount(commitment.taskCount) });
+      }
+
+      const progress = content.createDiv("pmi-personal-window-progress");
+      const progressCopy = progress.createDiv();
+      progressCopy.createSpan({ text: t.deliveryProgressLabel });
+      progressCopy.createEl("strong", {
+        text: window.progress.percentage === null
+          ? t.ratioUnavailable
+          : t.percentage(window.progress.percentage)
+      });
+      const track = progress.createDiv({
+        cls: "pmi-personal-window-progress-track",
+        attr: {
+          role: "progressbar",
+          "aria-valuemin": "0",
+          "aria-valuemax": "100",
+          "aria-valuenow": String(window.progress.percentage ?? 0)
+        }
+      });
+      const fill = track.createSpan();
+      fill.style.width = `${Math.min(100, window.progress.percentage ?? 0)}%`;
+      progress.createSpan({
+        text: t.personalWindowProgressDetail(
+          window.progress.completedTaskCount,
+          window.progress.taskCount,
+          window.progress.completedPlannedHours,
+          window.progress.totalPlannedHours
+        )
+      });
+
+      const facts = row.createDiv("pmi-personal-window-facts");
+      const remaining = facts.createDiv();
+      remaining.createSpan({ text: t.remainingAtWindow });
+      remaining.createEl("strong", { text: t.hours(window.remainingHours) });
+      const capacity = facts.createDiv();
+      capacity.createSpan({ text: t.cumulativeCapacity });
+      capacity.createEl("strong", {
+        text: t.capacityPair(window.cumulativeRemainingHours, window.cumulativeCapacityHours)
+      });
+      const signals = facts.createDiv("pmi-personal-window-signals");
+      if (window.signals.length === 0) {
+        signals.createSpan({ cls: "is-normal", text: t.memberHealthNormal });
+      } else {
+        for (const item of window.signals.slice(0, 2)) {
+          signals.createSpan({
+            cls: `is-${item.state}`,
+            text: this.personalRiskSignalLabel(item, t)
+          });
+        }
+      }
+      setIcon(facts.createSpan("pmi-personal-window-arrow"), "arrow-down-to-line");
+      row.addEventListener("click", () => {
+        this.applyDashboardTaskFilter(id, label, window.taskKeys, snapshot, t);
+      });
+    }
+  }
+
+  private renderPersonalSummary(
+    root: HTMLElement,
+    metric: PersonalDeliveryDashboard,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const summary = root.createDiv("pmi-personal-summary");
+    const workload = metric.workload;
+    const workloadState = workload.balanceHours < 0
+      ? "high"
+      : (workload.utilizationPercentage ?? 0) >= 80
+        ? "attention"
+        : "normal";
+    const load = summary.createEl("button", {
+      cls: `pmi-personal-summary-card is-${workloadState}`,
+      attr: {
+        type: "button",
+        title: t.filterWindowLoad,
+        "aria-label": t.filterWindowLoad
+      }
     });
-    this.renderMemberRatios(ledgerSection, metric.ratios, dashboard.comparison, t);
+    const loadHead = load.createDiv("pmi-personal-summary-head");
+    setIcon(loadHead.createSpan(), "timer");
+    loadHead.createSpan({ text: t.personalWorkload });
+    load.createEl("strong", {
+      cls: "pmi-personal-summary-value",
+      text: workload.utilizationPercentage === null
+        ? t.ratioUnavailable
+        : t.percentage(workload.utilizationPercentage)
+    });
+    load.createSpan({
+      cls: "pmi-personal-summary-primary",
+      text: t.personalWorkloadDetail(
+        workload.scheduledRemainingHours,
+        workload.availableHours,
+        workload.balanceHours
+      )
+    });
+    load.createSpan({
+      cls: "pmi-personal-summary-secondary",
+      text: t.remainingWorkContext(workload.allRemainingHours, workload.laterHours)
+    });
+    setIcon(load.createSpan("pmi-personal-summary-arrow"), "arrow-down-to-line");
+    load.addEventListener("click", () => {
+      this.applyDashboardTaskFilter("window-load", t.personalWorkload, workload.taskKeys, snapshot, t);
+    });
+
+    const risk = metric.teamRisk;
+    const riskCard = summary.createEl("button", {
+      cls: `pmi-personal-summary-card is-risk is-${metric.state}`,
+      attr: {
+        type: "button",
+        title: t.filterTasksByInsight(t.teamCompletionRisk),
+        "aria-label": t.filterTasksByInsight(t.teamCompletionRisk)
+      }
+    });
+    const riskHead = riskCard.createDiv("pmi-personal-summary-head");
+    setIcon(riskHead.createSpan(), "users-round");
+    riskHead.createSpan({ text: t.teamCompletionRisk });
+    riskHead.createEl("small", { text: t.teamReferenceSample(risk.sampleSize) });
+    riskCard.createEl("strong", {
+      cls: "pmi-personal-summary-value",
+      text: risk.percentage === null ? t.ratioUnavailable : t.percentage(risk.percentage)
+    });
+    riskCard.createSpan({
+      cls: "pmi-personal-summary-primary",
+      text: t.personalRiskDetail(risk.atRiskTaskCount, risk.assessedOpenTaskCount)
+    });
+    riskCard.createSpan({
+      cls: "pmi-personal-summary-secondary",
+      text: this.teamRiskRelationLabel(metric, t)
+    });
+    setIcon(riskCard.createSpan("pmi-personal-summary-arrow"), "arrow-down-to-line");
+    riskCard.addEventListener("click", () => {
+      this.applyDashboardTaskFilter(
+        "team-risk",
+        t.teamCompletionRisk,
+        risk.taskKeys,
+        snapshot,
+        t
+      );
+    });
   }
 
   private renderMemberGateSetupNotice(
     root: HTMLElement,
-    metric: MemberDashboardMetric,
+    metric: PersonalDeliveryDashboard,
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
-    const affectedIds = new Set(metric.unconfiguredProjectIds);
+    const affectedIds = new Set(metric.confidence.unconfiguredProjectIds);
     const affectedProjects = snapshot.projects.filter((project) => affectedIds.has(project.id));
     if (affectedProjects.length === 0) return;
 
@@ -1644,7 +1841,7 @@ export class InsightsView extends ItemView {
 
   private renderMemberDashboardControls(
     root: HTMLElement,
-    dashboard: MemberDashboardSnapshot,
+    dashboard: PersonalDashboardCatalog,
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
@@ -2053,6 +2250,33 @@ export class InsightsView extends ItemView {
       case "unestimated": return t.memberDriverUnestimated(driver.taskCount);
       case "unscheduled": return t.memberDriverUnscheduled(driver.taskCount);
       case "overrun": return t.memberDriverOverrun(driver.taskCount);
+    }
+  }
+
+  private personalRiskSignalLabel(
+    signal: PersonalDeliveryRiskSignal,
+    t: Translations
+  ): string {
+    const labels: Record<DeliveryRiskSignalKind, string> = {
+      overdue: t.memberDriverOverdue(signal.taskCount),
+      capacity: t.memberDriverCapacityGap(signal.hours),
+      gate: t.memberDriverGate(signal.taskCount),
+      "due-after-stage": t.memberDriverDueAfterStage(signal.taskCount),
+      overrun: t.memberDriverOverrun(signal.taskCount)
+    };
+    return labels[signal.kind];
+  }
+
+  private teamRiskRelationLabel(
+    metric: PersonalDeliveryDashboard,
+    t: Translations
+  ): string {
+    const risk = metric.teamRisk;
+    switch (risk.relation) {
+      case "above": return t.personalRiskAboveTeam(risk.teamMedianPercentage);
+      case "below": return t.personalRiskBelowTeam(risk.teamMedianPercentage);
+      case "same": return t.personalRiskAtTeam(risk.teamMedianPercentage);
+      case "unavailable": return t.personalRiskNoTeamReference;
     }
   }
 
