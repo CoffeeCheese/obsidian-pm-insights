@@ -6775,6 +6775,9 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   box-shadow: 0 0 0 1px var(--pmi-checkpoint-color);
   background: var(--pmi-checkpoint-color);
   transform: translate(-50%, -50%);
+  transition:
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .pmi-runway-checkpoint-copy {
@@ -6802,9 +6805,12 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
   white-space: nowrap;
 }
 
-.pmi-root button.pmi-runway-checkpoint:not(.clickable-icon):is(:hover, :focus-visible, .is-active) {
+body .pmi-root button.pmi-runway-checkpoint:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, .is-active) {
+  box-shadow: none;
   color: var(--pmi-checkpoint-color);
+  background: transparent;
   outline: none;
+  transform: translateX(-50%);
 }
 
 .pmi-root button.pmi-runway-checkpoint:not(.clickable-icon):is(:hover, :focus-visible, .is-active) .pmi-runway-checkpoint-dot {
