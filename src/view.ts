@@ -506,6 +506,7 @@ export class InsightsView extends ItemView {
       workdayHours: this.host.settings.gateRisk.workdayHours,
       calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
       gateRisk: currentGateRisk,
+      allTasks: snapshot.tasks,
       highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
     });
     const memberDashboard = buildMemberDashboard(gateRisk);

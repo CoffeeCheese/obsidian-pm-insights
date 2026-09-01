@@ -76,7 +76,10 @@ MemberInsight {
   };
 }
 
-function riskSnapshot(stageTasks: TaskInsight[] = []): GateRiskSnapshot {
+function riskSnapshot(
+  stageTasks: TaskInsight[] = [],
+  testingTasks: TaskInsight[] = []
+): GateRiskSnapshot {
   const project = { id: "p1", title: "Project one", path: "Projects/P1.md", icon: "📋" };
   const common = {
     windowStart: "2026-08-31",
@@ -109,6 +112,14 @@ function riskSnapshot(stageTasks: TaskInsight[] = []): GateRiskSnapshot {
           kind: "stage",
           gateDate: "2026-09-03",
           tasks: stageTasks
+        },
+        {
+          ...common,
+          id: "testing",
+          name: "Testing",
+          kind: "stage",
+          gateDate: "2026-09-08",
+          tasks: testingTasks
         },
         {
           ...common,
@@ -168,6 +179,7 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([completed]),
+      allTasks: [completed],
       highPriorityIds: new Set()
     });
 
@@ -191,7 +203,7 @@ describe("member dashboard", () => {
   });
 
   it("splits shared work and catches an overloaded intermediate deadline", () => {
-    const personal = task("personal", { dueDate: "2026-09-02", estimate: 16, remaining: 16 });
+    const personal = task("personal", { dueDate: "2026-09-02", estimate: 24, remaining: 24 });
     const shared = task("shared", {
       dueDate: "2026-09-02",
       estimate: 8,
@@ -206,17 +218,18 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([personal, shared]),
+      allTasks: [personal, shared],
       highPriorityIds: new Set(["critical", "high"])
     });
     const ada = snapshot.members[0];
 
-    expect(ada?.committedHours).toBe(20);
+    expect(ada?.committedHours).toBe(28);
     expect(ada?.availableHours).toBe(56);
-    expect(ada?.loadPercentage).toBeCloseTo(35.71);
+    expect(ada?.loadPercentage).toBe(50);
     expect(ada?.checkpoints[0]).toMatchObject({
-      date: "2026-09-02",
-      remainingHours: 20,
-      availableHours: 16,
+      date: "2026-09-03",
+      remainingHours: 28,
+      availableHours: 24,
       state: "high"
     });
     expect(ada?.health).toBe("high");
@@ -234,6 +247,7 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([staged]),
+      allTasks: [staged, launchOnly, unknown],
       highPriorityIds: new Set()
     });
     const byKey = new Map(snapshot.members[0]?.tasks.map((metric) => [metric.key, metric]));
@@ -243,15 +257,126 @@ describe("member dashboard", () => {
       deadlineSource: "stage"
     });
     expect(byKey.get(memberDashboardTaskKey(launchOnly))).toMatchObject({
-      effectiveDeadline: "2026-09-10",
-      deadlineSource: "launch"
+      effectiveDeadline: null,
+      deadlineSource: "unknown"
     });
     expect(byKey.get(memberDashboardTaskKey(unknown))).toMatchObject({
       effectiveDeadline: null,
       deadlineSource: "unknown"
     });
     expect(snapshot.members[0]?.health).toBe("attention");
-    expect(snapshot.members[0]?.unscheduledTaskCount).toBe(1);
+    expect(snapshot.members[0]?.unscheduledTaskCount).toBe(2);
+  });
+
+  it("uses the farthest stage for a member whose project work crosses stages", () => {
+    const development = task("development", { dueDate: "2026-09-04" });
+    const testing = task("testing", { dueDate: "2026-09-04" });
+    const snapshot = aggregateMemberDashboard([
+      member("Ada", [development, testing])
+    ], {
+      today: "2026-08-31",
+      settings,
+      workdayHours: 8,
+      calendarDayHours: 8,
+      gateRisk: riskSnapshot([development], [testing]),
+      allTasks: [development, testing],
+      highPriorityIds: new Set()
+    });
+
+    expect(snapshot.members[0]?.tasks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        key: memberDashboardTaskKey(development),
+        effectiveDeadline: "2026-09-08",
+        deadlineSource: "stage"
+      }),
+      expect.objectContaining({
+        key: memberDashboardTaskKey(testing),
+        effectiveDeadline: "2026-09-08",
+        deadlineSource: "stage"
+      })
+    ]));
+    expect(snapshot.members[0]?.checkpoints).toEqual([
+      expect.objectContaining({
+        date: "2026-09-08",
+        dueTaskCount: 2,
+        taskKeys: [
+          memberDashboardTaskKey(development),
+          memberDashboardTaskKey(testing)
+        ]
+      })
+    ]);
+    expect(snapshot.members[0]?.drivers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "gate", state: "high", taskCount: 1 })
+    ]));
+  });
+
+  it("keeps farthest-stage commitments independent across projects", () => {
+    const projectOne = task("project-one-testing", { dueDate: null });
+    const projectTwo = task("project-two-development", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      dueDate: null
+    });
+    const risk = riskSnapshot([], [projectOne]);
+    const projectTwoRisk = structuredClone(risk.projects[0]);
+    if (!projectTwoRisk) throw new Error("Expected the risk fixture to include p1");
+    projectTwoRisk.project = {
+      id: "p2",
+      title: "Project two",
+      path: "Projects/P2.md",
+      icon: "📋"
+    };
+    for (const gate of projectTwoRisk.gates) {
+      gate.tasks = gate.id === "development" ? [projectTwo] : [];
+      if (gate.id === "development") gate.gateDate = "2026-09-05";
+      if (gate.id === "testing") gate.gateDate = "2026-09-09";
+      if (gate.id === "launch") gate.gateDate = "2026-09-12";
+    }
+    risk.projects.push(projectTwoRisk);
+
+    const snapshot = aggregateMemberDashboard([
+      member("Ada", [projectOne, projectTwo])
+    ], {
+      today: "2026-08-31",
+      settings,
+      workdayHours: 8,
+      calendarDayHours: 8,
+      gateRisk: risk,
+      allTasks: [projectOne, projectTwo],
+      highPriorityIds: new Set()
+    });
+    const byKey = new Map(snapshot.members[0]?.tasks.map((metric) => [metric.key, metric]));
+
+    expect(byKey.get(memberDashboardTaskKey(projectOne))?.effectiveDeadline)
+      .toBe("2026-09-08");
+    expect(byKey.get(memberDashboardTaskKey(projectTwo))?.effectiveDeadline)
+      .toBe("2026-09-05");
+  });
+
+  it("resolves a parent commitment from the farthest stage of its descendants", () => {
+    const parent = task("root", {
+      parentId: null,
+      hierarchy: "root",
+      dueDate: "2026-09-10",
+      tags: []
+    });
+    const development = task("development", { parentId: "root" });
+    const testing = task("testing", { parentId: "root" });
+    const snapshot = aggregateMemberDashboard([member("Ada", [parent])], {
+      today: "2026-08-31",
+      settings,
+      workdayHours: 8,
+      calendarDayHours: 8,
+      gateRisk: riskSnapshot([development], [testing]),
+      allTasks: [parent, development, testing],
+      highPriorityIds: new Set()
+    });
+
+    expect(snapshot.members[0]?.tasks[0]).toMatchObject({
+      key: memberDashboardTaskKey(parent),
+      effectiveDeadline: "2026-09-08",
+      deadlineSource: "stage"
+    });
   });
 
   it("reports unconfigured gate projects only when they contain the member's work", () => {
@@ -285,6 +410,7 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: risk,
+      allTasks: [adaTask, baoTask],
       highPriorityIds: new Set()
     });
 
@@ -294,7 +420,7 @@ describe("member dashboard", () => {
       ?.unconfiguredProjectIds).toEqual([]);
   });
 
-  it("attributes a task planned after its stage gate without pulling its hours into the window", () => {
+  it("places work at its stage gate while preserving a later task-date risk", () => {
     const afterGate = task("after-gate", {
       dueDate: "2026-09-10",
       estimate: 12,
@@ -306,11 +432,12 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([afterGate]),
+      allTasks: [afterGate],
       highPriorityIds: new Set()
     });
 
-    expect(snapshot.members[0]?.committedHours).toBe(0);
-    expect(snapshot.members[0]?.laterHours).toBe(12);
+    expect(snapshot.members[0]?.committedHours).toBe(12);
+    expect(snapshot.members[0]?.laterHours).toBe(0);
     expect(snapshot.members[0]?.health).toBe("high");
     expect(snapshot.members[0]?.drivers).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: "gate", state: "high", taskCount: 1 })
@@ -345,6 +472,7 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([unestimated, archived, cancelled]),
+      allTasks: [unestimated, archived, cancelled],
       highPriorityIds: new Set()
     });
 
@@ -384,6 +512,7 @@ describe("member dashboard", () => {
       workdayHours: 8,
       calendarDayHours: 8,
       gateRisk: riskSnapshot([adaTask, baoTask, unassignedTask]),
+      allTasks: [adaTask, baoTask, unassignedTask],
       highPriorityIds: new Set()
     });
 

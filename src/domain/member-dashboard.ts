@@ -1,18 +1,23 @@
 import { isDateOnly } from "./gate-schedule";
 import { scheduleDaysBetween } from "./schedule-calendar";
 import type { GateRiskSnapshot, GateRiskState } from "./gate-risk";
+import {
+  resolveMemberDeliveryCommitments,
+  type MemberDeliveryPlan
+} from "./member-delivery-commitments";
 import type {
   MemberDashboardSettings,
   MemberInsight,
   MemberRatios,
   RatioMetric,
-  TaskInsight
+  TaskInsight,
+  TaskRecord
 } from "../model";
 
 const DAY_MS = 86_400_000;
 
 export type MemberDashboardHealth = "normal" | "attention" | "high" | "overdue";
-export type MemberDashboardDeadlineSource = "task" | "stage" | "launch" | "unknown";
+export type MemberDashboardDeadlineSource = "stage" | "unknown";
 export type MemberDashboardDriverKind =
   | "overdue"
   | "capacity"
@@ -129,12 +134,12 @@ export interface MemberDashboardOptions {
   workdayHours: number;
   calendarDayHours: number;
   gateRisk: GateRiskSnapshot;
+  allTasks: readonly TaskRecord[];
   highPriorityIds: Set<string>;
 }
 
 interface TaskGateContext {
   stageDate: string | null;
-  launchDate: string | null;
   blockerState: MemberDashboardHealth | null;
   blockerDate: string | null;
 }
@@ -236,7 +241,6 @@ function gateContexts(snapshot: GateRiskSnapshot): Map<string, TaskGateContext> 
     if (existing) return existing;
     const created: TaskGateContext = {
       stageDate: null,
-      launchDate: null,
       blockerState: null,
       blockerDate: null
     };
@@ -245,12 +249,10 @@ function gateContexts(snapshot: GateRiskSnapshot): Map<string, TaskGateContext> 
   };
 
   for (const project of snapshot.projects) {
-    const launch = project.gates.find((gate) => gate.kind === "launch");
     for (const gate of project.gates) {
       if (gate.kind === "stage") {
         for (const task of gate.tasks) {
-          const target = context(task.projectId, task.id);
-          target.stageDate ??= gate.gateDate;
+          context(task.projectId, task.id).stageDate ??= gate.gateDate;
         }
       }
       for (const task of gate.blockingTasks) {
@@ -263,19 +265,6 @@ function gateContexts(snapshot: GateRiskSnapshot): Map<string, TaskGateContext> 
         target.blockerState = worseHealth(target.blockerState, health);
       }
     }
-    if (launch) {
-      contexts.set(`${project.project.id}\u0000*`, {
-        stageDate: null,
-        launchDate: launch.gateDate,
-        blockerState: null,
-        blockerDate: null
-      });
-      for (const gate of project.gates) {
-        for (const task of [...gate.tasks, ...gate.blockingTasks]) {
-          context(task.projectId, task.id).launchDate = launch.gateDate;
-        }
-      }
-    }
   }
   return contexts;
 }
@@ -283,28 +272,24 @@ function gateContexts(snapshot: GateRiskSnapshot): Map<string, TaskGateContext> 
 function taskMetric(
   task: TaskInsight,
   context: TaskGateContext | undefined,
+  deliveryDate: string | null,
   today: string,
   endDate: string
 ): MemberDashboardTask {
   const dueDate = taskDate(task.dueDate);
-  const effectiveDeadline = dueDate ?? context?.stageDate ?? context?.launchDate ?? null;
-  const deadlineSource: MemberDashboardDeadlineSource = dueDate
-    ? "task"
-    : context?.stageDate
-      ? "stage"
-      : context?.launchDate
-        ? "launch"
-        : "unknown";
+  const effectiveDeadline = deliveryDate;
+  const deadlineSource: MemberDashboardDeadlineSource = deliveryDate ? "stage" : "unknown";
   const allocation = Math.max(task.resolvedAssignees.length, 1);
+  const completedWindowDate = dueDate ?? effectiveDeadline;
   const inWindow = effectiveDeadline !== null
     && effectiveDeadline <= endDate
-    && (!task.completed || effectiveDeadline >= today);
-  const overdue = !task.completed
-    && effectiveDeadline !== null
-    && effectiveDeadline < today;
+    && (!task.completed || (completedWindowDate !== null && completedWindowDate >= today));
+  const overdueDate = dueDate ?? effectiveDeadline;
+  const overdue = !task.completed && overdueDate !== null && overdueDate < today;
   let gateRisk = context?.blockerState ?? null;
-  if (!task.completed && dueDate && context?.stageDate && dueDate > context.stageDate) {
-    gateRisk = worseHealth(gateRisk, context.stageDate < today ? "overdue" : "high");
+  const riskStageDate = context?.stageDate ?? effectiveDeadline;
+  if (!task.completed && dueDate && riskStageDate && dueDate > riskStageDate) {
+    gateRisk = worseHealth(gateRisk, riskStageDate < today ? "overdue" : "high");
   }
   if (!task.completed && context?.blockerDate && context.blockerDate < today) {
     gateRisk = "overdue";
@@ -427,14 +412,18 @@ function memberMetric(
   contexts: Map<string, TaskGateContext>,
   window: MemberDashboardWindow,
   highPriorityIds: Set<string>,
-  unconfiguredProjectIds: Set<string>
+  unconfiguredProjectIds: Set<string>,
+  deliveryPlan: MemberDeliveryPlan
 ): MemberDashboardMetric {
+  const commitmentsByTask = new Map(deliveryPlan.commitments.flatMap((commitment) =>
+    commitment.taskKeys.map((key) => [key, commitment] as const)
+  ));
   const tasks = member.tasks
     .filter((task) => !isCancelled(task) && !task.archived)
     .map((task) => taskMetric(
       task,
-      contexts.get(memberDashboardTaskKey(task))
-        ?? contexts.get(`${task.projectId}\u0000*`),
+      contexts.get(memberDashboardTaskKey(task)),
+      commitmentsByTask.get(memberDashboardTaskKey(task))?.deliveryDate ?? null,
       window.startDate,
       window.endDate
     ));
@@ -650,8 +639,20 @@ export function aggregateMemberDashboard(
     .filter((project) => !project.configured)
     .map((project) => project.project.id));
   const people = members.filter((member) => member.kind === "member");
+  const deliveryPlans = resolveMemberDeliveryCommitments({
+    members: people,
+    allTasks: options.allTasks,
+    gateRisk: options.gateRisk
+  });
   const drafts = people.map((member) =>
-    memberMetric(member, contexts, window, options.highPriorityIds, unconfiguredProjectIds));
+    memberMetric(
+      member,
+      contexts,
+      window,
+      options.highPriorityIds,
+      unconfiguredProjectIds,
+      deliveryPlans.get(member.key) ?? { commitments: [], unresolved: [] }
+    ));
   const comparison: MemberDashboardComparison = {
     sampleSize: drafts.length,
     loadPercentage: median(drafts.map((member) => member.loadPercentage)),

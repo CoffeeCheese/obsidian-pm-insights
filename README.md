@@ -211,8 +211,8 @@ The personal dashboard combines six connected views:
 
 | View | What it explains |
 | --- | --- |
-| **Delivery health** | The most urgent reason for intervention, such as overdue work, a capacity shortfall, a gate blocker, missing estimates, missing deadlines, or work over plan. |
-| **Personal delivery runway** | Cumulative remaining commitments at each effective deadline compared with the person's capacity available by that checkpoint. |
+| **Delivery health** | The most urgent reason for intervention, such as overdue work, a capacity shortfall, a gate blocker, missing estimates, unresolved delivery stages, or work over plan. |
+| **Personal delivery runway** | Cumulative remaining commitments at each stage-derived delivery date compared with the person's capacity available by that checkpoint. |
 | **Window progress** | Completed tasks and completed planned hours among active work due by the window end, including unfinished overdue work; completed work is included only when its effective deadline is on or after today. |
 | **Planned load** | Remaining estimated work due by the window end, including overdue commitments, ÷ available personal capacity. |
 | **Team comparison** | The person's load, planned-hours completion, overdue work, over-budget work, project spread, shared work, and high-priority mix against the team's middle value after sorting each measure; for an even team, the two middle values are averaged. |
@@ -220,7 +220,7 @@ The personal dashboard combines six connected views:
 
 The load window starts today. Choose 7, 14, or 30 schedule days, or set a custom end date. **Include weekends** immediately switches both the counted days and daily-capacity rule; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
 
-For runway and window statistics, a task uses its own due date first, then its stage gate, then the project launch date as its effective deadline. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. If a related project has no complete delivery-gate schedule, the drawer explains that work without task due dates cannot enter the runway, window progress, or planned load and offers a direct **Set gates** action; the all-time delivery ledger remains available.
+For runway and window statistics, each member's work is grouped by project and placed at the gate date of its farthest mapped delivery stage. Parent work inherits the stages covered by its executable descendants, and cross-stage work uses the latest stage in the configured delivery order. Task due dates remain schedule-risk signals but do not position runway commitments, and the project launch date is never used as a fallback. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. If a related project has no complete delivery-gate schedule, or work has no resolved delivery stage, that work stays outside the runway, window progress, and planned load while remaining visible in the all-time delivery ledger.
 
 #### Normalize member names
 
