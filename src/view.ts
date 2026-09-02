@@ -69,16 +69,16 @@ const TASK_COLUMN_KEYBOARD_STEP = 12;
 let nextDeliveryProgressLabelId = 0;
 let nextMemberDashboardLabelId = 0;
 
-interface MemberDashboardDrawerOptions {
+interface MemberDashboardModalOptions {
   ariaLabel: string;
   render(root: HTMLElement): MemberDashboardHealth;
   onClose(): void;
 }
 
-class MemberDashboardDrawer extends Modal {
+class MemberDashboardModal extends Modal {
   constructor(
     app: App,
-    private readonly options: MemberDashboardDrawerOptions
+    private readonly options: MemberDashboardModalOptions
   ) {
     super(app);
   }
@@ -87,7 +87,7 @@ class MemberDashboardDrawer extends Modal {
     this.modalEl.addClass("pmi-member-dashboard-modal");
     this.modalEl.setAttribute("aria-label", this.options.ariaLabel);
     this.contentEl.addClass("pmi-root");
-    this.contentEl.addClass("pmi-member-dashboard-drawer-content");
+    this.contentEl.addClass("pmi-member-dashboard-modal-content");
     this.refresh();
   }
 
@@ -114,7 +114,7 @@ export class InsightsView extends ItemView {
   private taskStatuses: Set<string> | null = null;
   private taskPriorities: Set<string> | null = null;
   private taskPrioritySort: TaskPrioritySort = "none";
-  private memberDashboardModal: MemberDashboardDrawer | null = null;
+  private memberDashboardModal: MemberDashboardModal | null = null;
   private memberDashboardOpenMemberKey: string | null = null;
   private dashboardTaskKeys: Set<string> | null = null;
   private dashboardFilterId: string | null = null;
@@ -593,7 +593,7 @@ export class InsightsView extends ItemView {
         await this.host.saveSettings();
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
-        this.refreshMemberDashboardDrawer();
+        this.refreshMemberDashboardModal();
       }
     }).open();
   }
@@ -1481,8 +1481,8 @@ export class InsightsView extends ItemView {
     t: Translations
   ): void {
     this.memberDashboardModal?.close();
-    let drawer: MemberDashboardDrawer;
-    drawer = new MemberDashboardDrawer(this.app, {
+    let dialog: MemberDashboardModal;
+    dialog = new MemberDashboardModal(this.app, {
       ariaLabel: t.openMemberDashboard(member.name),
       render: (root) => {
         const dashboard = buildMemberDashboard();
@@ -1495,7 +1495,7 @@ export class InsightsView extends ItemView {
         return metric.state;
       },
       onClose: () => {
-        if (this.memberDashboardModal !== drawer) return;
+        if (this.memberDashboardModal !== dialog) return;
         this.memberDashboardModal = null;
         this.memberDashboardOpenMemberKey = null;
         const toggle = [...this.contentEl.querySelectorAll<HTMLButtonElement>(
@@ -1507,7 +1507,7 @@ export class InsightsView extends ItemView {
         window.setTimeout(() => toggle?.focus(), 0);
       }
     });
-    this.memberDashboardModal = drawer;
+    this.memberDashboardModal = dialog;
     this.memberDashboardOpenMemberKey = member.key;
     const toggle = [...this.contentEl.querySelectorAll<HTMLButtonElement>(
       ".pmi-member-dashboard-toggle"
@@ -1515,16 +1515,16 @@ export class InsightsView extends ItemView {
     toggle?.addClass("is-active");
     toggle?.setAttribute("aria-expanded", "true");
     toggle?.setAttribute("aria-label", t.closeMemberDashboard(member.name));
-    drawer.open();
+    dialog.open();
   }
 
-  private refreshMemberDashboardDrawer(focusSelector?: string): void {
-    const drawer = this.memberDashboardModal;
-    if (!drawer) return;
-    drawer.refresh();
+  private refreshMemberDashboardModal(focusSelector?: string): void {
+    const dialog = this.memberDashboardModal;
+    if (!dialog) return;
+    dialog.refresh();
     if (!focusSelector) return;
     window.setTimeout(() => {
-      drawer.contentEl.querySelector<HTMLElement>(focusSelector)?.focus();
+      dialog.contentEl.querySelector<HTMLElement>(focusSelector)?.focus();
     }, 0);
   }
 
@@ -1575,8 +1575,9 @@ export class InsightsView extends ItemView {
     toolbar.createSpan({ text: t.deliveryWindowRange });
     this.renderMemberDashboardControls(toolbar, dashboard, snapshot, t);
 
-    this.renderPersonalDeliveryWindows(section, metric, snapshot, t);
-    this.renderPersonalSummary(section, metric, snapshot, t);
+    const workspace = section.createDiv("pmi-personal-dashboard-workspace");
+    this.renderPersonalDeliveryWindows(workspace, metric, snapshot, t);
+    this.renderPersonalSummary(workspace, metric, snapshot, t);
 
     if (metric.confidence.blindTaskCount > 0) {
       const label = t.personalConfidencePartial(
@@ -1896,7 +1897,7 @@ export class InsightsView extends ItemView {
         this.clearDashboardTaskFilter();
         await this.host.saveSettings();
         this.renderDashboard(snapshot, t);
-        this.refreshMemberDashboardDrawer(".pmi-member-weekend-toggle input");
+        this.refreshMemberDashboardModal(".pmi-member-weekend-toggle input");
       })();
     });
   }
@@ -1914,7 +1915,7 @@ export class InsightsView extends ItemView {
     this.clearDashboardTaskFilter();
     await this.host.saveSettings();
     this.renderDashboard(snapshot, t);
-    this.refreshMemberDashboardDrawer(`[data-window-mode="${mode}"]`);
+    this.refreshMemberDashboardModal(`[data-window-mode="${mode}"]`);
   }
 
   private renderMemberRunway(

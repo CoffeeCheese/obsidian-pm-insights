@@ -49,10 +49,13 @@ if (!target.setup) {
 
 const snapshotExpression = `(() => {
   const row = document.querySelector(".pmi-personal-window");
-  if (!(row instanceof HTMLButtonElement)) {
+  const list = row?.closest(".pmi-personal-window-list");
+  if (!(row instanceof HTMLButtonElement) || !(list instanceof HTMLElement)) {
     return JSON.stringify({ setup: false, reason: "delivery window unavailable" });
   }
   const style = getComputedStyle(row);
+  const listLineStyle = getComputedStyle(list, "::before");
+  const rowLineStyle = getComputedStyle(row, "::before");
   const rect = row.getBoundingClientRect();
   return JSON.stringify({
     setup: true,
@@ -60,7 +63,22 @@ const snapshotExpression = `(() => {
     rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     backgroundColor: style.backgroundColor,
     backgroundImage: style.backgroundImage,
-    transform: style.transform
+    transform: style.transform,
+    overflowX: style.overflowX,
+    overflowY: style.overflowY,
+    clipPath: style.clipPath,
+    timeline: {
+      listContent: listLineStyle.content,
+      listDisplay: listLineStyle.display,
+      listWidth: listLineStyle.width,
+      listBackgroundColor: listLineStyle.backgroundColor,
+      listZIndex: listLineStyle.zIndex,
+      rowContent: rowLineStyle.content,
+      rowDisplay: rowLineStyle.display,
+      rowWidth: rowLineStyle.width,
+      rowBackgroundColor: rowLineStyle.backgroundColor,
+      rowZIndex: style.zIndex
+    }
   });
 })()`;
 runObsidian([
@@ -96,6 +114,32 @@ if (target.openedByCheck) {
 }
 
 const withinHalfPixel = (left, right) => Math.abs(left - right) <= 0.5;
+const isTransparent = (color) => color === "transparent" || /rgba\([^)]*,\s*0\)$/u.test(color);
+const hasPaintedLine = (content, display, width, backgroundColor) =>
+  content !== "none" && display !== "none" && Number.parseFloat(width) > 0
+    && !isTransparent(backgroundColor);
+const zIndex = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const rowLinePainted = hasPaintedLine(
+  hovered.timeline.rowContent,
+  hovered.timeline.rowDisplay,
+  hovered.timeline.rowWidth,
+  hovered.timeline.rowBackgroundColor
+);
+const listLinePainted = hasPaintedLine(
+  hovered.timeline.listContent,
+  hovered.timeline.listDisplay,
+  hovered.timeline.listWidth,
+  hovered.timeline.listBackgroundColor
+);
+const timelineVisible = rowLinePainted || (
+  listLinePainted && (
+    isTransparent(hovered.backgroundColor)
+      || zIndex(hovered.timeline.listZIndex) > zIndex(hovered.timeline.rowZIndex)
+  )
+);
 const stable = hovered.setup && hovered.hovered
   && hovered.transform === resting.transform
   && hovered.backgroundImage === "none"
@@ -104,9 +148,9 @@ const stable = hovered.setup && hovered.hovered
   && withinHalfPixel(hovered.rect.width, resting.rect.width)
   && withinHalfPixel(hovered.rect.height, resting.rect.height);
 const feedback = hovered.backgroundColor !== resting.backgroundColor;
-if (!stable || !feedback) {
-  console.error(`Delivery-window hover is unstable or lacks feedback: ${JSON.stringify({ resting, hovered })}`);
+if (!stable || !feedback || !timelineVisible) {
+  console.error(`Delivery-window hover obscures its timeline or is unstable: ${JSON.stringify({ resting, hovered, timelineVisible })}`);
   process.exitCode = 1;
 } else {
-  console.log("Delivery-window hover stays inside the row without layout movement.");
+  console.log("Delivery-window hover preserves the timeline without layout movement.");
 }
