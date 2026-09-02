@@ -9108,13 +9108,25 @@ body .modal-container .modal.pmi-project-gates-modal {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.65fr);
   grid-template-rows: auto;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--pmi-brief-rule);
   border-radius: var(--radius-m);
   background: var(--background-primary);
+}
+
+.pmi-personal-summary-card.is-project-workload {
+  --pmi-summary-signal: var(--pmi-brief-route);
+  display: grid;
+  min-width: 0;
+  min-height: 170px;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  align-content: start;
+  gap: 4px;
+  padding: 15px 17px;
+  border-inline-end: 1px solid var(--pmi-brief-rule);
 }
 
 .pmi-root button.pmi-personal-summary-card:not(.clickable-icon) {
@@ -9216,6 +9228,143 @@ body .modal-container .modal.pmi-project-gates-modal {
 
 .pmi-personal-summary-secondary { color: var(--text-muted); }
 
+.pmi-personal-project-load-track {
+  display: flex;
+  height: 7px;
+  margin-block: 7px 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--background-modifier-border);
+}
+
+.pmi-personal-project-load-track .pmi-project-mix-segment {
+  min-width: 3px;
+  opacity: 0.88;
+}
+
+.pmi-personal-project-loads {
+  display: grid;
+  min-height: 0;
+  max-height: 156px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.pmi-root button.pmi-personal-project-load:not(.clickable-icon) {
+  --pmi-project-load-color: var(--pmi-stage-1);
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 45px;
+  height: auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 6px 4px;
+  border: 0;
+  border-block-start: 1px solid var(--pmi-brief-rule);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: start;
+  transform: none;
+  transition: background-color 140ms ease;
+}
+
+.pmi-root button.pmi-personal-project-load.is-1:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-1); }
+.pmi-root button.pmi-personal-project-load.is-2:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-2); }
+.pmi-root button.pmi-personal-project-load.is-3:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-3); }
+.pmi-root button.pmi-personal-project-load.is-4:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-4); }
+.pmi-root button.pmi-personal-project-load.is-5:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-5); }
+.pmi-root button.pmi-personal-project-load.is-6:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-6); }
+.pmi-root button.pmi-personal-project-load.is-7:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-7); }
+.pmi-root button.pmi-personal-project-load.is-8:not(.clickable-icon) { --pmi-project-load-color: var(--pmi-stage-8); }
+
+.pmi-root button.pmi-personal-project-load:not(.clickable-icon):is(:hover, :focus-visible, .is-active) {
+  background: color-mix(in srgb, var(--pmi-project-load-color) 8%, transparent);
+  outline: none;
+  transform: none;
+}
+
+.pmi-root button.pmi-personal-project-load:not(.clickable-icon):focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pmi-project-load-color) 48%, transparent);
+}
+
+.pmi-personal-project-load-identity {
+  display: flex;
+  min-width: 0;
+  grid-row: 1 / -1;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmi-personal-project-load-swatch {
+  flex: 0 0 5px;
+  width: 5px;
+  height: 25px;
+  border-radius: 999px;
+  background: var(--pmi-project-load-color);
+}
+
+.pmi-personal-project-load-identity > div {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.pmi-personal-project-load-identity strong,
+.pmi-personal-project-load-identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-personal-project-load-identity strong {
+  color: var(--pmi-brief-ink);
+  font-size: var(--pmi-brief-type-body);
+  line-height: 1.3;
+}
+
+.pmi-personal-project-load-identity span,
+.pmi-personal-project-load-tasks {
+  color: var(--text-muted);
+  font-size: var(--pmi-brief-type-caption);
+  line-height: 1.3;
+}
+
+.pmi-personal-project-load-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 7px;
+  font-family: var(--font-monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pmi-personal-project-load-amount strong {
+  color: var(--pmi-brief-ink);
+  font-size: var(--pmi-brief-type-data);
+}
+
+.pmi-personal-project-load-amount span {
+  color: var(--pmi-project-load-color);
+  font-size: var(--pmi-brief-type-label);
+}
+
+.pmi-personal-project-load-tasks {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.pmi-personal-project-load-empty {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: var(--pmi-brief-type-body);
+}
+
 .pmi-personal-summary-card > .pmi-personal-summary-arrow {
   position: absolute;
   inset-block-start: 50%;
@@ -9256,6 +9405,8 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   button.pmi-personal-summary-card:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
+  button.pmi-personal-project-load:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   button.pmi-personal-confidence-note:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) {
   transform: none;
 }
@@ -9279,7 +9430,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   }
 
   .pmi-personal-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.2fr) minmax(230px, 0.8fr);
     grid-template-rows: auto;
   }
 
@@ -9352,6 +9503,11 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 
   .pmi-personal-summary { grid-template-columns: minmax(0, 1fr); }
 
+  .pmi-personal-summary-card.is-project-workload {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--pmi-brief-rule);
+  }
+
   .pmi-root button.pmi-personal-summary-card:not(.clickable-icon) {
     border-inline-end: 0;
     border-block-end: 1px solid var(--pmi-brief-rule);
@@ -9370,6 +9526,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 @media (prefers-reduced-motion: reduce) {
   .pmi-root button.pmi-personal-window:not(.clickable-icon),
   .pmi-root button.pmi-personal-summary-card:not(.clickable-icon),
+  .pmi-root button.pmi-personal-project-load:not(.clickable-icon),
   .pmi-personal-window-dot,
   .pmi-personal-window-progress-track > span {
     transition: none;

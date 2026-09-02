@@ -45,13 +45,25 @@ const evaluation = `(async () => {
     hasRemaining: Boolean(window.querySelector(".pmi-personal-window-facts strong"))
   }));
   const summaryCards = drawer.querySelectorAll(".pmi-personal-summary-card").length;
+  const workload = drawer.querySelector(".pmi-personal-summary-card.is-project-workload");
+  const projectLoads = [...drawer.querySelectorAll(".pmi-personal-project-load")].map((project) => ({
+    id: project.getAttribute("data-project-id") ?? "",
+    hours: Number(project.getAttribute("data-project-hours")),
+    share: project.getAttribute("data-project-share")
+  }));
+  const workloadReport = workload ? {
+    hours: Number(workload.getAttribute("data-workload-hours")),
+    projectCount: Number(workload.getAttribute("data-workload-projects")),
+    empty: Boolean(workload.querySelector(".pmi-personal-project-load-empty")),
+    projects: projectLoads
+  } : null;
   const empty = Boolean(drawer.querySelector(".pmi-personal-windows-empty"));
   const legacyPanels = drawer.querySelectorAll(
     ".pmi-member-comparison, .pmi-member-project-mix, .pmi-member-ledger-section"
   ).length;
   drawer.closest(".modal-container")
     ?.querySelector(".modal-close-button, .modal-header-button")?.click();
-  return JSON.stringify({ setup: true, windows, summaryCards, empty, legacyPanels });
+  return JSON.stringify({ setup: true, windows, summaryCards, workload: workloadReport, empty, legacyPanels });
 })()`;
 
 const output = runObsidian(["eval", `code=${evaluation}`]);
@@ -65,9 +77,17 @@ const windowsValid = report.empty || (
       && window.progress >= 0 && window.progress <= 100 && window.hasRemaining
   )
 );
-if (!report.setup || !windowsValid || report.summaryCards !== 2 || report.legacyPanels !== 0) {
+const workloadValid = report.workload
+  && Number.isFinite(report.workload.hours)
+  && report.workload.projectCount === report.workload.projects.length
+  && (report.workload.empty || report.workload.projects.every((project) =>
+    project.id && Number.isFinite(project.hours) && project.hours >= 0
+      && (project.share === "" || Number.isFinite(Number(project.share)))
+  ));
+if (!report.setup || !windowsValid || !workloadValid
+    || report.summaryCards !== 2 || report.legacyPanels !== 0) {
   console.error(`Personal delivery dashboard mismatch: ${JSON.stringify(report)}`);
   process.exitCode = 1;
 } else {
-  console.log(`Personal delivery dashboard exposes ${report.windows.length} delivery windows and two focused summaries.`);
+  console.log(`Personal delivery dashboard exposes ${report.windows.length} delivery windows and ${report.workload.projectCount} project loads.`);
 }

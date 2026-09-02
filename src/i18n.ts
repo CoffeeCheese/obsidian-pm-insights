@@ -427,8 +427,15 @@ const en = {
   remainingAtWindow: "Remaining in window",
   cumulativeCapacity: "Cumulative load / capacity",
   personalWorkload: "Workload",
-  personalWorkloadDetail: (remaining: number, available: number, balance: number) =>
-    `${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h scheduled / ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}h available · ${balance < 0 ? `${Math.abs(balance).toLocaleString(undefined, { maximumFractionDigits: 2 })}h short` : `${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}h buffer`}`,
+  personalProjectCount: (count: number) =>
+    `${count} active project${count === 1 ? "" : "s"}`,
+  personalWorkloadSummary: (tasks: number, unestimated: number) =>
+    `${tasks} open task${tasks === 1 ? "" : "s"}${unestimated > 0 ? ` · ${unestimated} unestimated` : ""}`,
+  noPersonalProjectWorkload: "No unfinished project work",
+  personalProjectDelivery: (stage: string, date: string) => `${stage} · ${date}`,
+  personalProjectDeliveryUnresolved: "Delivery stage unresolved",
+  personalProjectTaskSummary: (tasks: number, unestimated: number) =>
+    `${tasks} task${tasks === 1 ? "" : "s"}${unestimated > 0 ? ` · ${unestimated} unestimated` : ""}`,
   teamCompletionRisk: "Completion risk in team",
   personalRiskDetail: (risk: number, assessed: number) =>
     `${risk} of ${assessed} open task${assessed === 1 ? "" : "s"} at risk`,
@@ -1080,8 +1087,14 @@ const zh: typeof en = {
   remainingAtWindow: "窗口剩余",
   cumulativeCapacity: "累计负载 / 容量",
   personalWorkload: "工作负载",
-  personalWorkloadDetail: (remaining: number, available: number, balance: number) =>
-    `已排期 ${remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 可用 ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}h · ${balance < 0 ? `缺口 ${Math.abs(balance).toLocaleString(undefined, { maximumFractionDigits: 2 })}h` : `余量 ${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`}`,
+  personalProjectCount: (count: number) => `${count} 个进行中项目`,
+  personalWorkloadSummary: (tasks: number, unestimated: number) =>
+    `${tasks} 个未完成任务${unestimated > 0 ? ` · ${unestimated} 个未估时` : ""}`,
+  noPersonalProjectWorkload: "当前没有未完成的项目工作",
+  personalProjectDelivery: (stage: string, date: string) => `${stage} · ${date}`,
+  personalProjectDeliveryUnresolved: "交付阶段未明确",
+  personalProjectTaskSummary: (tasks: number, unestimated: number) =>
+    `${tasks} 项任务${unestimated > 0 ? ` · ${unestimated} 项未估时` : ""}`,
   teamCompletionRisk: "团队任务完成风险",
   personalRiskDetail: (risk: number, assessed: number) =>
     `${assessed} 个未完成任务中，${risk} 个存在风险`,

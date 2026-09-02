@@ -1727,44 +1727,98 @@ export class InsightsView extends ItemView {
   ): void {
     const summary = root.createDiv("pmi-personal-summary");
     const workload = metric.workload;
-    const workloadState = workload.balanceHours < 0
-      ? "high"
-      : (workload.utilizationPercentage ?? 0) >= 80
-        ? "attention"
-        : "normal";
-    const load = summary.createEl("button", {
-      cls: `pmi-personal-summary-card is-${workloadState}`,
+    const load = summary.createDiv({
+      cls: "pmi-personal-summary-card is-project-workload",
       attr: {
-        type: "button",
-        title: t.filterWindowLoad,
-        "aria-label": t.filterWindowLoad
+        role: "group",
+        "aria-label": t.personalWorkload,
+        "data-workload-hours": String(workload.totalRemainingHours),
+        "data-workload-projects": String(workload.projects.length)
       }
     });
     const loadHead = load.createDiv("pmi-personal-summary-head");
-    setIcon(loadHead.createSpan(), "timer");
+    setIcon(loadHead.createSpan(), "layers-3");
     loadHead.createSpan({ text: t.personalWorkload });
+    loadHead.createEl("small", {
+      text: t.personalProjectCount(workload.projects.length)
+    });
     load.createEl("strong", {
       cls: "pmi-personal-summary-value",
-      text: workload.utilizationPercentage === null
-        ? t.ratioUnavailable
-        : t.percentage(workload.utilizationPercentage)
+      text: t.hours(workload.totalRemainingHours)
     });
     load.createSpan({
       cls: "pmi-personal-summary-primary",
-      text: t.personalWorkloadDetail(
-        workload.scheduledRemainingHours,
-        workload.availableHours,
-        workload.balanceHours
+      text: t.personalWorkloadSummary(
+        workload.openTaskCount,
+        workload.unestimatedTaskCount
       )
     });
-    load.createSpan({
-      cls: "pmi-personal-summary-secondary",
-      text: t.remainingWorkContext(workload.allRemainingHours, workload.laterHours)
-    });
-    setIcon(load.createSpan("pmi-personal-summary-arrow"), "arrow-down-to-line");
-    load.addEventListener("click", () => {
-      this.applyDashboardTaskFilter("window-load", t.personalWorkload, workload.taskKeys, snapshot, t);
-    });
+    if (workload.projects.length === 0) {
+      load.createSpan({
+        cls: "pmi-personal-project-load-empty",
+        text: t.noPersonalProjectWorkload
+      });
+    } else {
+      const track = load.createDiv({
+        cls: "pmi-personal-project-load-track",
+        attr: { "aria-hidden": "true" }
+      });
+      for (const [index, project] of workload.projects.entries()) {
+        if (project.sharePercentage === null) continue;
+        const segment = track.createSpan({
+          cls: `pmi-project-mix-segment is-${(index % 8) + 1}`
+        });
+        segment.style.width = `${project.sharePercentage}%`;
+      }
+
+      const projects = load.createDiv({
+        cls: "pmi-personal-project-loads",
+        attr: { role: "list" }
+      });
+      for (const [index, project] of workload.projects.entries()) {
+        const id = `project-workload-${project.projectId}`;
+        const label = t.projectMixFilterLabel(project.projectTitle);
+        const item = projects.createEl("button", {
+          cls: `pmi-personal-project-load is-${(index % 8) + 1}${this.dashboardFilterId === id ? " is-active" : ""}`,
+          attr: {
+            type: "button",
+            role: "listitem",
+            "aria-pressed": String(this.dashboardFilterId === id),
+            "aria-label": t.filterTasksByInsight(label),
+            title: t.filterTasksByInsight(label),
+            "data-project-id": project.projectId,
+            "data-project-hours": String(project.remainingHours),
+            "data-project-share": String(project.sharePercentage ?? "")
+          }
+        });
+        const identity = item.createDiv("pmi-personal-project-load-identity");
+        identity.createSpan("pmi-personal-project-load-swatch");
+        const copy = identity.createDiv();
+        copy.createEl("strong", { text: project.projectTitle });
+        copy.createSpan({
+          text: project.delivery.resolution === "unresolved"
+            ? t.personalProjectDeliveryUnresolved
+            : t.personalProjectDelivery(project.delivery.stageName, project.delivery.date)
+        });
+        const amount = item.createDiv("pmi-personal-project-load-amount");
+        amount.createEl("strong", { text: t.hours(project.remainingHours) });
+        amount.createSpan({
+          text: project.sharePercentage === null
+            ? t.ratioUnavailable
+            : t.percentage(project.sharePercentage)
+        });
+        item.createSpan({
+          cls: "pmi-personal-project-load-tasks",
+          text: t.personalProjectTaskSummary(
+            project.openTaskCount,
+            project.unestimatedTaskCount
+          )
+        });
+        item.addEventListener("click", () => {
+          this.applyDashboardTaskFilter(id, label, project.taskKeys, snapshot, t);
+        });
+      }
+    }
 
     const risk = metric.teamRisk;
     const riskCard = summary.createEl("button", {

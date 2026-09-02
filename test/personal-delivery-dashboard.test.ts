@@ -153,11 +153,16 @@ const settings: MemberDashboardSettings = {
   includeWeekends: false
 };
 
-function build(members: MemberInsight[], projects: ProjectGateRisk[], allTasks?: TaskInsight[]) {
+function build(
+  members: MemberInsight[],
+  projects: ProjectGateRisk[],
+  allTasks?: TaskInsight[],
+  dashboardSettings: MemberDashboardSettings = settings
+) {
   return buildPersonalDashboards({
     members,
     today: "2026-08-31",
-    settings,
+    settings: dashboardSettings,
     workdayHours: 8,
     calendarDayHours: 8,
     gateRisk: riskSnapshot(projects),
@@ -297,6 +302,128 @@ describe("personal delivery dashboard", () => {
       remainingHours: 8,
       cumulativeRemainingHours: 16,
       cumulativeCapacityHours: 48
+    });
+  });
+
+  it("keeps project workload independent from the delivery-window range", () => {
+    const near = task("near", { estimate: 8, remaining: 8 });
+    const laterShared = task("later-shared", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      estimate: 24,
+      remaining: 24,
+      assignees: ["Ada", "Bao"],
+      resolvedAssignees: ["Ada", "Bao"],
+      assignmentKind: "shared"
+    });
+    const unestimated = task("unestimated", {
+      projectId: "p3",
+      projectTitle: "Project three",
+      estimate: 0,
+      remaining: 0,
+      unestimated: true
+    });
+    const members = [member("Ada", [near, laterShared, unestimated])];
+    const projects = [
+      riskProject({ id: "p1", title: "Project one", development: [near] }),
+      riskProject({
+        id: "p2",
+        title: "Project two",
+        development: [laterShared],
+        developmentDate: "2026-09-25"
+      }),
+      riskProject({ id: "p3", title: "Project three" })
+    ];
+
+    const sevenDays = build(members, projects).dashboards[0];
+    const thirtyDays = build(members, projects, undefined, {
+      ...settings,
+      windowMode: "30"
+    }).dashboards[0];
+
+    expect(sevenDays?.workload).toEqual(thirtyDays?.workload);
+    expect(sevenDays?.deliveryWindows).toHaveLength(1);
+    expect(thirtyDays?.deliveryWindows).toHaveLength(2);
+    expect(sevenDays?.workload).toMatchObject({
+      totalRemainingHours: 20,
+      openTaskCount: 3,
+      unestimatedTaskCount: 1,
+      projects: [
+        {
+          projectId: "p2",
+          remainingHours: 12,
+          sharePercentage: 60,
+          openTaskCount: 1,
+          delivery: {
+            resolution: "resolved",
+            stageName: "Development",
+            date: "2026-09-25"
+          }
+        },
+        {
+          projectId: "p1",
+          remainingHours: 8,
+          sharePercentage: 40,
+          openTaskCount: 1
+        },
+        {
+          projectId: "p3",
+          remainingHours: 0,
+          sharePercentage: null,
+          openTaskCount: 1,
+          unestimatedTaskCount: 1,
+          delivery: { resolution: "unresolved" }
+        }
+      ]
+    });
+  });
+
+  it("excludes completed, archived, and cancelled work from project workload", () => {
+    const active = task("active", { estimate: 8, remaining: 8 });
+    const completed = task("completed", {
+      completed: true,
+      status: "done",
+      estimate: 40,
+      remaining: 40
+    });
+    const archived = task("archived", {
+      archived: true,
+      estimate: 40,
+      remaining: 40
+    });
+    const cancelled = task("cancelled", {
+      status: "cancelled",
+      estimate: 40,
+      remaining: 40
+    });
+    const unestimated = task("unestimated", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      estimate: 0,
+      remaining: 0,
+      unestimated: true
+    });
+    const dashboard = build(
+      [member("Ada", [active, completed, archived, cancelled, unestimated])],
+      [
+        riskProject({
+          id: "p1",
+          title: "Project one",
+          development: [active, completed, archived, cancelled]
+        }),
+        riskProject({ id: "p2", title: "Project two" })
+      ]
+    ).dashboards[0];
+
+    expect(dashboard?.workload).toMatchObject({
+      totalRemainingHours: 8,
+      openTaskCount: 2,
+      unestimatedTaskCount: 1,
+      taskKeys: ["p1\u0000active", "p2\u0000unestimated"],
+      projects: [
+        { projectId: "p1", remainingHours: 8, sharePercentage: 100 },
+        { projectId: "p2", remainingHours: 0, sharePercentage: null }
+      ]
     });
   });
 

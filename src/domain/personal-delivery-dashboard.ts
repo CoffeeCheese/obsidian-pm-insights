@@ -1,6 +1,12 @@
-import { aggregateMemberDashboard, type MemberDashboardHealth, type MemberDashboardOptions } from "./member-dashboard";
+import {
+  aggregateMemberDashboard,
+  type MemberDashboardHealth,
+  type MemberDashboardMetric,
+  type MemberDashboardOptions
+} from "./member-dashboard";
 import {
   resolveMemberDeliveryCommitments,
+  type MemberDeliveryPlan,
   type MemberProjectCommitment
 } from "./member-delivery-commitments";
 import type { MemberInsight } from "../model";
@@ -54,13 +60,36 @@ export interface PersonalDeliveryWindow {
   taskKeys: string[];
 }
 
+export type PersonalProjectDelivery = {
+  resolution: "resolved" | "partial";
+  stageId: string;
+  stageName: string;
+  date: string;
+  unresolvedTaskCount: number;
+} | {
+  resolution: "unresolved";
+  stageId: null;
+  stageName: null;
+  date: null;
+  unresolvedTaskCount: number;
+};
+
+export interface PersonalProjectLoad {
+  projectId: string;
+  projectTitle: string;
+  remainingHours: number;
+  sharePercentage: number | null;
+  openTaskCount: number;
+  unestimatedTaskCount: number;
+  delivery: PersonalProjectDelivery;
+  taskKeys: string[];
+}
+
 export interface PersonalWorkload {
-  scheduledRemainingHours: number;
-  availableHours: number;
-  balanceHours: number;
-  utilizationPercentage: number | null;
-  allRemainingHours: number;
-  laterHours: number;
+  totalRemainingHours: number;
+  openTaskCount: number;
+  unestimatedTaskCount: number;
+  projects: PersonalProjectLoad[];
   taskKeys: string[];
 }
 
@@ -206,6 +235,106 @@ function commitmentView(
   };
 }
 
+interface ProjectLoadDraft {
+  projectId: string;
+  projectTitle: string;
+  remainingHours: number;
+  openTaskCount: number;
+  unestimatedTaskCount: number;
+  taskKeys: string[];
+}
+
+function projectDelivery(
+  project: ProjectLoadDraft,
+  plan: MemberDeliveryPlan,
+  activeTaskKeys: ReadonlySet<string>
+): PersonalProjectDelivery {
+  const commitment = plan.commitments.find((item) => item.projectId === project.projectId);
+  const unresolvedTaskCount = unique(plan.unresolved
+    .filter((item) => item.projectId === project.projectId)
+    .flatMap((item) => item.taskKeys)
+    .filter((key) => activeTaskKeys.has(key))).length;
+  if (!commitment) {
+    return {
+      resolution: "unresolved",
+      stageId: null,
+      stageName: null,
+      date: null,
+      unresolvedTaskCount: Math.max(unresolvedTaskCount, project.openTaskCount)
+    };
+  }
+  return {
+    resolution: unresolvedTaskCount > 0 ? "partial" : "resolved",
+    stageId: commitment.stageId,
+    stageName: commitment.stageName,
+    date: commitment.deliveryDate,
+    unresolvedTaskCount
+  };
+}
+
+function summarizeProjectWorkload(
+  metric: MemberDashboardMetric,
+  plan: MemberDeliveryPlan
+): PersonalWorkload {
+  const tasks = [...new Map(metric.tasks
+    .filter((task) => !task.task.completed)
+    .map((task) => [task.key, task] as const)).values()];
+  const activeTaskKeys = new Set(tasks.map((task) => task.key));
+  const byProject = new Map<string, ProjectLoadDraft>();
+  for (const task of tasks) {
+    let project = byProject.get(task.task.projectId);
+    if (!project) {
+      project = {
+        projectId: task.task.projectId,
+        projectTitle: task.task.projectTitle,
+        remainingHours: 0,
+        openTaskCount: 0,
+        unestimatedTaskCount: 0,
+        taskKeys: []
+      };
+      byProject.set(project.projectId, project);
+    }
+    project.remainingHours += Number.isFinite(task.allocatedRemaining)
+      ? Math.max(0, task.allocatedRemaining)
+      : 0;
+    project.openTaskCount += 1;
+    project.unestimatedTaskCount += task.allocatedEstimate <= 0 ? 1 : 0;
+    project.taskKeys.push(task.key);
+  }
+
+  const totalRemainingHours = round([...byProject.values()].reduce(
+    (total, project) => total + project.remainingHours,
+    0
+  ));
+  const projects = [...byProject.values()].map((project): PersonalProjectLoad => {
+    const remainingHours = round(project.remainingHours);
+    return {
+      ...project,
+      remainingHours,
+      sharePercentage: remainingHours > 0
+        ? percentage(remainingHours, totalRemainingHours)
+        : null,
+      delivery: projectDelivery(project, plan, activeTaskKeys),
+      taskKeys: unique(project.taskKeys)
+    };
+  }).sort((left, right) => {
+    const leftDate = left.delivery.date ?? "\uffff";
+    const rightDate = right.delivery.date ?? "\uffff";
+    return right.remainingHours - left.remainingHours
+      || leftDate.localeCompare(rightDate)
+      || left.projectTitle.localeCompare(right.projectTitle)
+      || left.projectId.localeCompare(right.projectId);
+  });
+
+  return {
+    totalRemainingHours,
+    openTaskCount: tasks.length,
+    unestimatedTaskCount: tasks.filter((task) => task.allocatedEstimate <= 0).length,
+    projects,
+    taskKeys: tasks.map((task) => task.key)
+  };
+}
+
 export function buildPersonalDashboards(input: PersonalDashboardInput): PersonalDashboardCatalog {
   const people = input.members.filter((member) => member.kind === "member");
   const raw = aggregateMemberDashboard(people, input);
@@ -314,9 +443,6 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
       .filter((key) => !tasksByKey.get(key)?.task.completed);
     const atRiskKeys = unique(riskSignals.flatMap((item) => item.taskKeys))
       .filter((key) => assessedOpenKeys.includes(key));
-    const loadTaskKeys = metric.tasks
-      .filter((task) => task.inWindow && !task.task.completed)
-      .map((task) => task.key);
     const unresolvedKeys = unique(plan.unresolved.flatMap((item) => item.taskKeys))
       .filter((key) => tasksByKey.has(key));
     const unestimatedKeys = metric.tasks
@@ -329,15 +455,7 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
       member: { key: metric.memberKey, name: metric.memberName },
       state: metric.health,
       deliveryWindows,
-      workload: {
-        scheduledRemainingHours: metric.committedHours,
-        availableHours: metric.availableHours,
-        balanceHours: metric.balanceHours,
-        utilizationPercentage: metric.loadPercentage,
-        allRemainingHours: metric.allRemainingHours,
-        laterHours: metric.laterHours,
-        taskKeys: loadTaskKeys
-      },
+      workload: summarizeProjectWorkload(metric, plan),
       teamRisk: {
         atRiskTaskCount: atRiskKeys.length,
         assessedOpenTaskCount: assessedOpenKeys.length,
