@@ -436,16 +436,43 @@ const en = {
   personalProjectDeliveryUnresolved: "Delivery stage unresolved",
   personalProjectTaskSummary: (tasks: number, unestimated: number) =>
     `${tasks} task${tasks === 1 ? "" : "s"}${unestimated > 0 ? ` · ${unestimated} unestimated` : ""}`,
-  teamCompletionRisk: "Completion risk in team",
-  personalRiskDetail: (risk: number, assessed: number) =>
-    `${risk} of ${assessed} open task${assessed === 1 ? "" : "s"} at risk`,
-  personalRiskAboveTeam: (median: number | null) =>
-    `Above team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskBelowTeam: (median: number | null) =>
-    `Below team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskAtTeam: (median: number | null) =>
-    `At team median${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskNoTeamReference: "No comparable team sample",
+  personalDeliveryCapacity: "Delivery capacity",
+  personalCapacityWindowCount: (count: number) =>
+    `${count} capacity window${count === 1 ? "" : "s"}`,
+  personalCapacityTightestWindow: (date: string, load: number, capacity: number) =>
+    `Tightest ${date} · ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h load / ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h capacity`,
+  personalCapacityNoWindows: "No resolved delivery window",
+  personalCapacityNoWindowsHint: "Resolve a project delivery stage to compare work with capacity.",
+  personalCapacityAwaitingPlan: "Capacity pending",
+  personalCapacityNoLoad: "No active load",
+  personalCapacityBuffer: (hours: number) =>
+    `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h buffer`,
+  personalCapacityTight: (hours: number) =>
+    `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h left`,
+  personalCapacityShortfall: (hours: number) =>
+    `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h short`,
+  personalCapacityOverdue: (hours: number) =>
+    `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h overdue`,
+  personalCapacityFilterLabel: (date: string, projects: number) =>
+    `${date} capacity window · ${projects} due project${projects === 1 ? "" : "s"}`,
+  personalCapacityCheckpointAria: (
+    date: string,
+    load: number,
+    capacity: number,
+    outcome: string
+  ) => `${date}: ${load}h cumulative load, ${capacity}h available capacity, ${outcome}`,
+  personalCapacityCheckpointMeta: (days: number, projects: number, includeWeekends: boolean) =>
+    `${days} ${includeWeekends ? "calendar day" : "workday"}${days === 1 ? "" : "s"} left · ${projects} project${projects === 1 ? "" : "s"} due`,
+  personalCapacityLoadPair: (load: number, capacity: number) =>
+    `${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h load / ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h capacity`,
+  personalCapacityDueLoad: (hours: number) =>
+    `+${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h at this window`,
+  personalCapacityUncertain: (projects: number, hours: number, unestimated: number) =>
+    [
+      projects > 0 ? `${projects} project${projects === 1 ? "" : "s"} not fully scheduled` : "",
+      hours > 0 ? `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h not yet placed` : "",
+      unestimated > 0 ? `${unestimated} unestimated task${unestimated === 1 ? "" : "s"}` : ""
+    ].filter(Boolean).join(" · "),
   memberDriverDueAfterStage: (count: number) =>
     `${count} task due after its stage${count === 1 ? "" : "s"}`,
   personalPlanningBlindSpots: "Planning blind spots",
@@ -1095,16 +1122,42 @@ const zh: typeof en = {
   personalProjectDeliveryUnresolved: "交付阶段未明确",
   personalProjectTaskSummary: (tasks: number, unestimated: number) =>
     `${tasks} 项任务${unestimated > 0 ? ` · ${unestimated} 项未估时` : ""}`,
-  teamCompletionRisk: "团队任务完成风险",
-  personalRiskDetail: (risk: number, assessed: number) =>
-    `${assessed} 个未完成任务中，${risk} 个存在风险`,
-  personalRiskAboveTeam: (median: number | null) =>
-    `高于团队中位值${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskBelowTeam: (median: number | null) =>
-    `低于团队中位值${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskAtTeam: (median: number | null) =>
-    `与团队中位值一致${median === null ? "" : ` ${median.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}`,
-  personalRiskNoTeamReference: "暂无可比较的团队样本",
+  personalDeliveryCapacity: "交付容量对比",
+  personalCapacityWindowCount: (count: number) => `${count} 个容量窗口`,
+  personalCapacityTightestWindow: (date: string, load: number, capacity: number) =>
+    `最紧窗口 ${date} · 累计 ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 容量 ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityNoWindows: "暂无可计算的交付窗口",
+  personalCapacityNoWindowsHint: "明确项目交付阶段后，即可比较现有工作与剩余容量。",
+  personalCapacityAwaitingPlan: "等待排入容量",
+  personalCapacityNoLoad: "当前无负载",
+  personalCapacityBuffer: (hours: number) =>
+    `余量 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityTight: (hours: number) =>
+    `仅余 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityShortfall: (hours: number) =>
+    `缺口 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityOverdue: (hours: number) =>
+    `逾期负载 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityFilterLabel: (date: string, projects: number) =>
+    `${date} 容量窗口 · ${projects} 个项目到期`,
+  personalCapacityCheckpointAria: (
+    date: string,
+    load: number,
+    capacity: number,
+    outcome: string
+  ) => `${date}：累计负载 ${load} 小时，可用容量 ${capacity} 小时，${outcome}`,
+  personalCapacityCheckpointMeta: (days: number, projects: number, includeWeekends: boolean) =>
+    `距交付 ${days} 个${includeWeekends ? "自然日" : "工作日"} · ${projects} 个项目到期`,
+  personalCapacityLoadPair: (load: number, capacity: number) =>
+    `累计 ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 容量 ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityDueLoad: (hours: number) =>
+    `本窗口新增 ${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCapacityUncertain: (projects: number, hours: number, unestimated: number) =>
+    [
+      projects > 0 ? `${projects} 个项目未完整进入容量窗口` : "",
+      hours > 0 ? `${hours.toLocaleString(undefined, { maximumFractionDigits: 2 })}h 暂未计入` : "",
+      unestimated > 0 ? `${unestimated} 个任务未估时` : ""
+    ].filter(Boolean).join(" · "),
   memberDriverDueAfterStage: (count: number) => `${count} 个任务截止日晚于所属阶段`,
   personalPlanningBlindSpots: "计划盲点",
   personalConfidencePartial: (blind: number, unestimated: number, unresolved: number) =>

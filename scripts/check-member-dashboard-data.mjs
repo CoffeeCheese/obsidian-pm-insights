@@ -57,13 +57,25 @@ const evaluation = `(async () => {
     empty: Boolean(workload.querySelector(".pmi-personal-project-load-empty")),
     projects: projectLoads
   } : null;
+  const capacity = drawer.querySelector(".pmi-personal-summary-card.is-delivery-capacity");
+  const capacityWindows = [...drawer.querySelectorAll(".pmi-personal-capacity-checkpoint")].map((window) => ({
+    date: window.getAttribute("data-capacity-date") ?? "",
+    load: Number(window.getAttribute("data-capacity-load")),
+    available: Number(window.getAttribute("data-capacity-available")),
+    balance: Number(window.getAttribute("data-capacity-balance"))
+  }));
+  const capacityReport = capacity ? {
+    state: capacity.getAttribute("data-capacity-state") ?? "",
+    windowCount: Number(capacity.getAttribute("data-capacity-windows")),
+    windows: capacityWindows
+  } : null;
   const empty = Boolean(drawer.querySelector(".pmi-personal-windows-empty"));
   const legacyPanels = drawer.querySelectorAll(
-    ".pmi-member-comparison, .pmi-member-project-mix, .pmi-member-ledger-section"
+    ".pmi-member-comparison, .pmi-member-project-mix, .pmi-member-ledger-section, .pmi-personal-summary-card.is-risk"
   ).length;
   drawer.closest(".modal-container")
     ?.querySelector(".modal-close-button, .modal-header-button")?.click();
-  return JSON.stringify({ setup: true, windows, summaryCards, workload: workloadReport, empty, legacyPanels });
+  return JSON.stringify({ setup: true, windows, summaryCards, workload: workloadReport, capacity: capacityReport, empty, legacyPanels });
 })()`;
 
 const output = runObsidian(["eval", `code=${evaluation}`]);
@@ -84,10 +96,18 @@ const workloadValid = report.workload
     project.id && Number.isFinite(project.hours) && project.hours >= 0
       && (project.share === "" || Number.isFinite(Number(project.share)))
   ));
-if (!report.setup || !windowsValid || !workloadValid
+const capacityValid = report.capacity
+  && ["normal", "attention", "high", "overdue"].includes(report.capacity.state)
+  && report.capacity.windowCount === report.capacity.windows.length
+  && report.capacity.windows.every((window) =>
+    window.date && Number.isFinite(window.load) && window.load >= 0
+      && Number.isFinite(window.available) && window.available >= 0
+      && Number.isFinite(window.balance)
+  );
+if (!report.setup || !windowsValid || !workloadValid || !capacityValid
     || report.summaryCards !== 2 || report.legacyPanels !== 0) {
   console.error(`Personal delivery dashboard mismatch: ${JSON.stringify(report)}`);
   process.exitCode = 1;
 } else {
-  console.log(`Personal delivery dashboard exposes ${report.windows.length} delivery windows and ${report.workload.projectCount} project loads.`);
+  console.log(`Personal delivery dashboard exposes ${report.windows.length} delivery windows, ${report.workload.projectCount} project loads, and ${report.capacity.windowCount} capacity windows.`);
 }

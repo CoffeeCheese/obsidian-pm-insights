@@ -342,8 +342,13 @@ describe("personal delivery dashboard", () => {
     }).dashboards[0];
 
     expect(sevenDays?.workload).toEqual(thirtyDays?.workload);
+    expect(sevenDays?.capacity).toEqual(thirtyDays?.capacity);
     expect(sevenDays?.deliveryWindows).toHaveLength(1);
     expect(thirtyDays?.deliveryWindows).toHaveLength(2);
+    expect(sevenDays?.capacity.checkpoints.map((checkpoint) => checkpoint.date)).toEqual([
+      "2026-09-03",
+      "2026-09-25"
+    ]);
     expect(sevenDays?.workload).toMatchObject({
       totalRemainingHours: 20,
       openTaskCount: 3,
@@ -373,6 +378,65 @@ describe("personal delivery dashboard", () => {
           openTaskCount: 1,
           unestimatedTaskCount: 1,
           delivery: { resolution: "unresolved" }
+        }
+      ]
+    });
+  });
+
+  it("compares cumulative project load with capacity at each delivery date", () => {
+    const early = task("early", { estimate: 12, remaining: 12 });
+    const later = task("later", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      estimate: 16,
+      remaining: 16
+    });
+    const dashboard = build(
+      [member("Ada", [early, later])],
+      [
+        riskProject({
+          id: "p1",
+          title: "Project one",
+          development: [early],
+          developmentDate: "2026-09-01"
+        }),
+        riskProject({
+          id: "p2",
+          title: "Project two",
+          development: [later],
+          developmentDate: "2026-09-03"
+        })
+      ]
+    ).dashboards[0];
+
+    expect(dashboard?.capacity).toMatchObject({
+      state: "high",
+      constrainedWindowCount: 2,
+      uncertainProjectCount: 0,
+      unscheduledRemainingHours: 0,
+      criticalCheckpoint: {
+        date: "2026-09-01",
+        cumulativeRemainingHours: 12,
+        availableHours: 8,
+        balanceHours: -4,
+        state: "high"
+      },
+      checkpoints: [
+        {
+          date: "2026-09-01",
+          dueRemainingHours: 12,
+          cumulativeRemainingHours: 12,
+          availableHours: 8,
+          balanceHours: -4,
+          taskKeys: ["p1\u0000early"]
+        },
+        {
+          date: "2026-09-03",
+          dueRemainingHours: 16,
+          cumulativeRemainingHours: 28,
+          availableHours: 24,
+          balanceHours: -4,
+          taskKeys: ["p1\u0000early", "p2\u0000later"]
         }
       ]
     });
@@ -439,14 +503,9 @@ describe("personal delivery dashboard", () => {
     expect(dashboard?.deliveryWindows[0]?.signals).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: "due-after-stage", taskCount: 1 })
     ]));
-    expect(dashboard?.teamRisk).toMatchObject({
-      atRiskTaskCount: 1,
-      assessedOpenTaskCount: 1,
-      percentage: 100
-    });
   });
 
-  it("reports planning blind spots and excludes unassigned work from the team median", () => {
+  it("reports planning blind spots and excludes unassigned work from personal capacity", () => {
     const risky = task("risky", { dueDate: "2026-09-10" });
     const clean = task("clean", {
       assignees: ["Bao"],
@@ -485,10 +544,17 @@ describe("personal delivery dashboard", () => {
       unestimatedTaskCount: 1,
       unresolvedTaskCount: 1
     });
-    expect(ada?.teamRisk).toMatchObject({
-      sampleSize: 2,
-      teamMedianPercentage: 50,
-      relation: "above"
+    expect(ada?.capacity).toMatchObject({
+      state: "attention",
+      uncertainProjectCount: 1,
+      checkpoints: [
+        {
+          date: "2026-09-03",
+          cumulativeRemainingHours: 8,
+          availableHours: 24,
+          balanceHours: 16
+        }
+      ]
     });
   });
 });

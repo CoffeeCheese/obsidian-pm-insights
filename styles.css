@@ -8658,6 +8658,10 @@ body .modal-container .modal.pmi-project-gates-modal {
   --pmi-brief-ink: color-mix(in srgb, var(--text-normal) 88%, #52697a);
   --pmi-brief-paper: color-mix(in srgb, var(--background-primary) 97%, #d9eef0 3%);
   --pmi-brief-rule: color-mix(in srgb, var(--text-muted) 17%, transparent);
+  --pmi-capacity-rail: #647b91;
+  --pmi-capacity-buffer: #18a862;
+  --pmi-capacity-tight: #d99a23;
+  --pmi-capacity-shortfall: #e56b19;
   --pmi-brief-type-caption: 11px;
   --pmi-brief-type-label: 12px;
   --pmi-brief-type-body: 13px;
@@ -8698,7 +8702,7 @@ body .modal-container .modal.pmi-project-gates-modal {
   font-size: clamp(18px, 2.8cqi, 23px);
 }
 
-.pmi-personal-risk-relation {
+.pmi-personal-capacity-context {
   color: var(--text-muted);
   font-family: var(--font-monospace);
   font-size: var(--pmi-brief-type-label);
@@ -9108,7 +9112,7 @@ body .modal-container .modal.pmi-project-gates-modal {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.65fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
   grid-template-rows: auto;
   margin: 0;
   overflow: hidden;
@@ -9127,6 +9131,26 @@ body .modal-container .modal.pmi-project-gates-modal {
   gap: 4px;
   padding: 15px 17px;
   border-inline-end: 1px solid var(--pmi-brief-rule);
+}
+
+.pmi-personal-summary-card.is-delivery-capacity {
+  --pmi-summary-signal: var(--pmi-capacity-buffer);
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 170px;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  align-content: start;
+  gap: 4px;
+  padding: 15px 17px;
+}
+
+.pmi-personal-summary-card.is-delivery-capacity.is-attention {
+  --pmi-summary-signal: var(--pmi-capacity-tight);
+}
+
+.pmi-personal-summary-card.is-delivery-capacity:is(.is-high, .is-overdue) {
+  --pmi-summary-signal: var(--pmi-capacity-shortfall);
 }
 
 .pmi-root button.pmi-personal-summary-card:not(.clickable-icon) {
@@ -9365,6 +9389,170 @@ body .modal-container .modal.pmi-project-gates-modal {
   font-size: var(--pmi-brief-type-body);
 }
 
+.pmi-personal-capacity-checkpoints {
+  display: grid;
+  min-height: 0;
+  max-height: 156px;
+  margin-block-start: 7px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.pmi-root button.pmi-personal-capacity-checkpoint:not(.clickable-icon) {
+  --pmi-capacity-state: var(--pmi-capacity-buffer);
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  height: auto;
+  gap: 3px;
+  padding: 7px 3px 8px;
+  border: 0;
+  border-block-start: 1px solid var(--pmi-brief-rule);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: start;
+  transform: none;
+  transition: background-color 140ms ease;
+}
+
+.pmi-root button.pmi-personal-capacity-checkpoint.is-attention:not(.clickable-icon) {
+  --pmi-capacity-state: var(--pmi-capacity-tight);
+}
+
+.pmi-root button.pmi-personal-capacity-checkpoint:is(.is-high, .is-overdue):not(.clickable-icon) {
+  --pmi-capacity-state: var(--pmi-capacity-shortfall);
+}
+
+.pmi-root button.pmi-personal-capacity-checkpoint:not(.clickable-icon):is(:hover, :focus-visible, .is-active) {
+  background: color-mix(in srgb, var(--pmi-capacity-state) 7%, transparent);
+  outline: none;
+  transform: none;
+}
+
+.pmi-root button.pmi-personal-capacity-checkpoint:not(.clickable-icon):focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pmi-capacity-state) 46%, transparent);
+}
+
+.pmi-personal-capacity-checkpoint-head,
+.pmi-personal-capacity-checkpoint-foot {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.pmi-personal-capacity-checkpoint-head > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.pmi-personal-capacity-checkpoint-head strong {
+  color: var(--pmi-brief-ink);
+  font-family: var(--font-monospace);
+  font-size: var(--pmi-brief-type-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-personal-capacity-checkpoint-head span,
+.pmi-personal-capacity-checkpoint-foot,
+.pmi-personal-capacity-projects {
+  color: var(--text-muted);
+  font-size: var(--pmi-brief-type-caption);
+  line-height: 1.3;
+}
+
+.pmi-personal-capacity-checkpoint-head em {
+  color: var(--pmi-capacity-state);
+  font-family: var(--font-monospace);
+  font-size: var(--pmi-brief-type-label);
+  font-style: normal;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.pmi-personal-capacity-projects {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-personal-capacity-rail {
+  --pmi-capacity-load-width: 0%;
+  --pmi-capacity-limit-position: 100%;
+  position: relative;
+  height: 8px;
+  margin-block: 3px 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pmi-capacity-rail) 18%, var(--background-primary));
+}
+
+.pmi-personal-capacity-load {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--pmi-capacity-load-width);
+  background: color-mix(in srgb, var(--pmi-capacity-state) 78%, var(--pmi-capacity-rail));
+}
+
+.pmi-personal-capacity-limit {
+  position: absolute;
+  z-index: 2;
+  inset-block: -2px;
+  inset-inline-start: var(--pmi-capacity-limit-position);
+  width: 2px;
+  background: var(--pmi-brief-ink);
+  transform: translateX(-1px);
+}
+
+.pmi-personal-capacity-checkpoint:is(.is-high, .is-overdue) .pmi-personal-capacity-rail::after {
+  position: absolute;
+  content: "";
+  inset-block: 0;
+  inset-inline: var(--pmi-capacity-limit-position) 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pmi-capacity-shortfall) 72%, transparent) 0 3px,
+    color-mix(in srgb, var(--background-primary) 30%, transparent) 3px 5px
+  );
+}
+
+.pmi-personal-capacity-checkpoint-foot {
+  font-family: var(--font-monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-personal-capacity-checkpoint-foot > span:last-child {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.pmi-personal-capacity-uncertainty {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 6px;
+  padding-block-start: 7px;
+  border-block-start: 1px dashed var(--pmi-brief-rule);
+  color: var(--pmi-capacity-tight);
+  font-size: var(--pmi-brief-type-caption);
+  line-height: 1.35;
+}
+
+.pmi-personal-capacity-uncertainty > span:first-child,
+.pmi-personal-capacity-uncertainty > span:first-child svg {
+  flex: 0 0 13px;
+  width: 13px;
+  height: 13px;
+}
+
 .pmi-personal-summary-card > .pmi-personal-summary-arrow {
   position: absolute;
   inset-block-start: 50%;
@@ -9407,6 +9595,8 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   button.pmi-personal-project-load:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active),
 body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
+  button.pmi-personal-capacity-checkpoint:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active),
+body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   button.pmi-personal-confidence-note:not(.clickable-icon):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) {
   transform: none;
 }
@@ -9430,7 +9620,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   }
 
   .pmi-personal-summary {
-    grid-template-columns: minmax(0, 1.2fr) minmax(230px, 0.8fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: auto;
   }
 
@@ -9527,6 +9717,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   .pmi-root button.pmi-personal-window:not(.clickable-icon),
   .pmi-root button.pmi-personal-summary-card:not(.clickable-icon),
   .pmi-root button.pmi-personal-project-load:not(.clickable-icon),
+  .pmi-root button.pmi-personal-capacity-checkpoint:not(.clickable-icon),
   .pmi-personal-window-dot,
   .pmi-personal-window-progress-track > span {
     transition: none;

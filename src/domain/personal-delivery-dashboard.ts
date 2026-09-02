@@ -9,6 +9,7 @@ import {
   type MemberDeliveryPlan,
   type MemberProjectCommitment
 } from "./member-delivery-commitments";
+import { scheduleDaysBetween } from "./schedule-calendar";
 import type { MemberInsight } from "../model";
 
 export type DeliveryRiskSignalKind =
@@ -93,17 +94,28 @@ export interface PersonalWorkload {
   taskKeys: string[];
 }
 
-export type TeamRiskRelation = "below" | "same" | "above" | "unavailable";
-
-export interface TeamCompletionRisk {
-  atRiskTaskCount: number;
-  assessedOpenTaskCount: number;
-  percentage: number | null;
-  teamMedianPercentage: number | null;
-  relation: TeamRiskRelation;
-  sampleSize: number;
-  signals: PersonalDeliveryRiskSignal[];
+export interface PersonalCapacityCheckpoint {
+  date: string;
+  daysRemaining: number;
+  projectIds: string[];
+  projectTitles: string[];
+  dueRemainingHours: number;
+  cumulativeRemainingHours: number;
+  availableHours: number;
+  balanceHours: number;
+  utilizationPercentage: number | null;
+  state: MemberDashboardHealth;
   taskKeys: string[];
+}
+
+export interface PersonalDeliveryCapacity {
+  state: MemberDashboardHealth;
+  criticalCheckpoint: PersonalCapacityCheckpoint | null;
+  constrainedWindowCount: number;
+  uncertainProjectCount: number;
+  unestimatedTaskCount: number;
+  unscheduledRemainingHours: number;
+  checkpoints: PersonalCapacityCheckpoint[];
 }
 
 export interface PersonalDashboardConfidence {
@@ -120,7 +132,7 @@ export interface PersonalDeliveryDashboard {
   state: MemberDashboardHealth;
   deliveryWindows: PersonalDeliveryWindow[];
   workload: PersonalWorkload;
-  teamRisk: TeamCompletionRisk;
+  capacity: PersonalDeliveryCapacity;
   confidence: PersonalDashboardConfidence;
 }
 
@@ -137,10 +149,6 @@ export interface PersonalDashboardCatalog {
 
 export interface PersonalDashboardInput extends MemberDashboardOptions {
   members: MemberInsight[];
-}
-
-interface DashboardDraft extends Omit<PersonalDeliveryDashboard, "teamRisk"> {
-  teamRisk: Omit<TeamCompletionRisk, "teamMedianPercentage" | "relation" | "sampleSize">;
 }
 
 const HEALTH_SEVERITY: Record<MemberDashboardHealth, number> = {
@@ -168,15 +176,6 @@ function unique(values: readonly string[]): string[] {
 
 function percentage(numerator: number, denominator: number): number | null {
   return denominator > 0 ? round((numerator / denominator) * 100) : null;
-}
-
-function median(values: Array<number | null>): number | null {
-  const available = values.filter((value): value is number => value !== null)
-    .sort((left, right) => left - right);
-  if (available.length === 0) return null;
-  const middle = Math.floor(available.length / 2);
-  if (available.length % 2 === 1) return available[middle] ?? null;
-  return round(((available[middle - 1] ?? 0) + (available[middle] ?? 0)) / 2);
 }
 
 function worseHealth(
@@ -335,6 +334,111 @@ function summarizeProjectWorkload(
   };
 }
 
+function capacityCheckpointState(
+  date: string,
+  today: string,
+  remainingHours: number,
+  availableHours: number,
+  utilizationPercentage: number | null
+): MemberDashboardHealth {
+  if (date < today && remainingHours > 0) return "overdue";
+  if (remainingHours > availableHours) return "high";
+  if ((utilizationPercentage ?? 0) >= 80) return "attention";
+  return "normal";
+}
+
+function summarizeDeliveryCapacity(
+  workload: PersonalWorkload,
+  today: string,
+  includeWeekends: boolean,
+  hoursPerDay: number
+): PersonalDeliveryCapacity {
+  const scheduledProjects = workload.projects
+    .filter((project) => project.delivery.date !== null)
+    .sort((left, right) => (left.delivery.date ?? "").localeCompare(right.delivery.date ?? "")
+      || left.projectTitle.localeCompare(right.projectTitle));
+  const projectsByDate = new Map<string, PersonalProjectLoad[]>();
+  for (const project of scheduledProjects) {
+    const date = project.delivery.date;
+    if (date === null) continue;
+    const projects = projectsByDate.get(date) ?? [];
+    projects.push(project);
+    projectsByDate.set(date, projects);
+  }
+
+  let cumulativeProjects: PersonalProjectLoad[] = [];
+  const checkpoints = [...projectsByDate.entries()].map(([date, projects]) => {
+    cumulativeProjects = [...cumulativeProjects, ...projects];
+    const dueRemainingHours = round(projects.reduce(
+      (total, project) => total + project.remainingHours,
+      0
+    ));
+    const cumulativeRemainingHours = round(cumulativeProjects.reduce(
+      (total, project) => total + project.remainingHours,
+      0
+    ));
+    const daysRemaining = Math.max(0, scheduleDaysBetween(today, date, includeWeekends));
+    const availableHours = round(daysRemaining * hoursPerDay);
+    const balanceHours = round(availableHours - cumulativeRemainingHours);
+    const utilizationPercentage = availableHours > 0
+      ? percentage(cumulativeRemainingHours, availableHours)
+      : cumulativeRemainingHours > 0
+        ? null
+        : 0;
+    return {
+      date,
+      daysRemaining,
+      projectIds: projects.map((project) => project.projectId),
+      projectTitles: projects.map((project) => project.projectTitle),
+      dueRemainingHours,
+      cumulativeRemainingHours,
+      availableHours,
+      balanceHours,
+      utilizationPercentage,
+      state: capacityCheckpointState(
+        date,
+        today,
+        cumulativeRemainingHours,
+        availableHours,
+        utilizationPercentage
+      ),
+      taskKeys: unique(cumulativeProjects.flatMap((project) => project.taskKeys))
+    } satisfies PersonalCapacityCheckpoint;
+  });
+  const criticalCheckpoint = checkpoints.reduce<PersonalCapacityCheckpoint | null>(
+    (critical, checkpoint) => {
+      if (!critical) return checkpoint;
+      const severity = HEALTH_SEVERITY[checkpoint.state] - HEALTH_SEVERITY[critical.state];
+      if (severity !== 0) return severity > 0 ? checkpoint : critical;
+      if (checkpoint.balanceHours !== critical.balanceHours) {
+        return checkpoint.balanceHours < critical.balanceHours ? checkpoint : critical;
+      }
+      return checkpoint.date < critical.date ? checkpoint : critical;
+    },
+    null
+  );
+  const uncertainProjects = workload.projects.filter((project) =>
+    project.delivery.resolution !== "resolved");
+
+  return {
+    state: worseHealth(
+      criticalCheckpoint?.state ?? "normal",
+      uncertainProjects.length > 0 || workload.unestimatedTaskCount > 0
+        ? "attention"
+        : "normal"
+    ),
+    criticalCheckpoint,
+    constrainedWindowCount: checkpoints.filter((checkpoint) =>
+      checkpoint.state !== "normal").length,
+    uncertainProjectCount: uncertainProjects.length,
+    unestimatedTaskCount: workload.unestimatedTaskCount,
+    unscheduledRemainingHours: round(uncertainProjects
+      .filter((project) => project.delivery.date === null)
+      .reduce((total, project) => total + project.remainingHours, 0)),
+    checkpoints
+  };
+}
+
 export function buildPersonalDashboards(input: PersonalDashboardInput): PersonalDashboardCatalog {
   const people = input.members.filter((member) => member.kind === "member");
   const raw = aggregateMemberDashboard(people, input);
@@ -346,7 +450,7 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
     includeArchived: input.includeArchived
   });
 
-  const drafts: DashboardDraft[] = raw.members.map((metric) => {
+  const dashboards = raw.members.map((metric): PersonalDeliveryDashboard => {
     const plan = plans.get(metric.memberKey) ?? { commitments: [], unresolved: [] };
     const tasksByKey = new Map(metric.tasks.map((task) => [task.key, task]));
     const commitmentsByDate = new Map<string, PersonalDeliveryCommitment[]>();
@@ -438,11 +542,6 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
         };
       });
 
-    const riskSignals = aggregateSignals(deliveryWindows.flatMap((item) => item.signals));
-    const assessedOpenKeys = unique(deliveryWindows.flatMap((item) => item.taskKeys))
-      .filter((key) => !tasksByKey.get(key)?.task.completed);
-    const atRiskKeys = unique(riskSignals.flatMap((item) => item.taskKeys))
-      .filter((key) => assessedOpenKeys.includes(key));
     const unresolvedKeys = unique(plan.unresolved.flatMap((item) => item.taskKeys))
       .filter((key) => tasksByKey.has(key));
     const unestimatedKeys = metric.tasks
@@ -450,19 +549,20 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
         && (task.inWindow || task.effectiveDeadline === null))
       .map((task) => task.key);
     const blindKeys = unique([...unresolvedKeys, ...unestimatedKeys]);
+    const workload = summarizeProjectWorkload(metric, plan);
+    const capacity = summarizeDeliveryCapacity(
+      workload,
+      input.today,
+      raw.window.includeWeekends,
+      raw.window.hoursPerDay
+    );
 
     return {
       member: { key: metric.memberKey, name: metric.memberName },
-      state: metric.health,
+      state: capacity.state,
       deliveryWindows,
-      workload: summarizeProjectWorkload(metric, plan),
-      teamRisk: {
-        atRiskTaskCount: atRiskKeys.length,
-        assessedOpenTaskCount: assessedOpenKeys.length,
-        percentage: percentage(atRiskKeys.length, assessedOpenKeys.length),
-        signals: riskSignals,
-        taskKeys: atRiskKeys
-      },
+      workload,
+      capacity,
       confidence: {
         level: blindKeys.length > 0 ? "partial" : "complete",
         blindTaskCount: blindKeys.length,
@@ -474,28 +574,8 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
     };
   });
 
-  const teamMedian = median(drafts.map((draft) => draft.teamRisk.percentage));
-  const sampleSize = drafts.filter((draft) => draft.teamRisk.percentage !== null).length;
   return {
     window: raw.window,
-    dashboards: drafts.map((draft): PersonalDeliveryDashboard => {
-      const value = draft.teamRisk.percentage;
-      const relation: TeamRiskRelation = value === null || teamMedian === null
-        ? "unavailable"
-        : value > teamMedian
-          ? "above"
-          : value < teamMedian
-            ? "below"
-            : "same";
-      return {
-        ...draft,
-        teamRisk: {
-          ...draft.teamRisk,
-          teamMedianPercentage: teamMedian,
-          relation,
-          sampleSize
-        }
-      };
-    })
+    dashboards
   };
 }

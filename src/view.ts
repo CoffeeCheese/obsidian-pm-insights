@@ -30,6 +30,7 @@ import {
 import {
   buildPersonalDashboards,
   type DeliveryRiskSignalKind,
+  type PersonalCapacityCheckpoint,
   type PersonalDashboardCatalog,
   type PersonalDeliveryDashboard,
   type PersonalDeliveryRiskSignal
@@ -1560,13 +1561,19 @@ export class InsightsView extends ItemView {
     const healthSignal = health.createSpan("pmi-member-health-signal");
     setIcon(healthSignal, this.memberDashboardHealthIcon(metric.state));
     const healthCopy = health.createDiv("pmi-member-health-copy");
-    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.teamCompletionRisk });
+    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.personalDeliveryCapacity });
     healthCopy.createEl("strong", {
-      text: this.memberDashboardHealthLabel(metric.state, t)
+      text: this.personalCapacityOutcome(metric.capacity.criticalCheckpoint, metric.state, t)
     });
     healthCopy.createSpan({
-      cls: "pmi-personal-risk-relation",
-      text: this.teamRiskRelationLabel(metric, t)
+      cls: "pmi-personal-capacity-context",
+      text: metric.capacity.criticalCheckpoint
+        ? t.personalCapacityTightestWindow(
+            metric.capacity.criticalCheckpoint.date,
+            metric.capacity.criticalCheckpoint.cumulativeRemainingHours,
+            metric.capacity.criticalCheckpoint.availableHours
+          )
+        : t.personalCapacityNoWindows
     });
 
     this.renderMemberGateSetupNotice(section, metric, snapshot, t);
@@ -1577,7 +1584,7 @@ export class InsightsView extends ItemView {
 
     const workspace = section.createDiv("pmi-personal-dashboard-workspace");
     this.renderPersonalDeliveryWindows(workspace, metric, snapshot, t);
-    this.renderPersonalSummary(workspace, metric, snapshot, t);
+    this.renderPersonalSummary(workspace, metric, dashboard, snapshot, t);
 
     if (metric.confidence.blindTaskCount > 0) {
       const label = t.personalConfidencePartial(
@@ -1722,6 +1729,7 @@ export class InsightsView extends ItemView {
   private renderPersonalSummary(
     root: HTMLElement,
     metric: PersonalDeliveryDashboard,
+    dashboard: PersonalDashboardCatalog,
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
@@ -1820,41 +1828,136 @@ export class InsightsView extends ItemView {
       }
     }
 
-    const risk = metric.teamRisk;
-    const riskCard = summary.createEl("button", {
-      cls: `pmi-personal-summary-card is-risk is-${metric.state}`,
+    const capacity = metric.capacity;
+    const capacityCard = summary.createDiv({
+      cls: `pmi-personal-summary-card is-delivery-capacity is-${capacity.state}`,
       attr: {
-        type: "button",
-        title: t.filterTasksByInsight(t.teamCompletionRisk),
-        "aria-label": t.filterTasksByInsight(t.teamCompletionRisk)
+        role: "group",
+        "aria-label": t.personalDeliveryCapacity,
+        "data-capacity-windows": String(capacity.checkpoints.length),
+        "data-capacity-state": capacity.state
       }
     });
-    const riskHead = riskCard.createDiv("pmi-personal-summary-head");
-    setIcon(riskHead.createSpan(), "users-round");
-    riskHead.createSpan({ text: t.teamCompletionRisk });
-    riskHead.createEl("small", { text: t.teamReferenceSample(risk.sampleSize) });
-    riskCard.createEl("strong", {
+    const capacityHead = capacityCard.createDiv("pmi-personal-summary-head");
+    setIcon(capacityHead.createSpan(), "gauge");
+    capacityHead.createSpan({ text: t.personalDeliveryCapacity });
+    capacityHead.createEl("small", {
+      text: t.personalCapacityWindowCount(capacity.checkpoints.length)
+    });
+    capacityCard.createEl("strong", {
       cls: "pmi-personal-summary-value",
-      text: risk.percentage === null ? t.ratioUnavailable : t.percentage(risk.percentage)
+      text: this.personalCapacityOutcome(capacity.criticalCheckpoint, capacity.state, t)
     });
-    riskCard.createSpan({
+    capacityCard.createSpan({
       cls: "pmi-personal-summary-primary",
-      text: t.personalRiskDetail(risk.atRiskTaskCount, risk.assessedOpenTaskCount)
+      text: capacity.criticalCheckpoint
+        ? t.personalCapacityTightestWindow(
+            capacity.criticalCheckpoint.date,
+            capacity.criticalCheckpoint.cumulativeRemainingHours,
+            capacity.criticalCheckpoint.availableHours
+          )
+        : t.personalCapacityNoWindowsHint
     });
-    riskCard.createSpan({
-      cls: "pmi-personal-summary-secondary",
-      text: this.teamRiskRelationLabel(metric, t)
-    });
-    setIcon(riskCard.createSpan("pmi-personal-summary-arrow"), "arrow-down-to-line");
-    riskCard.addEventListener("click", () => {
-      this.applyDashboardTaskFilter(
-        "team-risk",
-        t.teamCompletionRisk,
-        risk.taskKeys,
-        snapshot,
-        t
-      );
-    });
+    if (capacity.checkpoints.length > 0) {
+      const checkpoints = capacityCard.createDiv({
+        cls: "pmi-personal-capacity-checkpoints",
+        attr: { role: "list" }
+      });
+      for (const checkpoint of capacity.checkpoints) {
+        const id = `delivery-capacity-${checkpoint.date}`;
+        const label = t.personalCapacityFilterLabel(
+          checkpoint.date,
+          checkpoint.projectIds.length
+        );
+        const item = checkpoints.createEl("button", {
+          cls: `pmi-personal-capacity-checkpoint is-${checkpoint.state}${this.dashboardFilterId === id ? " is-active" : ""}`,
+          attr: {
+            type: "button",
+            role: "listitem",
+            "aria-pressed": String(this.dashboardFilterId === id),
+            "aria-label": t.personalCapacityCheckpointAria(
+              checkpoint.date,
+              checkpoint.cumulativeRemainingHours,
+              checkpoint.availableHours,
+              this.personalCapacityOutcome(checkpoint, checkpoint.state, t)
+            ),
+            title: t.filterTasksByInsight(label),
+            "data-capacity-date": checkpoint.date,
+            "data-capacity-load": String(checkpoint.cumulativeRemainingHours),
+            "data-capacity-available": String(checkpoint.availableHours),
+            "data-capacity-balance": String(checkpoint.balanceHours)
+          }
+        });
+        const checkpointHead = item.createDiv("pmi-personal-capacity-checkpoint-head");
+        const checkpointDate = checkpointHead.createDiv();
+        checkpointDate.createEl("strong", { text: this.shortDate(checkpoint.date) });
+        checkpointDate.createSpan({
+          text: t.personalCapacityCheckpointMeta(
+            checkpoint.daysRemaining,
+            checkpoint.projectIds.length,
+            dashboard.window.includeWeekends
+          )
+        });
+        checkpointHead.createEl("em", {
+          text: this.personalCapacityOutcome(checkpoint, checkpoint.state, t)
+        });
+        item.createSpan({
+          cls: "pmi-personal-capacity-projects",
+          text: checkpoint.projectTitles.join(" · ")
+        });
+        const scale = Math.max(
+          checkpoint.cumulativeRemainingHours,
+          checkpoint.availableHours,
+          1
+        );
+        const rail = item.createDiv({
+          cls: "pmi-personal-capacity-rail",
+          attr: {
+            role: "img",
+            "aria-label": t.personalCapacityCheckpointAria(
+              checkpoint.date,
+              checkpoint.cumulativeRemainingHours,
+              checkpoint.availableHours,
+              this.personalCapacityOutcome(checkpoint, checkpoint.state, t)
+            )
+          }
+        });
+        rail.style.setProperty(
+          "--pmi-capacity-load-width",
+          `${(checkpoint.cumulativeRemainingHours / scale) * 100}%`
+        );
+        rail.style.setProperty(
+          "--pmi-capacity-limit-position",
+          `${(checkpoint.availableHours / scale) * 100}%`
+        );
+        rail.createSpan("pmi-personal-capacity-load");
+        rail.createSpan("pmi-personal-capacity-limit");
+        const checkpointFoot = item.createDiv("pmi-personal-capacity-checkpoint-foot");
+        checkpointFoot.createSpan({
+          text: t.personalCapacityLoadPair(
+            checkpoint.cumulativeRemainingHours,
+            checkpoint.availableHours
+          )
+        });
+        checkpointFoot.createSpan({
+          text: t.personalCapacityDueLoad(checkpoint.dueRemainingHours)
+        });
+        item.addEventListener("click", () => {
+          this.applyDashboardTaskFilter(id, label, checkpoint.taskKeys, snapshot, t);
+        });
+      }
+    }
+    if (capacity.uncertainProjectCount > 0 || capacity.unestimatedTaskCount > 0) {
+      const uncertainty = capacityCard.createDiv("pmi-personal-capacity-uncertainty");
+      setIcon(uncertainty.createSpan(), "scan-search");
+      uncertainty.createSpan({
+        text: t.personalCapacityUncertain(
+          capacity.uncertainProjectCount,
+          capacity.unscheduledRemainingHours,
+          capacity.unestimatedTaskCount
+        )
+      });
+    }
   }
 
   private renderMemberGateSetupNotice(
@@ -2322,16 +2425,19 @@ export class InsightsView extends ItemView {
     return labels[signal.kind];
   }
 
-  private teamRiskRelationLabel(
-    metric: PersonalDeliveryDashboard,
+  private personalCapacityOutcome(
+    checkpoint: PersonalCapacityCheckpoint | null,
+    state: MemberDashboardHealth,
     t: Translations
   ): string {
-    const risk = metric.teamRisk;
-    switch (risk.relation) {
-      case "above": return t.personalRiskAboveTeam(risk.teamMedianPercentage);
-      case "below": return t.personalRiskBelowTeam(risk.teamMedianPercentage);
-      case "same": return t.personalRiskAtTeam(risk.teamMedianPercentage);
-      case "unavailable": return t.personalRiskNoTeamReference;
+    if (!checkpoint) return state === "attention"
+      ? t.personalCapacityAwaitingPlan
+      : t.personalCapacityNoLoad;
+    switch (checkpoint.state) {
+      case "normal": return t.personalCapacityBuffer(checkpoint.balanceHours);
+      case "attention": return t.personalCapacityTight(checkpoint.balanceHours);
+      case "high": return t.personalCapacityShortfall(Math.abs(checkpoint.balanceHours));
+      case "overdue": return t.personalCapacityOverdue(checkpoint.cumulativeRemainingHours);
     }
   }
 
