@@ -88,7 +88,7 @@ Type · hierarchy · status · dates · hours · assignees · tags
 After you select one or more Project Manager projects, PM Insights adds:
 
 - **Project scope:** know exactly which projects every module is currently analyzing.
-- **Team and individual:** move from cross-project workload into member tasks, shared work, a focused personal dashboard, and a delivery ledger.
+- **Team and individual:** move from cross-project workload into member tasks, shared work, project-level workload, and delivery-capacity checkpoints.
 - **Delivery and acceptance:** derive stage completion and requirement acceptance from hierarchy, stage tags, and task statuses.
 - **Data quality:** find missing estimates, assignees, classifications, conflicting stage tags, and missing prerequisites.
 - **Schedule and risk:** compare actual stage progress, expected progress, task due dates, project gate dates, and owner capacity.
@@ -108,7 +108,7 @@ Feature map
    ↓
 Task-tree design logic
    ↓
-Six core capabilities
+Core capabilities
    ↓
 Statistical boundaries and getting started
 ```
@@ -119,7 +119,7 @@ Statistical boundaries and getting started
 | --- | --- |
 | **Project scope** | Which projects are included in the current dashboard? |
 | **Team workload** | How much was planned, logged, remains, and has run over? |
-| **Member insight** | What does each person own, how is their current window progressing, and where does their delivery risk differ from the team? |
+| **Member insight** | What does each person own, which delivery windows are approaching, and can the current project workload fit into the capacity available before each delivery date? |
 | **Delivery progress** | Which stage has the work reached, and how far is it from acceptance? |
 | **Delivery exceptions** | Which tasks are not classified correctly or are blocking acceptance? |
 | **Gate risk** | Are actual progress and owner capacity keeping pace with stage gates and the final launch plan? |
@@ -201,17 +201,21 @@ Choose a member from the team overview to inspect personal and shared tasks sepa
 
 #### Open a focused personal dashboard
 
-After selecting a member, use the gauge button beside their name to open a dedicated right-side drawer. The personal dashboard is a compact delivery brief built around three questions:
+After selecting a member, use the gauge button beside their name to open a centered **Personal delivery brief**. The modal concentrates on one decision: can this person's current project workload fit into the working capacity available before each project delivery date?
+
+![Personal delivery brief using fictional README data, showing delivery windows, project-level workload, and cumulative delivery-capacity shortfalls](docs/assets/pm-insights-member-dashboard-focused.png)
+
+*The screenshot uses fictional README demo projects and members only. On each capacity rail, the marker shows the available-capacity limit and the striped segment shows work that no longer fits before that delivery date.*
 
 | View | What it explains |
 | --- | --- |
-| **Delivery windows** | Each stage-derived delivery date, the project and stage commitments grouped at that date, completed tasks and planned hours, remaining work, cumulative capacity, and concrete risk signals. Windows sharing a date are combined instead of repeated. |
-| **Workload** | Remaining estimated work due by the selected range, including unfinished overdue work, compared with the member's available personal capacity. |
-| **Completion risk in team** | The share of assessed open tasks affected by overdue work, stage timing, capacity shortfall, gate risk, or overrun, compared with the team's middle value. Unassigned work is excluded from the team sample. |
+| **Delivery windows** | Shows the stage-derived delivery dates inside the selected planning range. Projects and stages sharing a date are grouped into one window with task progress, closed and remaining hours, cumulative load versus capacity, and concrete risk signals. |
+| **Project workload** | Summarizes all valid unfinished work assigned to the member across the current project scope, independent of the 7-, 14-, or 30-day range. Each project shows remaining hours, personal share, task count, delivery stage, and derived delivery date. |
+| **Delivery capacity** | Orders projects by their derived delivery dates, then compares cumulative remaining workload with cumulative available hours at every checkpoint. Earlier commitments consume capacity before later ones, making buffer, tight windows, shortfalls, and overdue delivery dates immediately visible. |
 
-Select a delivery window, workload summary, risk summary, or planning-confidence note to close the drawer and filter the related source tasks. The planning range starts today. Choose 7, 14, or 30 schedule days, or set a custom end date. **Include weekends** immediately switches both the counted days and daily-capacity rule; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
+Select a delivery window, project workload row, capacity checkpoint, or planning-confidence note to close the modal and filter the related source tasks. The planning range starts today and controls only which delivery windows appear in the timeline: choose 7, 14, or 30 schedule days, or set a custom end date. Project workload and delivery-capacity checkpoints continue to cover all current work in the selected project scope. **Include weekends** changes schedule-day counting and capacity calculations, but never which tasks belong to the workload; the hours per workday and calendar day come from **Settings → PM Insights → Gate risk rules**.
 
-Each member's work is grouped by project and placed at the gate date of its farthest mapped delivery stage. Parent work inherits the stages covered by its executable descendants, and cross-stage work uses the latest stage in the configured delivery order. Task due dates remain schedule-risk signals but do not position delivery commitments, and the project launch date is never used as a fallback. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. Missing estimates and unresolved stages appear as planning blind spots and reduce confidence without inventing hours.
+Each member's work is grouped by project and assigned the gate date of its farthest mapped delivery stage. Parent work inherits the stages covered by its executable descendants, and cross-stage work uses the latest stage in the configured delivery order. Task due dates remain schedule-risk signals but do not position project delivery commitments, and the project launch date is never used as a fallback. Shared-task estimates, logged hours, and remaining hours are divided evenly among resolved assignees. Missing estimates and unresolved stages stay visible as planning blind spots, reducing confidence without inventing dates or hours.
 
 #### Normalize member names
 
@@ -572,7 +576,7 @@ After installation:
 
 1. Select the **PM Insights** ribbon icon, or run **PM Insights: Open workload insights** from the command palette.
 2. Select one or more projects.
-3. Select a member, then use the gauge beside their name to open the personal dashboard; select any insight to filter the related source tasks.
+3. Select a member, then use the gauge beside their name to open the personal delivery brief; select a delivery window, project workload, or capacity checkpoint to filter the related source tasks.
 4. Open **Settings → PM Insights** to configure member aliases, delivery stages, weights, acceptance rules, and gate-risk behavior.
 5. When you need schedule analysis, configure each project's gate dates from its chip in the current-scope bar.
 
