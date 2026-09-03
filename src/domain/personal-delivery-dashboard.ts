@@ -65,12 +65,14 @@ export type PersonalProjectDelivery = {
   resolution: "resolved" | "partial";
   stageId: string;
   stageName: string;
+  windowStartDate: string;
   date: string;
   unresolvedTaskCount: number;
 } | {
   resolution: "unresolved";
   stageId: null;
   stageName: null;
+  windowStartDate: null;
   date: null;
   unresolvedTaskCount: number;
 };
@@ -95,8 +97,9 @@ export interface PersonalWorkload {
 }
 
 export interface PersonalCapacityCheckpoint {
+  windowStartDate: string;
   date: string;
-  daysRemaining: number;
+  windowDays: number;
   projectIds: string[];
   projectTitles: string[];
   dueRemainingHours: number;
@@ -258,6 +261,7 @@ function projectDelivery(
       resolution: "unresolved",
       stageId: null,
       stageName: null,
+      windowStartDate: null,
       date: null,
       unresolvedTaskCount: Math.max(unresolvedTaskCount, project.openTaskCount)
     };
@@ -266,6 +270,7 @@ function projectDelivery(
     resolution: unresolvedTaskCount > 0 ? "partial" : "resolved",
     stageId: commitment.stageId,
     stageName: commitment.stageName,
+    windowStartDate: commitment.windowStartDate,
     date: commitment.deliveryDate,
     unresolvedTaskCount
   };
@@ -377,8 +382,16 @@ function summarizeDeliveryCapacity(
       (total, project) => total + project.remainingHours,
       0
     ));
-    const daysRemaining = Math.max(0, scheduleDaysBetween(today, date, includeWeekends));
-    const availableHours = round(daysRemaining * hoursPerDay);
+    const windowStartDate = cumulativeProjects.reduce((earliest, project) => {
+      const start = project.delivery.windowStartDate;
+      return start !== null && start < earliest ? start : earliest;
+    }, date);
+    const windowDays = Math.max(0, scheduleDaysBetween(
+      windowStartDate,
+      date,
+      includeWeekends
+    ));
+    const availableHours = round(windowDays * hoursPerDay);
     const balanceHours = round(availableHours - cumulativeRemainingHours);
     const utilizationPercentage = availableHours > 0
       ? percentage(cumulativeRemainingHours, availableHours)
@@ -386,8 +399,9 @@ function summarizeDeliveryCapacity(
         ? null
         : 0;
     return {
+      windowStartDate,
       date,
-      daysRemaining,
+      windowDays,
       projectIds: projects.map((project) => project.projectId),
       projectTitles: projects.map((project) => project.projectTitle),
       dueRemainingHours,
@@ -454,6 +468,13 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
     const plan = plans.get(metric.memberKey) ?? { commitments: [], unresolved: [] };
     const tasksByKey = new Map(metric.tasks.map((task) => [task.key, task]));
     const commitmentsByDate = new Map<string, PersonalDeliveryCommitment[]>();
+    const workload = summarizeProjectWorkload(metric, plan);
+    const capacity = summarizeDeliveryCapacity(
+      workload,
+      input.today,
+      raw.window.includeWeekends,
+      raw.window.hoursPerDay
+    );
 
     for (const commitment of plan.commitments) {
       const keys = commitment.taskKeys.filter((key) => tasksByKey.has(key));
@@ -489,7 +510,8 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
           (total, task) => total + task.allocatedRemaining, 0));
         const cumulativeRemainingHours = round(cumulativeTasks.reduce((total, task) =>
           total + (task.task.completed ? 0 : task.allocatedRemaining), 0));
-        const checkpoint = metric.checkpoints.find((item) => item.date === date)
+        const checkpoint = capacity.checkpoints.find((item) => item.date === date)
+          ?? metric.checkpoints.find((item) => item.date === date)
           ?? (date < raw.window.startDate
             ? metric.checkpoints.find((item) => item.date === raw.window.startDate)
             : undefined);
@@ -549,14 +571,6 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
         && (task.inWindow || task.effectiveDeadline === null))
       .map((task) => task.key);
     const blindKeys = unique([...unresolvedKeys, ...unestimatedKeys]);
-    const workload = summarizeProjectWorkload(metric, plan);
-    const capacity = summarizeDeliveryCapacity(
-      workload,
-      input.today,
-      raw.window.includeWeekends,
-      raw.window.hoursPerDay
-    );
-
     return {
       member: { key: metric.memberKey, name: metric.memberName },
       state: capacity.state,

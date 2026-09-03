@@ -439,8 +439,17 @@ const en = {
   personalDeliveryCapacity: "Delivery capacity",
   personalCapacityWindowCount: (count: number) =>
     `${count} capacity window${count === 1 ? "" : "s"}`,
-  personalCapacityTightestWindow: (date: string, load: number, capacity: number) =>
-    `Tightest ${date} · ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h load / ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h capacity`,
+  personalCriticalDeliveryWindow: "Tightest delivery window",
+  personalCapacityWindowStart: "Stage starts",
+  personalCapacityWindowEnd: "Delivery gate",
+  personalCapacityWindowDuration: (days: number, includeWeekends: boolean) =>
+    englishScheduleDays(days, includeWeekends),
+  personalCapacityWindowAria: (
+    startDate: string,
+    date: string,
+    days: number,
+    includeWeekends: boolean
+  ) => `Tightest delivery window from ${startDate} to ${date}, ${englishScheduleDays(days, includeWeekends)}`,
   personalCapacityNoWindows: "No resolved delivery window",
   personalCapacityNoWindowsHint: "Resolve a project delivery stage to compare work with capacity.",
   personalCapacityAwaitingPlan: "Capacity pending",
@@ -462,7 +471,7 @@ const en = {
     outcome: string
   ) => `${date}: ${load}h cumulative load, ${capacity}h available capacity, ${outcome}`,
   personalCapacityCheckpointMeta: (days: number, projects: number, includeWeekends: boolean) =>
-    `${days} ${includeWeekends ? "calendar day" : "workday"}${days === 1 ? "" : "s"} left · ${projects} project${projects === 1 ? "" : "s"} due`,
+    `${days} ${includeWeekends ? "calendar day" : "workday"}${days === 1 ? "" : "s"} in stage window · ${projects} project${projects === 1 ? "" : "s"} due`,
   personalCapacityLoadPair: (load: number, capacity: number) =>
     `${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h load / ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h capacity`,
   personalCapacityDueLoad: (hours: number) =>
@@ -1124,8 +1133,17 @@ const zh: typeof en = {
     `${tasks} 项任务${unestimated > 0 ? ` · ${unestimated} 项未估时` : ""}`,
   personalDeliveryCapacity: "交付容量对比",
   personalCapacityWindowCount: (count: number) => `${count} 个容量窗口`,
-  personalCapacityTightestWindow: (date: string, load: number, capacity: number) =>
-    `最紧窗口 ${date} · 累计 ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 容量 ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
+  personalCriticalDeliveryWindow: "最紧交付窗口",
+  personalCapacityWindowStart: "阶段起点",
+  personalCapacityWindowEnd: "交付节点",
+  personalCapacityWindowDuration: (days: number, includeWeekends: boolean) =>
+    chineseScheduleDays(days, includeWeekends),
+  personalCapacityWindowAria: (
+    startDate: string,
+    date: string,
+    days: number,
+    includeWeekends: boolean
+  ) => `最紧交付窗口从 ${startDate} 到 ${date}，${chineseScheduleDays(days, includeWeekends)}`,
   personalCapacityNoWindows: "暂无可计算的交付窗口",
   personalCapacityNoWindowsHint: "明确项目交付阶段后，即可比较现有工作与剩余容量。",
   personalCapacityAwaitingPlan: "等待排入容量",
@@ -1147,7 +1165,7 @@ const zh: typeof en = {
     outcome: string
   ) => `${date}：累计负载 ${load} 小时，可用容量 ${capacity} 小时，${outcome}`,
   personalCapacityCheckpointMeta: (days: number, projects: number, includeWeekends: boolean) =>
-    `距交付 ${days} 个${includeWeekends ? "自然日" : "工作日"} · ${projects} 个项目到期`,
+    `阶段窗口 ${days} 个${includeWeekends ? "自然日" : "工作日"} · ${projects} 个项目到期`,
   personalCapacityLoadPair: (load: number, capacity: number) =>
     `累计 ${load.toLocaleString(undefined, { maximumFractionDigits: 2 })}h / 容量 ${capacity.toLocaleString(undefined, { maximumFractionDigits: 2 })}h`,
   personalCapacityDueLoad: (hours: number) =>

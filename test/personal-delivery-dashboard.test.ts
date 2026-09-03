@@ -82,6 +82,8 @@ function riskProject(input: {
   testingDate?: string;
   configured?: boolean;
 }): ProjectGateRisk {
+  const developmentDate = input.developmentDate ?? "2026-09-03";
+  const testingDate = input.testingDate ?? "2026-09-08";
   const project = {
     id: input.id,
     title: input.title,
@@ -113,27 +115,32 @@ function riskProject(input: {
     gates: configured ? [
       {
         ...common,
+        windowStart: common.windowStart,
         id: "development",
         name: "Development",
         kind: "stage",
-        gateDate: input.developmentDate ?? "2026-09-03",
+        gateDate: developmentDate,
         tasks: input.development ?? []
       },
       {
         ...common,
+        windowStart: developmentDate,
         id: "testing",
         name: "Testing",
         kind: "stage",
-        gateDate: input.testingDate ?? "2026-09-08",
+        gateDate: testingDate,
         tasks: input.testing ?? []
       }
     ] : []
   };
 }
 
-function riskSnapshot(projects: ProjectGateRisk[]): GateRiskSnapshot {
+function riskSnapshot(
+  projects: ProjectGateRisk[],
+  today = "2026-08-31"
+): GateRiskSnapshot {
   return {
-    today: "2026-08-31",
+    today,
     projects,
     counts: {
       unconfigured: projects.filter((project) => !project.configured).length,
@@ -157,15 +164,16 @@ function build(
   members: MemberInsight[],
   projects: ProjectGateRisk[],
   allTasks?: TaskInsight[],
-  dashboardSettings: MemberDashboardSettings = settings
+  dashboardSettings: MemberDashboardSettings = settings,
+  today = "2026-08-31"
 ) {
   return buildPersonalDashboards({
     members,
-    today: "2026-08-31",
+    today,
     settings: dashboardSettings,
     workdayHours: 8,
     calendarDayHours: 8,
-    gateRisk: riskSnapshot(projects),
+    gateRisk: riskSnapshot(projects, today),
     allTasks: allTasks ?? members.flatMap((item) => item.tasks),
     deliveryProgressSettings: DEFAULT_SETTINGS.deliveryProgress,
     includeArchived: false,
@@ -439,6 +447,38 @@ describe("personal delivery dashboard", () => {
           taskKeys: ["p1\u0000early", "p2\u0000later"]
         }
       ]
+    });
+  });
+
+  it("measures a stage delivery capacity from the previous stage gate", () => {
+    const testing = task("testing", { estimate: 72, remaining: 72 });
+    const dashboard = build(
+      [member("Ada", [testing])],
+      [riskProject({
+        id: "p1",
+        title: "Project one",
+        testing: [testing],
+        developmentDate: "2026-09-01",
+        testingDate: "2026-09-07"
+      })],
+      undefined,
+      settings,
+      "2026-09-03"
+    ).dashboards[0];
+
+    expect(dashboard?.capacity.criticalCheckpoint).toMatchObject({
+      windowStartDate: "2026-09-01",
+      date: "2026-09-07",
+      windowDays: 4,
+      cumulativeRemainingHours: 72,
+      availableHours: 32,
+      balanceHours: -40
+    });
+    expect(dashboard?.deliveryWindows[0]).toMatchObject({
+      date: "2026-09-07",
+      cumulativeRemainingHours: 72,
+      cumulativeCapacityHours: 32,
+      balanceHours: -40
     });
   });
 

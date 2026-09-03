@@ -1557,24 +1557,23 @@ export class InsightsView extends ItemView {
         dashboard.window.includeWeekends
       )
     });
-    const health = mast.createDiv("pmi-member-health");
-    const healthSignal = health.createSpan("pmi-member-health-signal");
-    setIcon(healthSignal, this.memberDashboardHealthIcon(metric.state));
-    const healthCopy = health.createDiv("pmi-member-health-copy");
-    healthCopy.createSpan({ cls: "pmi-member-dashboard-kicker", text: t.personalDeliveryCapacity });
-    healthCopy.createEl("strong", {
-      text: this.personalCapacityOutcome(metric.capacity.criticalCheckpoint, metric.state, t)
-    });
-    healthCopy.createSpan({
-      cls: "pmi-personal-capacity-context",
-      text: metric.capacity.criticalCheckpoint
-        ? t.personalCapacityTightestWindow(
-            metric.capacity.criticalCheckpoint.date,
-            metric.capacity.criticalCheckpoint.cumulativeRemainingHours,
-            metric.capacity.criticalCheckpoint.availableHours
-          )
-        : t.personalCapacityNoWindows
-    });
+    const focus = mast.createDiv("pmi-personal-window-focus");
+    const focusHead = focus.createDiv("pmi-personal-window-focus-head");
+    setIcon(focusHead.createSpan(), "calendar-range");
+    focusHead.createSpan({ text: t.personalCriticalDeliveryWindow });
+    if (metric.capacity.criticalCheckpoint) {
+      this.renderPersonalCriticalWindow(
+        focus,
+        metric.capacity.criticalCheckpoint,
+        dashboard.window.includeWeekends,
+        t
+      );
+    } else {
+      focus.createSpan({
+        cls: "pmi-personal-capacity-context-empty",
+        text: t.personalCapacityNoWindows
+      });
+    }
 
     this.renderMemberGateSetupNotice(section, metric, snapshot, t);
 
@@ -1848,16 +1847,12 @@ export class InsightsView extends ItemView {
       cls: "pmi-personal-summary-value",
       text: this.personalCapacityOutcome(capacity.criticalCheckpoint, capacity.state, t)
     });
-    capacityCard.createSpan({
-      cls: "pmi-personal-summary-primary",
-      text: capacity.criticalCheckpoint
-        ? t.personalCapacityTightestWindow(
-            capacity.criticalCheckpoint.date,
-            capacity.criticalCheckpoint.cumulativeRemainingHours,
-            capacity.criticalCheckpoint.availableHours
-          )
-        : t.personalCapacityNoWindowsHint
-    });
+    if (!capacity.criticalCheckpoint) {
+      capacityCard.createSpan({
+        cls: "pmi-personal-summary-primary",
+        text: t.personalCapacityNoWindowsHint
+      });
+    }
     if (capacity.checkpoints.length > 0) {
       const checkpoints = capacityCard.createDiv({
         cls: "pmi-personal-capacity-checkpoints",
@@ -1893,7 +1888,7 @@ export class InsightsView extends ItemView {
         checkpointDate.createEl("strong", { text: this.shortDate(checkpoint.date) });
         checkpointDate.createSpan({
           text: t.personalCapacityCheckpointMeta(
-            checkpoint.daysRemaining,
+            checkpoint.windowDays,
             checkpoint.projectIds.length,
             dashboard.window.includeWeekends
           )
@@ -1958,6 +1953,48 @@ export class InsightsView extends ItemView {
         )
       });
     }
+  }
+
+  private renderPersonalCriticalWindow(
+    root: HTMLElement,
+    checkpoint: PersonalCapacityCheckpoint,
+    includeWeekends: boolean,
+    t: Translations
+  ): void {
+    const context = root.createDiv({
+      cls: "pmi-personal-critical-window",
+      attr: {
+        role: "img",
+        "aria-label": t.personalCapacityWindowAria(
+          checkpoint.windowStartDate,
+          checkpoint.date,
+          checkpoint.windowDays,
+          includeWeekends
+        ),
+        "data-window-start": checkpoint.windowStartDate,
+        "data-window-end": checkpoint.date
+      }
+    });
+    const route = context.createDiv("pmi-personal-critical-window-route");
+    const start = route.createDiv("pmi-personal-critical-window-boundary is-start");
+    start.createSpan({ text: t.personalCapacityWindowStart });
+    start.createEl("time", {
+      text: checkpoint.windowStartDate,
+      attr: { datetime: checkpoint.windowStartDate }
+    });
+    const bridge = route.createDiv("pmi-personal-critical-window-bridge");
+    bridge.createSpan({
+      cls: "pmi-personal-critical-window-duration",
+      text: t.personalCapacityWindowDuration(checkpoint.windowDays, includeWeekends)
+    });
+    const bridgeLine = bridge.createSpan("pmi-personal-critical-window-line");
+    setIcon(bridgeLine, "arrow-right");
+    const end = route.createDiv("pmi-personal-critical-window-boundary is-end");
+    end.createSpan({ text: t.personalCapacityWindowEnd });
+    end.createEl("time", {
+      text: checkpoint.date,
+      attr: { datetime: checkpoint.date }
+    });
   }
 
   private renderMemberGateSetupNotice(

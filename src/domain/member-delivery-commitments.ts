@@ -12,6 +12,7 @@ export interface MemberProjectCommitment {
   projectTitle: string;
   stageId: string;
   stageName: string;
+  windowStartDate: string;
   deliveryDate: string;
   crossedStageIds: string[];
   taskKeys: string[];
@@ -35,6 +36,7 @@ export interface MemberDeliveryPlan {
 interface StageReference {
   id: string;
   name: string;
+  windowStart: string;
   date: string;
   order: number;
 }
@@ -85,6 +87,7 @@ function indexTaskStages(
       const stage: StageReference = {
         id: gate.id,
         name: gate.name,
+        windowStart: gate.windowStart,
         date: gate.gateDate,
         order
       };
@@ -171,6 +174,7 @@ function resolveMemberDeliveryPlan(
       projectTitle: projectTasks[0]?.projectTitle ?? project.project.title,
       stageId: farthest.id,
       stageName: farthest.name,
+      windowStartDate: farthest.windowStart,
       deliveryDate: farthest.date,
       crossedStageIds: orderedStages.map((stage) => stage.id),
       taskKeys: resolvedTaskKeys
