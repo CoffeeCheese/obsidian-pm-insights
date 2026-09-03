@@ -63,7 +63,8 @@ function gate(
     quality: { missingDue: 0, unestimated: 0, unassigned: 0 },
     timing: null,
     dueDateChecksEnabled: true,
-    includeWeekends: true
+    includeWeekends: true,
+    countSameDayGateAsDay: false
   };
   return {
     project: project(projectId),

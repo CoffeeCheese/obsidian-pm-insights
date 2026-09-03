@@ -172,14 +172,16 @@ describe("normalizeInsightSettings", () => {
           stageGates: { design: "2026-08-05", development: "2026-08-12" },
           acceptanceGate: "2026-08-18",
           launchDate: "2026-08-20",
-          includeWeekends: false
+          includeWeekends: false,
+          countSameDayGateAsDay: true
         },
         "temporarily-missing": {
           startDate: "2026-09-01",
           stageGates: {},
           acceptanceGate: "",
           launchDate: "",
-          includeWeekends: true
+          includeWeekends: true,
+          countSameDayGateAsDay: false
         }
       }
     });
@@ -189,7 +191,8 @@ describe("normalizeInsightSettings", () => {
       stageGates: { design: "2026-08-05", development: "2026-08-12" },
       acceptanceGate: "2026-08-18",
       launchDate: "2026-08-20",
-      includeWeekends: false
+      includeWeekends: false,
+      countSameDayGateAsDay: true
     });
     expect(normalized.gateSchedules["temporarily-missing"]).toBeDefined();
   });
@@ -207,6 +210,7 @@ describe("normalizeInsightSettings", () => {
     } as unknown as Partial<InsightSettings>);
 
     expect(normalized.gateSchedules.legacy?.includeWeekends).toBe(true);
+    expect(normalized.gateSchedules.legacy?.countSameDayGateAsDay).toBe(false);
   });
 
   it("links a legacy evaluating draft to only its latest active assessment", () => {

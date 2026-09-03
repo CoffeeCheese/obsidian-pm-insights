@@ -5284,14 +5284,26 @@ body .modal-container .modal.pmi-project-gates-modal .modal-content {
   font-size: var(--font-ui-small);
 }
 
+.pmi-gate-clock-rules {
+  border-block-end: 1px solid var(--background-modifier-border);
+  background: color-mix(in srgb, var(--background-secondary) 72%, var(--background-primary));
+}
+
 .pmi-gate-calendar-rule {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
   gap: 11px;
   align-items: center;
   padding: 13px 22px;
-  border-block-end: 1px solid var(--background-modifier-border);
-  background: color-mix(in srgb, var(--background-secondary) 72%, var(--background-primary));
+  background: transparent;
+}
+
+.pmi-gate-calendar-rule + .pmi-gate-calendar-rule {
+  border-block-start: 1px solid color-mix(
+    in srgb,
+    var(--background-modifier-border) 72%,
+    transparent
+  );
 }
 
 .pmi-gate-calendar-signal {
@@ -5350,6 +5362,11 @@ body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickab
   outline-offset: 2px;
 }
 
+body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickable-icon):disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .pmi-gate-calendar-weekend {
   display: grid;
   grid-template-columns: repeat(2, 27px);
@@ -5386,6 +5403,56 @@ body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickab
   transform: rotate(-38deg);
 }
 
+.pmi-gate-same-day-preview {
+  display: grid;
+  grid-template-columns: 29px 18px 29px;
+  align-items: center;
+}
+
+.pmi-gate-same-day-date,
+.pmi-gate-same-day-result {
+  display: grid;
+  height: 29px;
+  place-items: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 7px;
+  background: var(--background-secondary);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.pmi-gate-same-day-date {
+  color: var(--text-muted);
+}
+
+.pmi-gate-same-day-result {
+  color: var(--text-faint);
+}
+
+.pmi-gate-same-day-bridge {
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+}
+
+.pmi-gate-same-day-bridge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pmi-gate-same-day-toggle.is-enabled .pmi-gate-same-day-date,
+.pmi-gate-same-day-toggle.is-enabled .pmi-gate-same-day-result {
+  border-color: color-mix(in srgb, var(--interactive-accent) 42%, var(--background-modifier-border));
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+}
+
+.pmi-gate-same-day-toggle.is-enabled .pmi-gate-same-day-bridge {
+  color: var(--text-accent);
+}
+
 .pmi-gate-calendar-state {
   display: grid;
   min-width: 0;
@@ -5403,6 +5470,15 @@ body .modal.pmi-project-gates-modal button.pmi-gate-calendar-toggle:not(.clickab
   color: var(--text-accent);
   font-size: var(--font-ui-small);
   white-space: nowrap;
+}
+
+.pmi-delay-clock-state-mode + .pmi-delay-clock-state-mode {
+  padding-block-start: 5px;
+  border-block-start: 1px solid color-mix(
+    in srgb,
+    var(--background-modifier-border) 72%,
+    transparent
+  );
 }
 
 .pmi-gate-editor-timeline {
@@ -5664,7 +5740,9 @@ body .modal.pmi-confirm-action-modal
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pmi-gate-calendar-weekend > span {
+  .pmi-gate-calendar-weekend > span,
+  .pmi-gate-same-day-date,
+  .pmi-gate-same-day-result {
     transition: none;
   }
 }

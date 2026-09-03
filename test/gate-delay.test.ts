@@ -31,7 +31,8 @@ const schedule: ProjectGateSchedule = {
   },
   acceptanceGate: "2026-08-14",
   launchDate: "2026-08-17",
-  includeWeekends: false
+  includeWeekends: false,
+  countSameDayGateAsDay: false
 };
 
 function task(overrides: Partial<TaskRecord>): TaskRecord {

@@ -35,3 +35,22 @@ export function scheduleDaysBetween(
   }
   return direction * days;
 }
+
+/**
+ * Counts usable days in one delivery-stage window.
+ *
+ * Normal windows retain the project clock's `(from, to]` semantics. A project
+ * may explicitly treat two gates on the same eligible date as one full day of
+ * capacity, without changing elapsed, delay, overdue, or remaining-day clocks.
+ */
+export function stageWindowDaysBetween(
+  from: string,
+  to: string,
+  includeWeekends: boolean,
+  countSameDayGateAsDay: boolean
+): number {
+  if (from !== to || !countSameDayGateAsDay) {
+    return scheduleDaysBetween(from, to, includeWeekends);
+  }
+  return includeWeekends || !isWeekend(dateValue(to)) ? 1 : 0;
+}

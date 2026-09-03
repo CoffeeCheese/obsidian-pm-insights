@@ -93,6 +93,7 @@ export interface GateRiskMetric {
   timing: GateTiming | null;
   dueDateChecksEnabled: boolean;
   includeWeekends: boolean;
+  countSameDayGateAsDay: boolean;
   baselineDate?: string;
   forecastDate?: string | null;
   actualDate?: string | null;
@@ -277,6 +278,7 @@ function assessGate(input: {
   previousGatesPassed?: boolean;
   checkTaskDueDates: boolean;
   includeWeekends: boolean;
+  countSameDayGateAsDay: boolean;
 }): GateRiskMetric {
   const unfinished = input.tasks.filter((task) => !task.completed);
   const expected = expectedProgress(
@@ -369,6 +371,7 @@ function assessGate(input: {
     timing,
     dueDateChecksEnabled: input.checkTaskDueDates,
     includeWeekends: input.includeWeekends,
+    countSameDayGateAsDay: input.countSameDayGateAsDay,
     baselineDate: input.gateDate,
     forecastDate: null,
     actualDate: input.actualDate ?? null,
@@ -453,6 +456,7 @@ function projectRisk(
   });
   const checkTaskDueDates = options.checkTaskDueDates !== false;
   const includeWeekends = schedule.includeWeekends !== false;
+  const countSameDayGateAsDay = schedule.countSameDayGateAsDay === true;
   const gates: GateRiskMetric[] = [];
   let windowStart = schedule.startDate;
   let previousGatesPassed = true;
@@ -478,7 +482,8 @@ function projectRisk(
       skipped: metric.state === "skipped",
       previousGatesPassed,
       checkTaskDueDates,
-      includeWeekends
+      includeWeekends,
+      countSameDayGateAsDay
     });
     applyDelayContext(gate, stage.id, baseline, plan, actuals, options.today);
     gates.push(gate);
@@ -512,7 +517,8 @@ function projectRisk(
     actualDate: acceptanceActual,
     previousGatesPassed,
     checkTaskDueDates,
-    includeWeekends
+    includeWeekends,
+    countSameDayGateAsDay
   });
   applyDelayContext(acceptance, "acceptance", baseline, plan, actuals, options.today);
   acceptance.tasks = acceptanceTasks;
@@ -544,7 +550,8 @@ function projectRisk(
       : progress.acceptance.total > 0 && acceptanceProgress === 100,
     actualDate: actuals?.launchDate ?? null,
     checkTaskDueDates,
-    includeWeekends
+    includeWeekends,
+    countSameDayGateAsDay
   });
   launch.capacity = assessLaunchCapacity({
     tasks: capacityTasks,

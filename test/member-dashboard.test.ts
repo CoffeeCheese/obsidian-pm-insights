@@ -96,7 +96,8 @@ function riskSnapshot(
     quality: { missingDue: 0, unestimated: 0, unassigned: 0 },
     timing: null,
     dueDateChecksEnabled: true,
-    includeWeekends: false
+    includeWeekends: false,
+    countSameDayGateAsDay: false
   };
   return {
     today: "2026-08-31",

@@ -23,7 +23,7 @@ import {
   validateGateForecast
 } from "./domain/gate-delay";
 import { isDateOnly, validateGateSchedule } from "./domain/gate-schedule";
-import { scheduleDaysBetween } from "./domain/schedule-calendar";
+import { scheduleDaysBetween, stageWindowDaysBetween } from "./domain/schedule-calendar";
 import type { Translations } from "./i18n";
 import type {
   DeliveryStageSettings,
@@ -147,14 +147,16 @@ export class ProjectGatesModal extends Modal {
     this.baseline = options.schedule
       ? {
           ...structuredClone(options.schedule),
-          includeWeekends: options.schedule.includeWeekends !== false
+          includeWeekends: options.schedule.includeWeekends !== false,
+          countSameDayGateAsDay: options.schedule.countSameDayGateAsDay === true
         }
       : {
           startDate: "",
           stageGates: {},
           acceptanceGate: "",
           launchDate: "",
-          includeWeekends: true
+          includeWeekends: true,
+          countSameDayGateAsDay: false
         };
     this.delay = options.delay ? structuredClone(options.delay) : undefined;
     this.savedBaseline = structuredClone(this.baseline);
@@ -278,7 +280,9 @@ export class ProjectGatesModal extends Modal {
         this.render();
       });
     }
-    this.renderCalendarRule(root, !policy.canEditCalendarRule);
+    const clockRules = root.createDiv("pmi-gate-clock-rules");
+    this.renderCalendarRule(clockRules, !policy.canEditCalendarRule);
+    this.renderSameDayGateRule(clockRules, !policy.canEditCalendarRule);
     const timeline = root.createDiv("pmi-gate-editor-timeline");
     this.baselineDateField(timeline, "flag", t.projectStartDate, this.baseline.startDate, (value) => {
       this.baseline.startDate = value;
@@ -429,6 +433,45 @@ export class ProjectGatesModal extends Modal {
     });
   }
 
+  private renderSameDayGateRule(root: HTMLElement, disabled: boolean): void {
+    const t = this.options.translations;
+    const rule = root.createDiv("pmi-gate-calendar-rule is-same-day");
+    const signal = rule.createSpan("pmi-gate-calendar-signal");
+    setIcon(signal, "calendar-range");
+    const copy = rule.createDiv("pmi-gate-calendar-copy");
+    copy.createEl("strong", { text: t.gateSameDayRuleTitle });
+    copy.createSpan({ text: t.gateSameDayRuleDesc });
+    const toggle = rule.createEl("button", {
+      cls: "pmi-gate-calendar-toggle pmi-gate-same-day-toggle",
+      attr: { type: "button", role: "switch" }
+    });
+    toggle.disabled = disabled;
+    const enabled = this.baseline.countSameDayGateAsDay;
+    toggle.classList.toggle("is-enabled", enabled);
+    toggle.setAttribute("aria-checked", String(enabled));
+    const preview = toggle.createSpan("pmi-gate-same-day-preview");
+    preview.createSpan({ cls: "pmi-gate-same-day-date", text: "08" });
+    const bridge = preview.createSpan("pmi-gate-same-day-bridge");
+    setIcon(bridge, "arrow-right");
+    preview.createSpan({
+      cls: "pmi-gate-same-day-result",
+      text: enabled ? t.gateSameDayPreviewEnabled : t.gateSameDayPreviewDisabled
+    });
+    const state = toggle.createSpan("pmi-gate-calendar-state");
+    state.createSpan({ cls: "pmi-gate-calendar-toggle-label", text: t.gateSameDayToggleLabel });
+    state.createEl("strong", {
+      text: enabled ? t.gateSameDayEnabled : t.gateSameDayDisabled
+    });
+    toggle.setAttribute("aria-label", `${t.gateSameDayToggleLabel}: ${enabled
+      ? t.gateSameDayEnabled
+      : t.gateSameDayDisabled}`);
+    toggle.addEventListener("click", () => {
+      this.baseline.countSameDayGateAsDay = !this.baseline.countSameDayGateAsDay;
+      this.updateBaselineDirty();
+      this.render();
+    });
+  }
+
   private renderDelay(root: HTMLElement): void {
     const t = this.options.translations;
     const baselineValidation = validateGateSchedule(this.baseline, this.stageIds());
@@ -487,7 +530,7 @@ export class ProjectGatesModal extends Modal {
     this.renderDelayClockState(
       route,
       t.gateDelayClockSavedRule,
-      this.savedBaseline.includeWeekends,
+      this.savedBaseline,
       false
     );
     const arrow = route.createSpan("pmi-delay-clock-route-arrow");
@@ -495,7 +538,7 @@ export class ProjectGatesModal extends Modal {
     this.renderDelayClockState(
       route,
       t.gateDelayClockPendingRule,
-      this.baseline.includeWeekends,
+      this.baseline,
       true
     );
 
@@ -508,6 +551,7 @@ export class ProjectGatesModal extends Modal {
     discard.buttonEl.addClass("pmi-delay-clock-action", "is-discard");
     discard.onClick(() => {
       this.baseline.includeWeekends = this.savedBaseline.includeWeekends;
+      this.baseline.countSameDayGateAsDay = this.savedBaseline.countSameDayGateAsDay;
       this.updateBaselineDirty();
       this.render();
     });
@@ -519,17 +563,24 @@ export class ProjectGatesModal extends Modal {
   private renderDelayClockState(
     root: HTMLElement,
     label: string,
-    includeWeekends: boolean,
+    schedule: Pick<ProjectGateSchedule, "includeWeekends" | "countSameDayGateAsDay">,
     pending: boolean
   ): void {
     const state = root.createDiv(`pmi-delay-clock-state${pending ? " is-pending" : ""}`);
     state.createSpan({ text: label });
-    const mode = state.createEl("strong");
-    setIcon(mode.createSpan(), includeWeekends ? "calendar-days" : "calendar-off");
-    mode.createSpan({
-      text: includeWeekends
+    const calendarMode = state.createEl("strong", { cls: "pmi-delay-clock-state-mode" });
+    setIcon(calendarMode.createSpan(), schedule.includeWeekends ? "calendar-days" : "calendar-off");
+    calendarMode.createSpan({
+      text: schedule.includeWeekends
         ? this.options.translations.gateCalendarDays
         : this.options.translations.gateWorkingDays
+    });
+    const sameDayMode = state.createEl("strong", { cls: "pmi-delay-clock-state-mode" });
+    setIcon(sameDayMode.createSpan(), "calendar-range");
+    sameDayMode.createSpan({
+      text: schedule.countSameDayGateAsDay
+        ? this.options.translations.gateSameDayEnabled
+        : this.options.translations.gateSameDayDisabled
     });
   }
 
@@ -1329,6 +1380,7 @@ export class ProjectGatesModal extends Modal {
       || this.baseline.acceptanceGate !== this.savedBaseline.acceptanceGate
       || this.baseline.launchDate !== this.savedBaseline.launchDate
       || this.baseline.includeWeekends !== this.savedBaseline.includeWeekends
+      || this.baseline.countSameDayGateAsDay !== this.savedBaseline.countSameDayGateAsDay
       || [...stageIds].some((id) =>
         this.baseline.stageGates[id] !== this.savedBaseline.stageGates[id]
       );
@@ -1384,7 +1436,14 @@ export class ProjectGatesModal extends Modal {
         row.element.setText("");
         continue;
       }
-      const days = scheduleDaysBetween(from, to, this.baseline.includeWeekends);
+      const days = row.projectDuration
+        ? scheduleDaysBetween(from, to, this.baseline.includeWeekends)
+        : stageWindowDaysBetween(
+            from,
+            to,
+            this.baseline.includeWeekends,
+            this.baseline.countSameDayGateAsDay
+          );
       row.element.setText(row.projectDuration
         ? t.gateProjectDuration(days, this.baseline.includeWeekends)
         : t.gateWindowDuration(days, this.baseline.includeWeekends));

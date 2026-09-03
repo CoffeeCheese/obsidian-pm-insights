@@ -103,7 +103,10 @@ function normalizeGateSchedules(value: unknown): Record<string, ProjectGateSched
       launchDate: typeof raw.launchDate === "string" ? raw.launchDate.trim() : "",
       // Existing gate schedules have always used calendar days. Preserve that
       // calculation until a user explicitly enables the workday-only clock.
-      includeWeekends: typeof raw.includeWeekends === "boolean" ? raw.includeWeekends : true
+      includeWeekends: typeof raw.includeWeekends === "boolean" ? raw.includeWeekends : true,
+      // Same-day gates historically had no capacity. Keep that result until
+      // the project explicitly opts into a full shared delivery day.
+      countSameDayGateAsDay: raw.countSameDayGateAsDay === true
     } satisfies ProjectGateSchedule]];
   }));
 }

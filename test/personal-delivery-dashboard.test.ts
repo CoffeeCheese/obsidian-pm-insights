@@ -80,6 +80,7 @@ function riskProject(input: {
   testing?: TaskInsight[];
   developmentDate?: string;
   testingDate?: string;
+  countSameDayGateAsDay?: boolean;
   configured?: boolean;
 }): ProjectGateRisk {
   const developmentDate = input.developmentDate ?? "2026-09-03";
@@ -104,7 +105,8 @@ function riskProject(input: {
     quality: { missingDue: 0, unestimated: 0, unassigned: 0 },
     timing: null,
     dueDateChecksEnabled: true,
-    includeWeekends: false
+    includeWeekends: false,
+    countSameDayGateAsDay: input.countSameDayGateAsDay ?? false
   };
   const configured = input.configured ?? true;
   return {
@@ -479,6 +481,38 @@ describe("personal delivery dashboard", () => {
       cumulativeRemainingHours: 72,
       cumulativeCapacityHours: 32,
       balanceHours: -40
+    });
+  });
+
+  it("applies the project same-day gate rule to delivery capacity", () => {
+    const testing = task("testing", { estimate: 8, remaining: 8 });
+    const dashboard = build(
+      [member("Ada", [testing])],
+      [riskProject({
+        id: "p1",
+        title: "Project one",
+        testing: [testing],
+        developmentDate: "2026-09-08",
+        testingDate: "2026-09-08",
+        countSameDayGateAsDay: true
+      })],
+      undefined,
+      settings,
+      "2026-09-03"
+    ).dashboards[0];
+
+    expect(dashboard?.capacity.criticalCheckpoint).toMatchObject({
+      windowStartDate: "2026-09-08",
+      date: "2026-09-08",
+      windowDays: 1,
+      cumulativeRemainingHours: 8,
+      availableHours: 8,
+      balanceHours: 0
+    });
+    expect(dashboard?.deliveryWindows[0]).toMatchObject({
+      date: "2026-09-08",
+      cumulativeCapacityHours: 8,
+      balanceHours: 0
     });
   });
 

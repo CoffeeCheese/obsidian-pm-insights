@@ -14,6 +14,7 @@ export interface MemberProjectCommitment {
   stageName: string;
   windowStartDate: string;
   deliveryDate: string;
+  countSameDayGateAsDay: boolean;
   crossedStageIds: string[];
   taskKeys: string[];
 }
@@ -38,6 +39,7 @@ interface StageReference {
   name: string;
   windowStart: string;
   date: string;
+  countSameDayGateAsDay: boolean;
   order: number;
 }
 
@@ -89,6 +91,7 @@ function indexTaskStages(
         name: gate.name,
         windowStart: gate.windowStart,
         date: gate.gateDate,
+        countSameDayGateAsDay: gate.countSameDayGateAsDay,
         order
       };
       const stageTasks = new Map([
@@ -176,6 +179,7 @@ function resolveMemberDeliveryPlan(
       stageName: farthest.name,
       windowStartDate: farthest.windowStart,
       deliveryDate: farthest.date,
+      countSameDayGateAsDay: farthest.countSameDayGateAsDay,
       crossedStageIds: orderedStages.map((stage) => stage.id),
       taskKeys: resolvedTaskKeys
     });

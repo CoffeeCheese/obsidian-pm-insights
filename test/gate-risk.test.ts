@@ -63,7 +63,8 @@ const schedule: ProjectGateSchedule = {
   stageGates: { delivery: "2026-08-11" },
   acceptanceGate: "2026-08-15",
   launchDate: "2026-08-18",
-  includeWeekends: true
+  includeWeekends: true,
+  countSameDayGateAsDay: false
 };
 
 const risk = (
@@ -173,6 +174,16 @@ describe("aggregateGateRisk", () => {
       daysRemaining: 2,
       includeWeekends: false
     });
+  });
+
+  it("carries the project same-day capacity rule into every gate", () => {
+    const enabledSchedule = { ...schedule, countSameDayGateAsDay: true };
+    const gates = risk([root(), task({ id: "open" })], "2026-08-08", {
+      p1: enabledSchedule
+    }).projects[0]?.gates;
+
+    expect(gates).not.toHaveLength(0);
+    expect(gates?.every((gate) => gate.countSameDayGateAsDay)).toBe(true);
   });
 
   it("raises launch risk when owner load exceeds its stage-milestone capacity", () => {
@@ -596,7 +607,8 @@ describe("aggregateGateRisk", () => {
       },
       acceptanceGate: "2026-08-15",
       launchDate: "2026-08-21",
-      includeWeekends: true
+      includeWeekends: true,
+      countSameDayGateAsDay: false
     };
     const snapshot = aggregateGateRisk([project], [
       root(),
@@ -661,7 +673,8 @@ describe("aggregateGateRisk", () => {
       stageGates: { discovery: "2026-08-05", delivery: "2026-08-10" },
       acceptanceGate: "2026-08-15",
       launchDate: "2026-08-21",
-      includeWeekends: true
+      includeWeekends: true,
+      countSameDayGateAsDay: false
     };
     const snapshot = aggregateGateRisk([project], [
       root({ completed: true, completedAt: "2026-08-14" }),

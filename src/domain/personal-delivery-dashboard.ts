@@ -9,7 +9,7 @@ import {
   type MemberDeliveryPlan,
   type MemberProjectCommitment
 } from "./member-delivery-commitments";
-import { scheduleDaysBetween } from "./schedule-calendar";
+import { stageWindowDaysBetween } from "./schedule-calendar";
 import type { MemberInsight } from "../model";
 
 export type DeliveryRiskSignalKind =
@@ -67,6 +67,7 @@ export type PersonalProjectDelivery = {
   stageName: string;
   windowStartDate: string;
   date: string;
+  countSameDayGateAsDay: boolean;
   unresolvedTaskCount: number;
 } | {
   resolution: "unresolved";
@@ -74,6 +75,7 @@ export type PersonalProjectDelivery = {
   stageName: null;
   windowStartDate: null;
   date: null;
+  countSameDayGateAsDay: false;
   unresolvedTaskCount: number;
 };
 
@@ -263,6 +265,7 @@ function projectDelivery(
       stageName: null,
       windowStartDate: null,
       date: null,
+      countSameDayGateAsDay: false,
       unresolvedTaskCount: Math.max(unresolvedTaskCount, project.openTaskCount)
     };
   }
@@ -272,6 +275,7 @@ function projectDelivery(
     stageName: commitment.stageName,
     windowStartDate: commitment.windowStartDate,
     date: commitment.deliveryDate,
+    countSameDayGateAsDay: commitment.countSameDayGateAsDay,
     unresolvedTaskCount
   };
 }
@@ -386,10 +390,12 @@ function summarizeDeliveryCapacity(
       const start = project.delivery.windowStartDate;
       return start !== null && start < earliest ? start : earliest;
     }, date);
-    const windowDays = Math.max(0, scheduleDaysBetween(
+    const windowDays = Math.max(0, stageWindowDaysBetween(
       windowStartDate,
       date,
-      includeWeekends
+      includeWeekends,
+      cumulativeProjects.some((project) =>
+        project.delivery.countSameDayGateAsDay === true)
     ));
     const availableHours = round(windowDays * hoursPerDay);
     const balanceHours = round(availableHours - cumulativeRemainingHours);

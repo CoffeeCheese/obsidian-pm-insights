@@ -66,6 +66,7 @@ export interface ProjectGateSchedule {
   acceptanceGate: string;
   launchDate: string;
   includeWeekends: boolean;
+  countSameDayGateAsDay: boolean;
 }
 
 export interface ProjectGateForecast {
