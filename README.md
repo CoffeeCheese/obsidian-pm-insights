@@ -201,11 +201,11 @@ Choose a member from the team overview to inspect personal and shared tasks sepa
 
 #### Open a focused personal dashboard
 
-After selecting a member, use the gauge button beside their name to open a centered **Personal delivery brief**. The modal concentrates on one decision: can this person's current project workload fit into the working capacity available before each project delivery date?
+After selecting a member, use the gauge button beside their name to open a centered **Personal delivery brief**. The modal concentrates on one decision: can this person's current project workload fit into the working capacity available before each project delivery date? Its masthead calls out the tightest interval as **stage start → workdays → delivery gate**, while the dedicated capacity card owns the buffer or shortfall conclusion.
 
-![Personal delivery brief using fictional README data, showing delivery windows, project-level workload, and cumulative delivery-capacity shortfalls](docs/assets/pm-insights-member-dashboard-focused.png)
+![Personal delivery brief using fictional README data, with an explicit stage-start-to-delivery-gate route, delivery windows, project workload, and one capacity comparison](docs/assets/pm-insights-member-dashboard-focused.png)
 
-*The screenshot uses fictional README demo projects and members only. On each capacity rail, the marker shows the available-capacity limit and the striped segment shows work that no longer fits before that delivery date.*
+*The screenshot uses fictional README demo projects and members only. The masthead identifies the tightest stage interval without repeating the capacity result; the capacity card below owns the load comparison. On its rail, the marker shows the available-capacity limit and the striped segment shows work that no longer fits before the delivery gate.*
 
 | View | What it explains |
 | --- | --- |
