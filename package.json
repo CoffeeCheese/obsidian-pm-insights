@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pm-insights",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "private": true,
   "description": "Read-only assignee workload insights for the Obsidian Project Manager plugin.",
   "main": "main.js",
@@ -24,6 +24,7 @@
     "test:ui:task-filters": "node scripts/check-task-filters.mjs",
     "test:ui:task-filter-overflow": "node scripts/check-task-filter-overflow.mjs",
     "test:ui:task-navigation": "node scripts/check-task-navigation.mjs",
+    "test:ui:pm-compatibility": "node scripts/check-project-manager-compatibility.mjs",
     "test:ui:acceptance-status": "node scripts/check-acceptance-status.mjs",
     "test:ui:delivery-progress-overflow": "node scripts/check-delivery-progress-overflow.mjs",
     "test:ui:delivery-issue-filter-layering": "node scripts/check-delivery-issue-filter-layering.mjs",

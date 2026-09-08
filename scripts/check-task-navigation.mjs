@@ -10,6 +10,10 @@ const openResult = spawnSync(
 if (openResult.error) throw openResult.error;
 
 const evaluation = `(async () => {
+  const nativeSettings = app.plugins.getPlugin("project-manager")?.settings;
+  const originalSaveOnClose = nativeSettings?.saveTaskOnClose;
+  try {
+  if (typeof originalSaveOnClose === "boolean") nativeSettings.saveTaskOnClose = false;
   const waitFor = async (read, attempts = 100) => {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const result = read();
@@ -56,10 +60,11 @@ const evaluation = `(async () => {
   const originalProjectLeaves = new Set(app.workspace.getLeavesOfType("pm-project"));
   const originalDetachedHosts = new Set(document.querySelectorAll(".pmi-detached-project-host"));
   const originalModals = new Set(document.querySelectorAll(".modal-container"));
+  const originalNotices = new Set(document.querySelectorAll(".notice"));
   let taskFailureNotice = false;
   let taskUnsupportedVersionNotice = false;
   const captureFailureNotice = () => {
-    const notices = [...document.querySelectorAll(".notice")];
+    const notices = [...document.querySelectorAll(".notice")].filter((notice) => !originalNotices.has(notice));
     taskFailureNotice ||= notices.some((notice) =>
       notice.textContent?.includes("无法在 Project Manager 中打开此任务")
     );
@@ -155,6 +160,9 @@ const evaluation = `(async () => {
     projectOpenedNewTab,
     projectInitialized
   });
+  } finally {
+    if (typeof originalSaveOnClose === "boolean") nativeSettings.saveTaskOnClose = originalSaveOnClose;
+  }
 })()`;
 
 const result = spawnSync("obsidian", [`vault=${vault}`, "eval", `code=${evaluation}`], {

@@ -2,16 +2,16 @@ import { Events, type App } from "obsidian";
 
 const PROJECT_MANAGER_ID = "project-manager";
 const PROJECT_VIEW_TYPE = "pm-project";
-const COMPATIBLE_VERSION = /^(?:1\.8|2\.1)\./u;
 const RENDER_TIMEOUT_MS = 2_500;
 const POLL_INTERVAL_MS = 40;
 
 interface ProjectManagerRouter {
   openProjectByPath(path: string): Promise<void> | void;
+  openTask?(state: { filePath: string }): Promise<void> | void;
 }
 
 interface ProjectManagerPlugin {
-  manifest?: { version?: string };
+  settings?: { taskEditorSurface?: string };
   router?: ProjectManagerRouter;
 }
 
@@ -21,6 +21,7 @@ interface PluginRegistry {
 
 interface ProjectTask {
   id?: string;
+  filePath?: string;
   collapsed?: boolean;
   subtasks?: ProjectTask[];
 }
@@ -88,7 +89,6 @@ class DetachedProjectLeaf extends Events {
 
 type NavigationFailureCode =
   | "plugin-unavailable"
-  | "unsupported-version"
   | "project-router-unavailable"
   | "task-not-found"
   | "task-editor-unavailable";
@@ -112,7 +112,7 @@ export class ProjectManagerNavigator {
 
   async openProject(projectPath: string): Promise<void> {
     const plugin = this.plugin();
-    if (!plugin.router?.openProjectByPath) {
+    if (typeof plugin.router?.openProjectByPath !== "function") {
       throw new ProjectManagerNavigationError("project-router-unavailable");
     }
     await plugin.router.openProjectByPath(projectPath);
@@ -127,15 +127,19 @@ export class ProjectManagerNavigator {
 
     try {
       const plugin = this.plugin();
-      if (!COMPATIBLE_VERSION.test(plugin.manifest?.version ?? "")) {
-        throw new ProjectManagerNavigationError("unsupported-version");
-      }
-
+      // Probe the editor capabilities below: a new version alone is not a failure.
       const existingModals = new Set(document.querySelectorAll(".modal-container"));
       ({ leaf: detachedLeaf, view: projectView } = await this.createDetachedProjectView(
         target.projectPath
       ));
       const task = await this.findProjectTask(projectView, target.taskId);
+      if (task?.filePath && plugin.settings?.taskEditorSurface === "tab") {
+        if (typeof plugin.router?.openTask !== "function") {
+          throw new ProjectManagerNavigationError("task-editor-unavailable");
+        }
+        await plugin.router.openTask({ filePath: task.filePath });
+        return;
+      }
       if (!task || !this.openProjectTask(projectView, task)) {
         const taskButton = await this.findTaskButton(projectView, target.taskId);
         if (!taskButton) throw new ProjectManagerNavigationError("task-not-found");
@@ -162,13 +166,17 @@ export class ProjectManagerNavigator {
   ): Promise<{ leaf: DetachedProjectLeaf; view: ProjectManagerProjectView }> {
     const registry = (this.app as App & { viewRegistry?: ProjectViewRegistry }).viewRegistry;
     const createView = registry?.getViewCreatorByType?.(PROJECT_VIEW_TYPE);
-    if (!createView) throw new ProjectManagerNavigationError("task-editor-unavailable");
+    if (typeof createView !== "function") {
+      throw new ProjectManagerNavigationError("task-editor-unavailable");
+    }
 
     const leaf = new DetachedProjectLeaf(this.app);
     let view: ProjectManagerProjectView | null = null;
     try {
       view = createView(leaf);
-      if (!view.setState) throw new ProjectManagerNavigationError("task-editor-unavailable");
+      if (typeof view.setState !== "function") {
+        throw new ProjectManagerNavigationError("task-editor-unavailable");
+      }
       view.load?.();
       await view.onOpen?.();
       await view.setState({ filePath: projectPath }, {});
@@ -245,12 +253,12 @@ export class ProjectManagerNavigator {
   }
 
   private openProjectTask(view: ProjectManagerProjectView, task: ProjectTask): boolean {
-    if (!view.subview?.openTask && view.renderCurrentView) {
+    if (typeof view.subview?.openTask !== "function" && typeof view.renderCurrentView === "function") {
       view.currentView = "kanban";
       view.renderCurrentView();
     }
 
-    if (!view.subview?.openTask) return false;
+    if (typeof view.subview?.openTask !== "function") return false;
     view.subview.openTask(task);
     return true;
   }

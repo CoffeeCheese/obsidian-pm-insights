@@ -639,8 +639,6 @@ const en = {
   projectManagerDependencyOpen: "Open plugin page",
   projectManagerDependencyLater: "Not now",
   projectManagerUnavailable: "Project Manager is unavailable. Make sure the plugin is enabled.",
-  projectManagerVersionUnsupported:
-    "This Project Manager version does not support opening task details from PM Insights.",
   taskEditorUnavailable: "Could not open this task in Project Manager.",
   settingsHeading: "PM Insights",
   language: "Language",
@@ -1336,7 +1334,6 @@ const zh: typeof en = {
   projectManagerDependencyOpen: "打开插件页面",
   projectManagerDependencyLater: "稍后处理",
   projectManagerUnavailable: "Project Manager 当前不可用，请确认插件已启用。",
-  projectManagerVersionUnsupported: "当前 Project Manager 版本暂不支持从 PM 洞察打开任务详情。",
   taskEditorUnavailable: "无法在 Project Manager 中打开此任务。",
   settingsHeading: "PM 洞察",
   language: "语言",

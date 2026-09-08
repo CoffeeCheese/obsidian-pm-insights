@@ -4,6 +4,8 @@ export interface ProjectManagerDocument {
   path: string;
   basename: string;
   frontmatter: Record<string, unknown> | null;
+  /** Completion resolved by the native project's status palette, when available. */
+  statusComplete?: boolean;
 }
 
 export interface ProjectManagerSourceSnapshot {
@@ -168,7 +170,8 @@ function task(
     estimate: number(frontmatter.timeEstimate),
     logged: loggedHours(frontmatter.timeLogs),
     progress,
-    completed: Boolean(optionalText(frontmatter.completed)) || completeStatuses.has(status),
+    completed: Boolean(optionalText(frontmatter.completed))
+      || (document.statusComplete ?? completeStatuses.has(status)),
     startDate: optionalText(frontmatter.start),
     dueDate: optionalText(frontmatter.due),
     completedAt: optionalText(frontmatter.completed),

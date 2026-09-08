@@ -1,10 +1,7 @@
 import { Notice, Plugin, type WorkspaceLeaf } from "obsidian";
 import { ProjectManagerCatalog, type ProjectManagerSnapshot } from "./adapters/project-manager";
 import { ObsidianProjectManagerSource } from "./adapters/project-manager-source";
-import {
-  ProjectManagerNavigationError,
-  ProjectManagerNavigator
-} from "./adapters/project-manager-navigation";
+import { ProjectManagerNavigator } from "./adapters/project-manager-navigation";
 import { ConfirmActionModal } from "./confirm-action-modal";
 import { translations } from "./i18n";
 import { DEFAULT_SETTINGS, type InsightSettings } from "./model";
@@ -130,11 +127,8 @@ export default class ProjectManagerInsightsPlugin
   async openTask(taskId: string, projectPath: string): Promise<void> {
     try {
       await this.navigator.editTask({ taskId, projectPath });
-    } catch (error) {
-      const t = translations(this.settings);
-      const unsupported =
-        error instanceof ProjectManagerNavigationError && error.code === "unsupported-version";
-      new Notice(unsupported ? t.projectManagerVersionUnsupported : t.taskEditorUnavailable);
+    } catch {
+      new Notice(translations(this.settings).taskEditorUnavailable);
     }
   }
 
