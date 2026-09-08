@@ -13,7 +13,7 @@ A read-only insight layer for Project Manager that extends its projects, tasks, 
 
 [**Install from Obsidian**](https://community.obsidian.md/plugins/project-manager-insights) · [Releases](https://github.com/CoffeeCheese/obsidian-pm-insights/releases) · [Report an issue](https://github.com/CoffeeCheese/obsidian-pm-insights/issues)
 
-**English** · [简体中文](README.zh-CN.md)
+**English** · [简体中文（在浏览器中阅读）](https://github.com/CoffeeCheese/obsidian-pm-insights/blob/main/README.zh-CN.md)
 
 <p align="center">
   <strong>One project data source, two connected workspaces</strong><br>

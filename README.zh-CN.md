@@ -13,7 +13,7 @@
 
 [**从 Obsidian 安装**](https://community.obsidian.md/plugins/project-manager-insights) · [版本发布](https://github.com/CoffeeCheese/obsidian-pm-insights/releases) · [反馈问题](https://github.com/CoffeeCheese/obsidian-pm-insights/issues)
 
-[English](README.md) · **简体中文**
+[English (open in browser)](https://github.com/CoffeeCheese/obsidian-pm-insights/blob/main/README.md) · **简体中文**
 
 <p align="center">
   <strong>同一份项目数据，两种连续工作界面</strong><br>
