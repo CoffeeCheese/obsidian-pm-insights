@@ -30,6 +30,7 @@
     "test:ui:delivery-issue-filter-layering": "node scripts/check-delivery-issue-filter-layering.mjs",
     "test:ui:delivery-issue-escape-focus": "node scripts/check-delivery-issue-escape-focus.mjs",
     "test:ui:delivery-issue-return": "node scripts/check-delivery-issue-return.mjs",
+    "test:ui:project-launch": "node scripts/check-project-launch.mjs",
     "test:ui:gate-risk": "node scripts/check-gate-risk.mjs",
     "test:ui:launch-capacity": "node scripts/check-launch-capacity-risk.mjs",
     "test:ui:gate-calendar-navigation": "node scripts/check-gate-calendar-navigation.mjs",

@@ -466,7 +466,18 @@ For example, if two developers have `60h` and `50h` remaining in the development
 
 A load above available capacity is high risk, while utilization of 80% or more calls for attention. Unestimated, unassigned, or unmapped work is not silently ignored; it appears separately as a planning blind spot. Configure **Hours per person per workday** and **Hours per person per calendar day** under **Settings → PM Insights → Gate risk rules**. Existing settings remain compatible and default to eight hours per person.
 
-The launch date is a project-rhythm reminder, not a second definition of delivery completion. The acceptance result remains the final delivery standard.
+#### Mark a project as successfully launched
+
+Each selected project displays a clickable **Not launched / Awaiting launch confirmation / Launched** status beside its name. This opens an independent launch confirmation panel. After acceptance passes and the actual deployment is verified, choose **Mark launch successful** and enter the actual date. The launch node in gate risk details opens the same panel. Delay planning only shows a dated completion notice after launch. Corrections and revocations are under **Manage launch record** in the panel.
+
+- Every project requires explicit launch confirmation, including projects without delay history. Acceptance completion alone leaves the project awaiting launch confirmation.
+- First confirmation requires a valid schedule, passed acceptance and prerequisite gates, and no pending delay assessment. Dates must fall between actual acceptance and today.
+- A successful save plays a single launch-stamp animation and displays the launch badge, actual date, and variance from the baseline and confirmed forecast using the project clock. Reduced motion displays the final state immediately.
+- **Correct launch date** and **Revoke launch mark** require reasons and retain history. Revocation restores the previous delay state; delay plans are read-only while launch is recorded.
+- Reopened tasks remain visible as post-launch work while the launch fact is preserved. Task status, effort, project archiving, and task notes are not automatically changed.
+
+Launch records are stored in PM Insights settings; the action does not perform a deployment. Existing valid launch dates remain recognized after upgrading. Projects previously marked as passed solely through acceptance now await confirmation. When legacy history cannot establish a safe delay-state restoration, the plugin explains what is missing and preserves the current record.
+
 
 ![Focused PM Insights dashboard banner summarizing high-risk, attention, and nearest-gate signals for the current project scope](docs/assets/pm-insights-gate-summary-focused.png)
 
