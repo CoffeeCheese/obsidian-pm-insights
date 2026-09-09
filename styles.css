@@ -10131,3 +10131,45 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 
 .pmi-launch-management-items button > span { display: flex; }
 .pmi-launch-management-items button svg { width: 14px; height: 14px; }
+
+/*
+ * Form boundary: Obsidian's focus shadow and a theme's outline must not stack.
+ * Keep theme colors/native widgets, but own the stroke geometry in PMI only.
+ * Exclude embedded inputs: their surrounding field owns the border and focus.
+ */
+body .pmi-form-scope :is(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="email"], input[type="password"], input[type="url"], input[type="tel"], input[type="time"], textarea, select):not(.pmi-delay-days-input):not(.pmi-progress-tags-input) {
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: none;
+  outline: 0;
+}
+
+body .pmi-form-scope :is(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="email"], input[type="password"], input[type="url"], input[type="tel"], input[type="time"], textarea, select):not(.pmi-delay-days-input):not(.pmi-progress-tags-input):hover:not(:disabled) {
+  border-color: var(--background-modifier-border-hover);
+}
+
+body .pmi-form-scope :is(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="email"], input[type="password"], input[type="url"], input[type="tel"], input[type="time"], textarea, select):not(.pmi-delay-days-input):not(.pmi-progress-tags-input):is(:focus, :focus-visible, :focus-within, :active) {
+  border-color: var(--interactive-accent);
+  box-shadow: none;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -1px;
+}
+
+/* Composite controls get one focus indicator, on the enclosing field. */
+body .pmi-form-scope :is(.pmi-delay-days-control, .pmi-progress-tag-field) {
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: none;
+}
+
+body .pmi-form-scope :is(.pmi-delay-days-control, .pmi-progress-tag-field):focus-within {
+  border-color: var(--interactive-accent);
+  box-shadow: none;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -1px;
+}
+
+body .pmi-form-scope :is(input.pmi-delay-days-input, input.pmi-progress-tags-input),
+body .pmi-form-scope :is(input.pmi-delay-days-input, input.pmi-progress-tags-input):is(:hover, :focus, :focus-visible, :active) {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+}

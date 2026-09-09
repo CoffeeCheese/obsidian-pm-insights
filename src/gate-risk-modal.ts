@@ -58,7 +58,7 @@ export class GateRiskModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-gate-risk-modal");
+    this.modalEl.addClass("pmi-gate-risk-modal", "pmi-form-scope");
     this.render();
   }
 

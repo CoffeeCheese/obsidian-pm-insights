@@ -35,7 +35,7 @@ export class DeliveryIssuesModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-delivery-issues-modal");
+    this.modalEl.addClass("pmi-delivery-issues-modal", "pmi-form-scope");
     this.modalEl.setAttribute("aria-labelledby", this.titleLabelId);
     this.render();
   }

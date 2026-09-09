@@ -68,7 +68,7 @@ class ProjectTagPickerModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-project-tag-modal");
+    this.modalEl.addClass("pmi-project-tag-modal", "pmi-form-scope");
     this.titleEl.setText(this.copy.title);
     this.contentEl.createEl("p", {
       cls: "pmi-project-tag-modal-description",
@@ -154,6 +154,7 @@ export class InsightsSettingTab extends PluginSettingTab {
 
   constructor(app: App, plugin: SettingsHost & Plugin) {
     super(app, plugin);
+    this.containerEl.addClass("pmi-form-scope");
     this.host = plugin;
     this.progressDraft = structuredClone(this.host.settings.deliveryProgress);
   }

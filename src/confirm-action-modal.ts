@@ -18,7 +18,7 @@ export class ConfirmActionModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-confirm-action-modal");
+    this.modalEl.addClass("pmi-confirm-action-modal", "pmi-form-scope");
     if (this.options.destructive) this.modalEl.addClass("is-destructive");
     this.titleEl.setText(this.options.title);
     const summary = this.contentEl.createDiv("pmi-confirm-action-summary");

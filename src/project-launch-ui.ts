@@ -162,7 +162,7 @@ export class LaunchConfirmModal extends Modal {
     const context = this.options.context();
     const state = projectLaunchState(context);
     const title = this.kind === "confirm" ? t.launchConfirm : this.kind === "correct" ? t.launchCorrect : t.launchRevoke;
-    this.modalEl.addClass("pmi-launch-confirm-modal");
+    this.modalEl.addClass("pmi-launch-confirm-modal", "pmi-form-scope");
     this.titleEl.setText(title);
     this.contentEl.createEl("p", { cls: "pmi-launch-project", text: this.options.project.title });
     this.contentEl.createEl("p", { text: this.kind === "confirm" ? t.launchConfirmDescription
@@ -240,7 +240,7 @@ export class LaunchConfirmModal extends Modal {
 export class ProjectLaunchOverviewModal extends Modal {
   constructor(private readonly options: ProjectLaunchUIOptions) { super(options.app); }
   onOpen(): void {
-    this.modalEl.addClass("pmi-launch-overview-modal");
+    this.modalEl.addClass("pmi-launch-overview-modal", "pmi-form-scope");
     this.titleEl.setText(`${this.options.translations.launchPanelTitle} · ${this.options.project.title}`);
     this.refresh();
   }

@@ -89,7 +89,7 @@ class MemberDashboardModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-member-dashboard-modal");
+    this.modalEl.addClass("pmi-member-dashboard-modal", "pmi-form-scope");
     this.modalEl.setAttribute("aria-label", this.options.ariaLabel);
     this.contentEl.addClass("pmi-root");
     this.contentEl.addClass("pmi-member-dashboard-modal-content");
@@ -201,7 +201,7 @@ export class InsightsView extends ItemView {
     const t = translations(this.host.settings);
     const root = this.contentEl;
     root.empty();
-    root.addClass("pmi-root");
+    root.addClass("pmi-root", "pmi-form-scope");
     this.renderHeader(root, t);
 
     if (snapshot.projects.length === 0) {

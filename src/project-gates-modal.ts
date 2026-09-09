@@ -93,7 +93,7 @@ class ProjectNameConfirmModal extends Modal {
 
   onOpen(): void {
     const t = this.options.translations;
-    this.modalEl.addClass("pmi-delay-clear-modal");
+    this.modalEl.addClass("pmi-delay-clear-modal", "pmi-form-scope");
     this.titleEl.setText(t.gateDelayClearTitle);
     const signal = this.contentEl.createDiv("pmi-delay-clear-signal");
     setIcon(signal.createSpan(), "archive-x");
@@ -171,7 +171,7 @@ export class ProjectGatesModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("pmi-project-gates-modal");
+    this.modalEl.addClass("pmi-project-gates-modal", "pmi-form-scope");
     this.render();
   }
 
