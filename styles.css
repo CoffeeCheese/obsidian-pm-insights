@@ -9959,9 +9959,41 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 .pmi-launch-panel > details > summary { cursor: pointer; min-height: 44px; padding: 13px 4px; color: var(--text-normal); font-size: 13px; font-weight: var(--font-medium); border: 0; border-radius: 0; background: transparent; }
 .pmi-launch-panel > details > summary:hover { color: var(--text-accent); }
 .pmi-launch-result > .pmi-launch-dates:last-child { margin-bottom: 0; }
-.pmi-launch-history-entry { padding: 12px 0; border-top: 1px solid var(--pmi-launch-edge); font-size: 13px; overflow-wrap: anywhere; }
-.pmi-launch-history-entry time { display: block; font-size: 12px; color: var(--text-muted); }
-.pmi-launch-history-entry p { margin: 4px 0 0; white-space: pre-wrap; }
+/* The disclosure label and timeline body share one text column. */
+.modal .pmi-launch-panel details.pmi-launch-history { padding: 0; margin-inline: 0; }
+.modal .pmi-launch-panel details.pmi-launch-history > summary.pmi-launch-record {
+  display: flex; align-items: center; gap: 12px; list-style: none;
+  min-height: 44px; margin: 0; padding: 12px 4px;
+  border: 0; box-shadow: none; background: transparent;
+}
+.modal .pmi-launch-panel .pmi-launch-record::before,
+.modal .pmi-launch-panel .pmi-launch-record::after { content: none; }
+.modal .pmi-launch-panel .pmi-launch-record::marker { content: ""; }
+.modal .pmi-launch-panel .pmi-launch-record::-webkit-details-marker { display: none; }
+.pmi-launch-history-chevron { display: flex; flex: 0 0 20px; justify-content: center; }
+.pmi-launch-history-chevron svg { width: 14px; height: 14px; }
+.pmi-launch-history[open] > summary .pmi-launch-history-chevron { transform: rotate(90deg); }
+.modal .pmi-launch-panel ol.pmi-launch-timeline { list-style: none; margin: 0; padding: 4px 4px 16px; }
+.modal .pmi-launch-panel .pmi-launch-history-entry {
+  position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px;
+  margin: 0; padding: 0 0 20px; border: 0; font-size: 13px; overflow-wrap: anywhere;
+}
+.pmi-launch-history-entry:not(:last-child)::before {
+  content: ""; position: absolute; top: 23px; bottom: 3px; left: 9px;
+  width: 1px; background: var(--pmi-launch-edge);
+}
+.modal .pmi-launch-panel .pmi-launch-history-entry:last-child { padding-bottom: 0; }
+.pmi-launch-history-marker { display: flex; align-items: center; justify-content: center; width: 20px; height: 22px; color: var(--pmi-launch-color); }
+.pmi-launch-history-marker svg { width: 13px; height: 13px; }
+.pmi-launch-history-entry.is-corrected .pmi-launch-history-marker { color: var(--text-accent); }
+.pmi-launch-history-entry.is-revoked .pmi-launch-history-marker { color: var(--text-muted); }
+.pmi-launch-history-header { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 16px; flex-wrap: wrap; line-height: 22px; }
+.pmi-launch-history-header time { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pmi-launch-history-body p { margin: 6px 0 0; line-height: 1.6; white-space: pre-wrap; }
+.pmi-launch-history-date { display: flex; flex-wrap: wrap; gap: 4px 10px; font-variant-numeric: tabular-nums; }
+.pmi-launch-history-label, .pmi-launch-history-reason { color: var(--text-muted); font-size: 12px; }
+.pmi-launch-history-empty { margin: 0 4px 16px 36px; color: var(--text-muted); font-size: 13px; }
+@media (max-width: 600px) { .pmi-launch-history-header { flex-direction: column; gap: 0; } }
 .pmi-launch-warning { padding: 12px 16px; border-left: 3px solid var(--color-orange); color: var(--text-normal); background: color-mix(in srgb, var(--color-orange) 8%, var(--background-primary)); font-size: 13px; }
 .pmi-launch-seal { width: 76px; height: 76px; flex: 0 0 auto; fill: none; stroke: var(--pmi-launch-color); }
 .pmi-launch-rim { stroke-width: 1.2; opacity: 0.4; }

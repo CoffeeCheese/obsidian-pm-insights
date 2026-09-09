@@ -1,4 +1,4 @@
-import { Modal, type App } from "obsidian";
+import { Modal, setIcon, type App } from "obsidian";
 import { projectLaunchState, type LaunchCommand, type LaunchContext, type LaunchDecision, type LaunchRejection } from "./domain/project-launch";
 import type { ProjectRecord } from "./model";
 import type { Translations } from "./i18n";
@@ -95,22 +95,33 @@ export function renderProjectLaunch(root: HTMLElement, options: ProjectLaunchUIO
     }
   }
   const history = section.createEl("details", { cls: "pmi-launch-history" });
-  history.createEl("summary", { text: t.launchRecord, cls: "pmi-launch-record" });
+  const historyToggle = history.createEl("summary", { cls: "pmi-launch-record" });
+  setIcon(historyToggle.createSpan({ cls: "pmi-launch-history-chevron", attr: { "aria-hidden": "true" } }), "chevron-right");
+  historyToggle.createSpan({ text: t.launchRecord });
   const events = [...(context.actuals?.events ?? [])].filter((event) => event.gateId === "launch").reverse();
-  if (!events.length) history.createEl("p", { text: t.launchHistoryEmpty });
+  if (!events.length) history.createEl("p", { text: t.launchHistoryEmpty, cls: "pmi-launch-history-empty" });
+  const timeline = events.length ? history.createEl("ol", { cls: "pmi-launch-timeline", attr: { role: "list" } }) : undefined;
   for (const event of events) {
-    const entry = history.createDiv("pmi-launch-history-entry");
-    entry.createEl("strong", { text: event.kind === "launch-revoked" ? t.launchRevoked
+    if (!timeline) break;
+    const kind = event.kind === "launch-revoked" ? "revoked" : event.kind === "launch-corrected" ? "corrected" : "confirmed";
+    const entry = timeline.createEl("li", { cls: `pmi-launch-history-entry is-${kind}` });
+    const marker = entry.createSpan({ cls: "pmi-launch-history-marker", attr: { "aria-hidden": "true" } });
+    setIcon(marker, kind === "revoked" ? "undo-2" : kind === "corrected" ? "pencil" : "check");
+    const body = entry.createDiv("pmi-launch-history-body");
+    const header = body.createDiv("pmi-launch-history-header");
+    header.createEl("strong", { text: event.kind === "launch-revoked" ? t.launchRevoked
       : event.kind === "launch-corrected" ? t.launchCorrected : t.launchConfirm });
     const timestamp = new Date(event.createdAt);
-    entry.createEl("time", {
+    header.createEl("time", {
       text: Number.isFinite(timestamp.getTime())
         ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(timestamp)
         : event.createdAt,
       attr: { datetime: event.createdAt }
     });
-    entry.createEl("p", { text: [event.previousDate, event.date].filter(Boolean).join(" → ") });
-    if (event.reason) entry.createEl("p", { text: event.reason });
+    const dateChange = body.createEl("p", { cls: "pmi-launch-history-date" });
+    dateChange.createSpan({ cls: "pmi-launch-history-label", text: kind === "revoked" ? t.launchRevokedDate : t.gateLaunchDate });
+    dateChange.createSpan({ text: [event.previousDate, event.date].filter(Boolean).join(" → ") });
+    if (event.reason) body.createEl("p", { cls: "pmi-launch-history-reason", text: event.reason });
   }
   if (state.date) {
     const menu = section.createEl("details", { cls: "pmi-launch-management" });
