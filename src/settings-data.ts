@@ -133,7 +133,8 @@ const ACTUAL_EVENT_KINDS = new Set<GateActualEventKind>([
   "reopened",
   "corrected",
   "launch",
-  "launch-corrected"
+  "launch-corrected",
+  "launch-revoked"
 ]);
 
 function stringRecord(value: unknown): Record<string, string> {
@@ -275,7 +276,11 @@ function normalizeActualEvent(value: unknown): GateActualEvent | undefined {
     ...(date ? { date } : {}),
     ...(previousDate ? { previousDate } : {}),
     ...(source ? { source } : {}),
-    ...(reason ? { reason } : {})
+    ...(reason ? { reason } : {}),
+    ...(typeof raw.acceptanceDateAtLaunch === "string" ? { acceptanceDateAtLaunch: raw.acceptanceDateAtLaunch.trim() } : {}),
+    ...(raw.delayStatusBeforeLaunch === null || (raw.delayStatusBeforeLaunch && DELAY_STATUSES.has(raw.delayStatusBeforeLaunch))
+      ? { delayStatusBeforeLaunch: raw.delayStatusBeforeLaunch } : {}),
+    ...(typeof raw.targetEventId === "string" ? { targetEventId: raw.targetEventId } : {})
   };
 }
 

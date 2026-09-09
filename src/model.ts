@@ -134,7 +134,8 @@ export type GateActualEventKind =
   | "reopened"
   | "corrected"
   | "launch"
-  | "launch-corrected";
+  | "launch-corrected"
+  | "launch-revoked";
 
 export interface GateActualEvent {
   id: string;
@@ -145,6 +146,9 @@ export interface GateActualEvent {
   previousDate?: string;
   source?: GateActualDateSource;
   reason?: string;
+  acceptanceDateAtLaunch?: string;
+  delayStatusBeforeLaunch?: GateDelayStatus | null;
+  targetEventId?: string;
 }
 
 export interface ProjectGateActualState {
