@@ -468,7 +468,7 @@ A load above available capacity is high risk, while utilization of 80% or more c
 
 #### Mark a project as successfully launched
 
-Each selected project displays a clickable **Not launched / Awaiting launch confirmation / Launched** status beside its name. This opens an independent launch confirmation panel. After acceptance passes and the actual deployment is verified, choose **Mark launch successful** and enter the actual date. The launch node in gate risk details opens the same panel. Delay planning only shows a dated completion notice after launch. Corrections and revocations are under **Manage launch record** in the panel.
+Each selected project displays a clickable **Not launched / Awaiting launch confirmation / Launched** status beside its name. This opens an independent launch confirmation panel. After acceptance passes and the actual deployment is verified, choose **Mark launch successful** and enter the actual date. The launch node in gate risk details opens the same panel. Delay planning only shows a dated completion notice after launch. **Correct launch date** and **Revoke launch mark** remain visible below the result card, above the collapsible history timeline.
 
 - Every project requires explicit launch confirmation, including projects without delay history. Acceptance completion alone leaves the project awaiting launch confirmation.
 - First confirmation requires a valid schedule, passed acceptance and prerequisite gates, and no pending delay assessment. Dates must fall between actual acceptance and today.

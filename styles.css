@@ -9955,7 +9955,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 .pmi-launch-confirm-modal textarea:focus-visible,
 .pmi-launch-confirm-modal button:focus-visible { outline: 2px solid var(--pmi-launch-color); outline-offset: 4px; }
  .pmi-launch-history { margin-top: 16px; }
-.pmi-launch-panel > :is(.pmi-launch-history, .pmi-launch-management) { border-top: 1px solid var(--pmi-launch-edge); }
+.pmi-launch-panel > .pmi-launch-history { border-top: 1px solid var(--pmi-launch-edge); }
 .pmi-launch-panel > details > summary { cursor: pointer; min-height: 44px; padding: 13px 4px; color: var(--text-normal); font-size: 13px; font-weight: var(--font-medium); border: 0; border-radius: 0; background: transparent; }
 .pmi-launch-panel > details > summary:hover { color: var(--text-accent); }
 .pmi-launch-result > .pmi-launch-dates:last-child { margin-bottom: 0; }
@@ -10081,15 +10081,16 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 @media (prefers-reduced-motion: reduce) {
   .workspace-leaf-content.pmi-view[data-type="project-manager-insights-view"] .pmi-root .pmi-project-scope-token button.pmi-project-launch-status[type="button"] { transition: none; }
 }
-.pmi-launch-management summary:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
- .pmi-launch-management-help { margin: 0 4px 12px; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
-.pmi-launch-management-items { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 0 4px 16px; }
+.pmi-launch-management { padding: 16px 0 0; }
+.pmi-launch-management-help { margin: 8px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+.pmi-launch-management-items { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 0; }
 .modal.pmi-launch-overview-modal .pmi-launch-panel .pmi-launch-management-items button[type="button"] {
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 1 auto;
+  gap: 6px;
   min-height: 36px;
   height: auto;
   margin: 0;
@@ -10127,3 +10128,6 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
   .pmi-launch-panel.is-celebrating .pmi-launch-tick,
   .pmi-launch-panel.is-celebrating .pmi-launch-heading-copy { animation: none; }
 }
+
+.pmi-launch-management-items button > span { display: flex; }
+.pmi-launch-management-items button svg { width: 14px; height: 14px; }

@@ -124,25 +124,16 @@ export function renderProjectLaunch(root: HTMLElement, options: ProjectLaunchUIO
     if (event.reason) body.createEl("p", { cls: "pmi-launch-history-reason", text: event.reason });
   }
   if (state.date) {
-    const menu = section.createEl("details", { cls: "pmi-launch-management" });
-    const summary = menu.createEl("summary", { text: t.launchManage });
-    menu.createEl("p", { cls: "pmi-launch-management-help", text: t.launchManageHelp });
-    const items = menu.createDiv("pmi-launch-management-items");
+    const management = section.createDiv({ cls: "pmi-launch-management", attr: { role: "group", "aria-label": t.launchManage } });
+    section.insertBefore(management, history);
+    const items = management.createDiv("pmi-launch-management-items");
     for (const kind of ["correct", "revoke"] as const) {
-      action(items, kind === "correct" ? t.launchCorrect : t.launchRevoke, kind, () => {
-        menu.open = false;
-        summary.focus();
-        open(kind);
-      });
+      const button = action(items, kind === "correct" ? t.launchCorrect : t.launchRevoke, kind, () => open(kind));
+      const icon = button.createSpan({ attr: { "aria-hidden": "true" } });
+      setIcon(icon, kind === "correct" ? "pencil" : "undo-2");
+      button.prepend(icon);
     }
-    menu.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && menu.open) {
-        menu.open = false;
-        summary.focus();
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    });
+    management.createEl("p", { cls: "pmi-launch-management-help", text: t.launchManageHelp });
   }
   const announcement = section.createDiv({ cls: "pmi-sr-only", attr: { role: "status", "aria-live": "polite" } });
   if (feedback) {
