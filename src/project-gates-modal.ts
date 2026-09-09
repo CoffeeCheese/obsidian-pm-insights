@@ -1,4 +1,6 @@
-import { ButtonComponent, Modal, setIcon, type App } from "obsidian";
+import { type ProjectLaunchUIOptions } from "./project-launch-ui";
+import { projectLaunchState } from "./domain/project-launch";
+import { ButtonComponent, Modal, Notice, setIcon, type App } from "obsidian";
 import { ConfirmActionModal } from "./confirm-action-modal";
 import {
   ACCEPTANCE_GATE_ID,
@@ -42,6 +44,8 @@ interface ProjectGatesModalState {
   schedule: ProjectGateSchedule;
   delay: ProjectGateDelayPlan | null;
   actuals: ProjectGateActualState;
+  expectedSchedule: ProjectGateSchedule | undefined;
+  expectedDelay: ProjectGateDelayPlan | undefined;
 }
 
 interface ProjectGatesModalOptions {
@@ -53,6 +57,7 @@ interface ProjectGatesModalOptions {
   actuals: ProjectGateActualState | undefined;
   today: string;
   translations: Translations;
+  launch: ProjectLaunchUIOptions;
   save(state: ProjectGatesModalState): Promise<void>;
 }
 
@@ -138,8 +143,8 @@ export class ProjectGatesModal extends Modal {
   private durationRows: DurationRow[] = [];
   private pendingChanges: Record<string, GateDateChangeSource> = {};
   private reason = "";
-  private launchDate = "";
-  private launchReason = "";
+  private expectedSchedule: ProjectGateSchedule | undefined;
+  private expectedDelay: ProjectGateDelayPlan | undefined;
   private evaluationSnapshot: DelayEvaluationSnapshot | undefined;
 
   constructor(app: App, private readonly options: ProjectGatesModalOptions) {
@@ -161,11 +166,31 @@ export class ProjectGatesModal extends Modal {
     this.delay = options.delay ? structuredClone(options.delay) : undefined;
     this.savedBaseline = structuredClone(this.baseline);
     this.actuals = structuredClone(options.actuals ?? emptyActualState());
-    this.launchDate = this.actuals.launchDate ?? options.today;
+    this.expectedSchedule = structuredClone(options.schedule);
+    this.expectedDelay = structuredClone(options.delay);
   }
 
   onOpen(): void {
     this.modalEl.addClass("pmi-project-gates-modal");
+    this.render();
+  }
+
+  showTab(tab: GateEditorTab): void {
+    this.activeTab = tab;
+    this.render();
+  }
+
+  refreshExternal(): void {
+    if (this.baselineDirty || this.delayDirty) return;
+    const context = this.options.launch.context();
+    if (context.schedule) {
+      this.baseline = structuredClone(context.schedule);
+      this.savedBaseline = structuredClone(context.schedule);
+    }
+    this.delay = structuredClone(context.delay);
+    this.actuals = structuredClone(context.actuals ?? emptyActualState());
+    this.expectedSchedule = structuredClone(context.schedule);
+    this.expectedDelay = structuredClone(context.delay);
     this.render();
   }
 
@@ -491,9 +516,18 @@ export class ProjectGatesModal extends Modal {
       });
       return;
     }
+    const launchDate = projectLaunchState(this.options.launch.context()).date;
+    if (launchDate) {
+      root.createEl("p", { cls: "pmi-launch-warning", text: t.launchDelayEnded(launchDate) });
+      if (this.delay) {
+        this.renderDelayHero(root);
+        if (this.delay.confirmed) this.renderDelayTimeline(root, this.delay.confirmed, false);
+      }
+      this.renderHistory(root);
+      return;
+    }
     if (!this.delay?.revisions.length && !this.delay?.draft) {
       this.renderDelayEmpty(root);
-      this.renderLaunchAction(root);
       if (this.actuals.events.length > 0) this.renderHistory(root);
       return;
     }
@@ -504,7 +538,6 @@ export class ProjectGatesModal extends Modal {
     if (forecast) this.renderDelayTimeline(root, forecast, editingEvaluation);
     if (editingEvaluation) this.renderDelayActions(root);
     else this.renderSettledDelayActions(root);
-    this.renderLaunchAction(root);
     this.renderHistory(root);
     this.renderDangerZone(root);
   }
@@ -847,51 +880,6 @@ export class ProjectGatesModal extends Modal {
     });
   }
 
-  private renderLaunchAction(root: HTMLElement): void {
-    const acceptance = this.actuals.gates[ACCEPTANCE_GATE_ID];
-    if (!this.delay?.revisions.length && !this.actuals.launchDate && (!acceptance || acceptance.open)) return;
-    const t = this.options.translations;
-    const section = root.createDiv("pmi-launch-record");
-    const heading = section.createDiv("pmi-launch-record-heading");
-    setIcon(heading.createSpan(), "rocket");
-    heading.createEl("strong", { text: this.actuals.launchDate ? t.gateLaunchCorrect : t.gateLaunchRecord });
-    if (!acceptance || acceptance.open) {
-      section.createEl("p", { text: t.gateLaunchPendingAcceptance });
-      return;
-    }
-    if (this.delay?.draft) {
-      section.createEl("p", { text: t.gateLaunchDraftPending });
-      return;
-    }
-    const fields = section.createDiv("pmi-launch-record-fields");
-    const date = fields.createEl("label");
-    date.createSpan({ text: t.gateLaunchDate });
-    const input = date.createEl("input", {
-      type: "date",
-      value: this.launchDate,
-      attr: { min: acceptance.date, max: this.options.today }
-    });
-    input.addEventListener("change", () => { this.launchDate = input.value; });
-    if (this.actuals.launchDate) {
-      const reason = fields.createEl("label");
-      reason.createSpan({ text: t.gateDelayReason });
-      const textarea = reason.createEl("textarea", {
-        placeholder: t.gateDelayReasonPlaceholder,
-        attr: { rows: "2" }
-      });
-      textarea.value = this.launchReason;
-      textarea.addEventListener("input", () => { this.launchReason = textarea.value; });
-    }
-    const error = section.createDiv({
-      cls: "pmi-gate-editor-validation",
-      attr: { role: "status", "aria-live": "polite" }
-    });
-    const action = new ButtonComponent(section)
-      .setButtonText(this.actuals.launchDate ? t.gateLaunchCorrect : t.gateLaunchRecord)
-      .setCta();
-    action.onClick(() => void this.recordLaunch(error));
-  }
-
   private renderHistory(root: HTMLElement): void {
     const t = this.options.translations;
     const section = root.createDiv("pmi-delay-history");
@@ -1210,7 +1198,7 @@ export class ProjectGatesModal extends Modal {
       this.delay.status = "evaluating";
       this.delay.pendingEvaluationRevisionId = revision.id;
     }
-    await this.persist();
+    if (!await this.persist()) return;
     this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
@@ -1241,7 +1229,7 @@ export class ProjectGatesModal extends Modal {
       this.delay.confirmed = forecast;
       this.delay.confirmedRevisionId = revision.id;
     }
-    await this.persist();
+    if (!await this.persist()) return;
     this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
@@ -1271,7 +1259,7 @@ export class ProjectGatesModal extends Modal {
     );
     if (!settled) return;
     this.delay = settled;
-    await this.persist();
+    if (!await this.persist()) return;
     this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
@@ -1306,43 +1294,10 @@ export class ProjectGatesModal extends Modal {
     const rolledBack = withdrawDelayRevision(this.delay, revision.id, new Date().toISOString());
     if (!rolledBack) return;
     this.delay = rolledBack;
-    await this.persist();
+    if (!await this.persist()) return;
     this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
-    this.delayDirty = false;
-    this.render();
-  }
-
-  private async recordLaunch(error: HTMLElement): Promise<void> {
-    const acceptance = this.actuals.gates[ACCEPTANCE_GATE_ID];
-    const correcting = Boolean(this.actuals.launchDate);
-    if (!acceptance || acceptance.open || !isDateOnly(this.launchDate)
-        || this.launchDate < acceptance.date || this.launchDate > this.options.today) {
-      error.setText(this.options.translations.gateLaunchDateInvalid);
-      return;
-    }
-    if (correcting && !this.launchReason.trim()) {
-      error.setText(this.options.translations.gateDelayReasonRequired);
-      return;
-    }
-    const now = new Date().toISOString();
-    const previousDate = this.actuals.launchDate;
-    this.actuals.launchDate = this.launchDate;
-    this.actuals.launchRecordedAt = now;
-    this.actuals.events.push({
-      id: `${now}:launch:${this.actuals.events.length + 1}`,
-      createdAt: now,
-      kind: correcting ? "launch-corrected" : "launch",
-      gateId: LAUNCH_GATE_ID,
-      date: this.launchDate,
-      source: "manual",
-      ...(previousDate ? { previousDate } : {}),
-      ...(this.launchReason.trim() ? { reason: this.launchReason.trim() } : {})
-    });
-    if (this.delay) this.delay.status = "completed";
-    await this.persist();
-    this.launchReason = "";
     this.delayDirty = false;
     this.render();
   }
@@ -1365,7 +1320,7 @@ export class ProjectGatesModal extends Modal {
   }
 
   private async saveBaseline(): Promise<void> {
-    await this.persist();
+    if (!await this.persist()) return;
     this.savedBaseline = structuredClone(this.baseline);
     this.baselineDirty = false;
     this.render();
@@ -1392,17 +1347,27 @@ export class ProjectGatesModal extends Modal {
     this.evaluationSnapshot = undefined;
     this.reason = "";
     this.pendingChanges = {};
-    await this.persist();
+    if (!await this.persist()) return;
     this.activeTab = "baseline";
     this.render();
   }
 
-  private async persist(): Promise<void> {
-    await this.options.save({
-      schedule: structuredClone(this.baseline),
-      delay: this.delay ? structuredClone(this.delay) : null,
-      actuals: structuredClone(this.actuals)
-    });
+  private async persist(): Promise<boolean> {
+    try {
+      await this.options.save({
+        schedule: structuredClone(this.baseline),
+        delay: this.delay ? structuredClone(this.delay) : null,
+        actuals: structuredClone(this.actuals),
+        expectedSchedule: this.expectedSchedule,
+        expectedDelay: this.expectedDelay
+      });
+      this.expectedSchedule = structuredClone(this.baseline);
+      this.expectedDelay = structuredClone(this.delay);
+      return true;
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : this.options.translations.launchSaveFailed);
+      return false;
+    }
   }
 
   private gateIds(stageIds = this.stageIds()): string[] {
@@ -1523,6 +1488,7 @@ export class ProjectGatesModal extends Modal {
     if (kind === "corrected") return t.gateActualCorrected;
     if (kind === "launch") return t.gateActualLaunch;
     if (kind === "launch-corrected") return t.gateActualLaunchCorrected;
+    if (kind === "launch-revoked") return t.launchRevoked;
     return t.gateActualPassed;
   }
 

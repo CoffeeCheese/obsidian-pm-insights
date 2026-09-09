@@ -654,7 +654,7 @@ describe("aggregateGateRisk", () => {
     ]);
   });
 
-  it("keeps acceptance as the launch standard while exposing optional unfinished work", () => {
+  it.each([false, true])("requires a launch record independently of acceptance (recorded: %s)", (recorded) => {
     const projectSettings: DeliveryProgressSettings = {
       ...settings,
       stages: [
@@ -689,11 +689,12 @@ describe("aggregateGateRisk", () => {
       includeArchived: false,
       settings: projectSettings,
       gateSchedules: { p1: projectSchedule },
+      gateActuals: { p1: { gates: {}, events: [], ...(recorded ? { launchDate: "2026-08-14" } : {}) } },
       today: "2026-08-16"
     });
     const launch = snapshot.projects[0]?.gates.find((gate) => gate.id === "launch");
 
-    expect(launch).toMatchObject({ state: "passed", progress: 90, timing: "early" });
+    expect(launch).toMatchObject({ state: recorded ? "passed" : "high", progress: 90, timing: recorded ? "early" : null });
     expect(launch?.tasks.map((candidate) => candidate.id)).toEqual(["discovery-open"]);
   });
 });

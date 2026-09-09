@@ -14,8 +14,9 @@ import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
 import { validateGateSchedule } from "./domain/gate-schedule";
 import { aggregateGateRisk, gateRiskSummaryState, type GateRiskSnapshot } from "./domain/gate-risk";
-import { reconcileProjectGateActuals } from "./domain/gate-delay";
+import { projectLaunchState, type LaunchContext, type LaunchCommand, type LaunchDecision } from "./domain/project-launch";
 import { GateRiskModal } from "./gate-risk-modal";
+import { ProjectLaunchOverviewModal, type ProjectLaunchUIOptions } from "./project-launch-ui";
 import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
 import { scheduleDaysBetween } from "./domain/schedule-calendar";
@@ -53,7 +54,10 @@ export interface InsightsViewHost {
   settings: InsightSettings;
   readProjectManager(): Promise<ProjectManagerSnapshot>;
   reconcileProjectManager(): Promise<ProjectManagerSnapshot>;
-  saveSettings(): Promise<void>;
+  saveSettings(update?: (draft: InsightSettings) => void): Promise<void>;
+  launchContext(projectId: string, snapshot: ProjectManagerSnapshot): LaunchContext;
+  applyProjectLaunch(projectId: string, command: LaunchCommand): Promise<LaunchDecision>;
+  reconcileGateActuals(): Promise<void>;
   refreshInsights(): Promise<void>;
   openSettings(): void;
   openTask(taskId: string, projectPath: string): Promise<void>;
@@ -108,6 +112,10 @@ class MemberDashboardModal extends Modal {
 }
 
 export class InsightsView extends ItemView {
+  private currentSnapshot: ProjectManagerSnapshot | null = null;
+  private gateRiskModal: GateRiskModal | null = null;
+  private gateEditor: ProjectGatesModal | null = null;
+  private launchOverview: ProjectLaunchOverviewModal | null = null;
   private selectedMemberKey: string | null = null;
   private memberQuery = "";
   private taskQuery = "";
@@ -163,6 +171,9 @@ export class InsightsView extends ItemView {
 
   async onClose(): Promise<void> {
     this.memberDashboardModal?.close();
+    this.gateRiskModal?.close();
+    this.gateEditor?.close();
+    this.launchOverview?.close();
     this.memberDashboardModal = null;
     this.memberDashboardOpenMemberKey = null;
   }
@@ -175,9 +186,8 @@ export class InsightsView extends ItemView {
     const snapshot = await this.host.readProjectManager();
     const project = snapshot.projects.find((candidate) => candidate.path === path);
     if (!project) return;
-    this.host.settings.selectedProjectIds = [project.id];
     this.selectedMemberKey = null;
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => { draft.selectedProjectIds = [project.id]; });
     await this.render();
     this.contentEl.scrollTo({ top: 0 });
   }
@@ -187,6 +197,7 @@ export class InsightsView extends ItemView {
     const snapshot = await this.host.readProjectManager();
     if (version !== this.renderVersion) return;
 
+    this.currentSnapshot = snapshot;
     const t = translations(this.host.settings);
     const root = this.contentEl;
     root.empty();
@@ -201,15 +212,20 @@ export class InsightsView extends ItemView {
     const projectIds = new Set(snapshot.projects.map((project) => project.id));
     const validSelection = this.host.settings.selectedProjectIds.filter((id) => projectIds.has(id));
     if (validSelection.length !== this.host.settings.selectedProjectIds.length) {
-      this.host.settings.selectedProjectIds = validSelection;
-      await this.host.saveSettings();
+      await this.host.saveSettings((draft) => {
+        draft.selectedProjectIds = draft.selectedProjectIds.filter((id) => projectIds.has(id));
+      });
     }
 
-    await this.reconcileGateActualStates(snapshot);
+    await this.host.reconcileGateActuals();
+    if (version !== this.renderVersion) return;
 
     this.renderControls(root, snapshot, t);
     this.dashboardEl = root.createDiv("pmi-dashboard");
     this.renderDashboard(snapshot, t);
+    if (this.gateRiskModal?.contentEl.isConnected) this.gateRiskModal.refresh(this.calculateGateRisk(snapshot));
+    if (this.gateEditor?.contentEl.isConnected) this.gateEditor.refreshExternal();
+    if (this.launchOverview?.contentEl.isConnected) this.launchOverview.refresh();
   }
 
   private renderHeader(root: HTMLElement, t: Translations): void {
@@ -281,11 +297,13 @@ export class InsightsView extends ItemView {
         row.createSpan({ text: project.title });
         checkbox.addEventListener("change", () => {
           void (async () => {
-            const selected = new Set(this.host.settings.selectedProjectIds);
-            checkbox.checked ? selected.add(project.id) : selected.delete(project.id);
-            this.host.settings.selectedProjectIds = [...selected];
+            const checked = checkbox.checked;
             this.selectedMemberKey = null;
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => {
+              const selected = new Set(draft.selectedProjectIds);
+              checked ? selected.add(project.id) : selected.delete(project.id);
+              draft.selectedProjectIds = [...selected];
+            });
             this.updateProjectSummary(t);
             this.updateProjectScope(snapshot, t);
             this.renderDashboard(snapshot, t);
@@ -298,9 +316,8 @@ export class InsightsView extends ItemView {
     selectAll.addEventListener("click", (event) => {
       void (async () => {
         event.preventDefault();
-        this.host.settings.selectedProjectIds = snapshot.projects.map((project) => project.id);
         this.selectedMemberKey = null;
-        await this.host.saveSettings();
+        await this.host.saveSettings((draft) => { draft.selectedProjectIds = snapshot.projects.map((project) => project.id); });
         this.updateProjectSummary(t);
         this.updateProjectScope(snapshot, t);
         renderProjects();
@@ -310,9 +327,8 @@ export class InsightsView extends ItemView {
     clear.addEventListener("click", (event) => {
       void (async () => {
         event.preventDefault();
-        this.host.settings.selectedProjectIds = [];
         this.selectedMemberKey = null;
-        await this.host.saveSettings();
+        await this.host.saveSettings((draft) => { draft.selectedProjectIds = []; });
         this.updateProjectSummary(t);
         this.updateProjectScope(snapshot, t);
         renderProjects();
@@ -329,8 +345,8 @@ export class InsightsView extends ItemView {
     archived.createSpan({ text: t.includeArchived });
     archivedCheckbox.addEventListener("change", () => {
       void (async () => {
-        this.host.settings.includeArchived = archivedCheckbox.checked;
-        await this.host.saveSettings();
+        const checked = archivedCheckbox.checked;
+        await this.host.saveSettings((draft) => { draft.includeArchived = checked; });
         this.renderDashboard(snapshot, t);
       })();
     });
@@ -343,13 +359,13 @@ export class InsightsView extends ItemView {
     parentTasks.createSpan({ text: t.countParentTasks });
     parentTasksCheckbox.addEventListener("change", () => {
       void (async () => {
-        this.host.settings.countParentTasks = parentTasksCheckbox.checked;
+        const checked = parentTasksCheckbox.checked;
         this.taskQuery = "";
         this.taskProjectIds = null;
         this.taskStatuses = null;
         this.taskPriorities = null;
         this.clearDashboardTaskFilter();
-        await this.host.saveSettings();
+        await this.host.saveSettings((draft) => { draft.countParentTasks = checked; });
         this.renderDashboard(snapshot, t);
       })();
     });
@@ -410,6 +426,15 @@ export class InsightsView extends ItemView {
       });
       token.createSpan({ cls: "pmi-project-scope-project-icon", text: project.icon });
       token.createSpan({ cls: "pmi-project-scope-project-name", text: project.title });
+      const launch = projectLaunchState(this.host.launchContext(project.id, snapshot));
+      const status = launch.date ? t.launchBadge : launch.state === "ready" ? t.launchPending : t.launchNotStarted;
+      const launchButton = token.createEl("button", {
+        cls: `pmi-project-launch-status is-${launch.state}${launch.date ? " pmi-project-launch-badge" : ""}`,
+        attr: { type: "button", "aria-label": `${project.title} · ${status}`, "aria-haspopup": "dialog", title: t.launchPanelTitle }
+      });
+      setIcon(launchButton.createSpan({ cls: "pmi-project-launch-mark", attr: { "aria-hidden": "true" } }), launch.date ? "check" : launch.state === "ready" ? "circle-dot" : "circle");
+      launchButton.createSpan({ text: status });
+      launchButton.addEventListener("click", () => this.openProjectLaunch(project, snapshot));
       const gateValidation = validateGateSchedule(
         this.host.settings.gateSchedules[project.id],
         this.host.settings.deliveryProgress.stages.map((stage) => stage.id)
@@ -451,14 +476,13 @@ export class InsightsView extends ItemView {
         token.classList.add("is-removing");
         remove.disabled = true;
         void (async () => {
-          this.host.settings.selectedProjectIds = this.host.settings.selectedProjectIds.filter(
-            (id) => id !== project.id
-          );
           this.selectedMemberKey = null;
           const removalDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches
             ? Promise.resolve()
             : new Promise<void>((resolve) => window.setTimeout(resolve, 100));
-          await Promise.all([this.host.saveSettings(), removalDelay]);
+          await Promise.all([this.host.saveSettings((draft) => {
+            draft.selectedProjectIds = draft.selectedProjectIds.filter((id) => id !== project.id);
+          }), removalDelay]);
           this.updateProjectSummary(t);
           for (const checkbox of this.contentEl.querySelectorAll<HTMLInputElement>(
             '.pmi-project-option input[type="checkbox"]'
@@ -572,12 +596,57 @@ export class InsightsView extends ItemView {
     this.renderTaskDetail(detail, selected, snapshot, memberDashboard, buildMemberDashboard, t);
   }
 
+  private launchOptions(project: ProjectRecord, snapshot: ProjectManagerSnapshot): ProjectLaunchUIOptions {
+    return {
+      app: this.app, project, translations: translations(this.host.settings),
+      context: () => this.host.launchContext(project.id, this.currentSnapshot ?? snapshot),
+      showOverview: () => this.openProjectLaunch(project, snapshot),
+      apply: (command) => this.host.applyProjectLaunch(project.id, command),
+      navigate: (reason) => {
+        this.launchOverview?.close();
+        this.gateEditor?.close();
+        const t = translations(this.host.settings);
+        if (reason === "acceptance-pending") {
+          this.gateRiskModal = new GateRiskModal(this.app, {
+            snapshot: this.calculateGateRisk(snapshot, new Set([project.id])),
+            launchOptions: (candidate) => this.launchOptions(candidate, snapshot),
+            checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
+            priorities: snapshot.priorities, translations: t, hasDeliveryIssues: false,
+            openTask: (taskId, path) => this.host.openTask(taskId, path),
+            openDeliveryIssues: () => undefined,
+            configureProject: (candidate) => this.openProjectGates(candidate, snapshot, t),
+            setTaskDueDateChecks: async (enabled) => {
+              await this.host.saveSettings((draft) => { draft.gateRisk.checkTaskDueDates = enabled; });
+              await this.host.refreshInsights();
+              return this.calculateGateRisk(snapshot, new Set([project.id]));
+            }
+          });
+          this.gateRiskModal.open();
+          this.gateRiskModal.focusAcceptance(project.id);
+        } else {
+          this.openProjectGates(project, snapshot, t);
+          if (reason === "delay-draft-pending") this.gateEditor?.showTab("delay");
+        }
+      },
+      onApplied: (feedback) => {
+        this.openProjectLaunch(project, snapshot);
+        this.launchOverview?.refresh(feedback);
+      }
+    };
+  }
+
+  private openProjectLaunch(project: ProjectRecord, snapshot: ProjectManagerSnapshot): void {
+    this.launchOverview?.close();
+    this.launchOverview = new ProjectLaunchOverviewModal(this.launchOptions(project, snapshot));
+    this.launchOverview.open();
+  }
+
   private openProjectGates(
     project: ProjectRecord,
     snapshot: ProjectManagerSnapshot,
     t: Translations
   ): void {
-    new ProjectGatesModal(this.app, {
+    this.gateEditor = new ProjectGatesModal(this.app, {
       project,
       stages: this.host.settings.deliveryProgress.stages,
       stageName: (stage) => this.deliveryStageLabel(stage.id, stage.name, t),
@@ -586,17 +655,27 @@ export class InsightsView extends ItemView {
       actuals: this.host.settings.gateActuals[project.id],
       today: this.todayDate(),
       translations: t,
-      save: async ({ schedule, delay, actuals }) => {
-        this.host.settings.gateSchedules[project.id] = schedule;
-        if (delay) this.host.settings.gateDelays[project.id] = delay;
-        else delete this.host.settings.gateDelays[project.id];
-        this.host.settings.gateActuals[project.id] = actuals;
-        await this.host.saveSettings();
+      launch: this.launchOptions(project, snapshot),
+      save: async ({ schedule, delay, expectedSchedule, expectedDelay }) => {
+        await this.host.saveSettings((draft) => {
+          if (JSON.stringify(draft.gateSchedules[project.id]) !== JSON.stringify(expectedSchedule)
+              || JSON.stringify(draft.gateDelays[project.id]) !== JSON.stringify(expectedDelay)) {
+            throw new Error(t.launchStale);
+          }
+          if (projectLaunchState(this.host.launchContext(project.id, snapshot)).date
+              && JSON.stringify(delay ?? undefined) !== JSON.stringify(draft.gateDelays[project.id])) {
+            throw new Error(t.launchDelayLocked);
+          }
+          draft.gateSchedules[project.id] = schedule;
+          if (delay) draft.gateDelays[project.id] = delay;
+          else delete draft.gateDelays[project.id];
+        });
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
         this.refreshMemberDashboardModal();
       }
-    }).open();
+    });
+    this.gateEditor.open();
   }
 
   private renderGateRiskSummary(
@@ -652,8 +731,9 @@ export class InsightsView extends ItemView {
     action.createSpan({ text: t.viewGateRisk });
     setIcon(action.createSpan(), "chevron-right");
     summary.addEventListener("click", () => {
-      new GateRiskModal(this.app, {
+      this.gateRiskModal = new GateRiskModal(this.app, {
         snapshot: risk,
+        launchOptions: (project) => this.launchOptions(project, snapshot),
         checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
         priorities: snapshot.priorities,
         translations: t,
@@ -669,24 +749,12 @@ export class InsightsView extends ItemView {
         },
         configureProject: (project) => this.openProjectGates(project, snapshot, t),
         setTaskDueDateChecks: async (enabled) => {
-          const previous = this.host.settings.gateRisk.checkTaskDueDates;
-          this.host.settings.gateRisk.checkTaskDueDates = enabled;
-          try {
-            await this.host.saveSettings();
-            await this.host.refreshInsights();
-            return this.calculateGateRisk(snapshot);
-          } catch (error) {
-            this.host.settings.gateRisk.checkTaskDueDates = previous;
-            try {
-              await this.host.saveSettings();
-              await this.host.refreshInsights();
-            } catch {
-              // Preserve the original update error shown by the modal.
-            }
-            throw error;
-          }
+          await this.host.saveSettings((draft) => { draft.gateRisk.checkTaskDueDates = enabled; });
+          await this.host.refreshInsights();
+          return this.calculateGateRisk(snapshot);
         }
-      }).open();
+      });
+      this.gateRiskModal.open();
     });
   }
 
@@ -708,28 +776,6 @@ export class InsightsView extends ItemView {
       aliases: this.host.settings.aliases,
       today: this.todayDate()
     });
-  }
-
-  private async reconcileGateActualStates(snapshot: ProjectManagerSnapshot): Promise<void> {
-    let changed = false;
-    const today = this.todayDate();
-    const now = new Date().toISOString();
-    for (const project of snapshot.projects) {
-      const result = reconcileProjectGateActuals({
-        projectId: project.id,
-        tasks: snapshot.tasks,
-        settings: this.host.settings.deliveryProgress,
-        includeArchived: this.host.settings.includeArchived,
-        schedule: this.host.settings.gateSchedules[project.id],
-        previous: this.host.settings.gateActuals[project.id],
-        today,
-        now
-      });
-      if (!result.changed) continue;
-      this.host.settings.gateActuals[project.id] = result.state;
-      changed = true;
-    }
-    if (changed) await this.host.saveSettings();
   }
 
   private gateRiskName(gate: GateRiskSnapshot["projects"][number]["gates"][number], t: Translations): string {
@@ -847,8 +893,7 @@ export class InsightsView extends ItemView {
 
   private async setDeliveryProgressVisible(visible: boolean): Promise<void> {
     if (this.host.settings.showDeliveryProgress === visible) return;
-    this.host.settings.showDeliveryProgress = visible;
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => { draft.showDeliveryProgress = visible; });
     await this.host.refreshInsights();
   }
 
@@ -2087,9 +2132,9 @@ export class InsightsView extends ItemView {
     weekend.createSpan({ text: t.includeWeekendsInCapacity });
     weekendInput.addEventListener("change", () => {
       void (async () => {
-        this.host.settings.memberDashboard.includeWeekends = weekendInput.checked;
+        const checked = weekendInput.checked;
         this.clearDashboardTaskFilter();
-        await this.host.saveSettings();
+        await this.host.saveSettings((draft) => { draft.memberDashboard.includeWeekends = checked; });
         this.renderDashboard(snapshot, t);
         this.refreshMemberDashboardModal(".pmi-member-weekend-toggle input");
       })();
@@ -2102,12 +2147,11 @@ export class InsightsView extends ItemView {
     t: Translations,
     customEndDate?: string
   ): Promise<void> {
-    this.host.settings.memberDashboard.windowMode = mode;
-    if (mode === "custom" && customEndDate) {
-      this.host.settings.memberDashboard.customEndDate = customEndDate;
-    }
     this.clearDashboardTaskFilter();
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => {
+      draft.memberDashboard.windowMode = mode;
+      if (mode === "custom" && customEndDate) draft.memberDashboard.customEndDate = customEndDate;
+    });
     this.renderDashboard(snapshot, t);
     this.refreshMemberDashboardModal(`[data-window-mode="${mode}"]`);
   }

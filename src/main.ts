@@ -1,3 +1,6 @@
+import { SettingsWriter } from "./settings-writer";
+import { decideProjectLaunch, type LaunchCommand, type LaunchContext, type LaunchDecision } from "./domain/project-launch";
+import { reconcileProjectGateActuals } from "./domain/gate-delay";
 import { Notice, Plugin, type WorkspaceLeaf } from "obsidian";
 import { ProjectManagerCatalog, type ProjectManagerSnapshot } from "./adapters/project-manager";
 import { ObsidianProjectManagerSource } from "./adapters/project-manager-source";
@@ -22,6 +25,11 @@ export default class ProjectManagerInsightsPlugin
   implements ToolbarIntegrationHost
 {
   settings: InsightSettings = structuredClone(DEFAULT_SETTINGS);
+  private readonly settingsWriter = new SettingsWriter({
+    read: () => this.settings,
+    write: (settings) => this.saveData(settings),
+    publish: (settings) => { this.settings = settings; }
+  });
   private catalog!: ProjectManagerCatalog;
   private navigator!: ProjectManagerNavigator;
   private toolbarIntegration!: ProjectManagerToolbarIntegration;
@@ -67,8 +75,53 @@ export default class ProjectManagerInsightsPlugin
     this.settings = normalizeInsightSettings(saved);
   }
 
-  async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
+  async saveSettings(update?: (draft: InsightSettings) => void): Promise<void> {
+    // No-argument form remains available for existing developer scripts.
+    await this.settingsWriter.transact(update ?? (() => undefined), !update);
+  }
+
+  launchContext(projectId: string, snapshot: ProjectManagerSnapshot, settings = this.settings): LaunchContext {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    return {
+      projectId, tasks: snapshot.tasks, settings: settings.deliveryProgress,
+      includeArchived: settings.includeArchived, schedule: settings.gateSchedules[projectId],
+      actuals: settings.gateActuals[projectId], delay: settings.gateDelays[projectId],
+      today, now: now.toISOString()
+    };
+  }
+
+  async applyProjectLaunch(projectId: string, command: LaunchCommand): Promise<LaunchDecision> {
+    const result = await this.settingsWriter.transact(async (draft) => {
+      const snapshot = await this.reconcileProjectManager();
+      if (!snapshot.projects.some((project) => project.id === projectId)) {
+        return { kind: "rejected", reason: "schedule-invalid" } as const;
+      }
+      const decision = decideProjectLaunch(this.launchContext(projectId, snapshot, draft), command);
+      if (decision.kind === "changed") {
+        draft.gateActuals[projectId] = decision.next.actuals;
+        if (decision.next.delay) draft.gateDelays[projectId] = decision.next.delay;
+        else delete draft.gateDelays[projectId];
+      }
+      return decision;
+    });
+    if (result.kind === "changed") {
+      // The save has succeeded; a view refresh failure must not invite a second write.
+      try { await this.refreshInsights(); }
+      catch { new Notice(translations(this.settings).launchRefreshFailed); }
+    }
+    return result;
+  }
+
+  async reconcileGateActuals(): Promise<void> {
+    await this.settingsWriter.transact(async (draft) => {
+      const snapshot = await this.readProjectManager();
+      for (const project of snapshot.projects) {
+        const context = this.launchContext(project.id, snapshot, draft);
+        const result = reconcileProjectGateActuals({ ...context, previous: context.actuals });
+        if (result.changed) draft.gateActuals[project.id] = result.state;
+      }
+    });
   }
 
   async readProjectManager(): Promise<ProjectManagerSnapshot> {

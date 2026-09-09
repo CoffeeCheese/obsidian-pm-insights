@@ -533,7 +533,6 @@ function projectRisk(
     includeArchived: options.includeArchived,
     countParentTasks: options.countParentTasks === true
   }).included;
-  const requiresLaunchConfirmation = (plan?.revisions.length ?? 0) > 0;
   const launch = assessGate({
     id: "launch",
     name: "",
@@ -545,9 +544,7 @@ function projectRisk(
     tasks: projectRiskTasks,
     blockingTasks: acceptanceBlockers,
     timingTasks: acceptanceRiskTasks,
-    passed: requiresLaunchConfirmation
-      ? Boolean(actuals?.launchDate)
-      : progress.acceptance.total > 0 && acceptanceProgress === 100,
+    passed: Boolean(actuals?.launchDate && isDateOnly(actuals.launchDate)),
     actualDate: actuals?.launchDate ?? null,
     checkTaskDueDates,
     includeWeekends,

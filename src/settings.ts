@@ -31,7 +31,7 @@ import { deliveryStageLabel } from "./delivery-stage-label";
 export interface SettingsHost {
   app: App;
   settings: InsightSettings;
-  saveSettings(): Promise<void>;
+  saveSettings(update?: (draft: InsightSettings) => void): Promise<void>;
   refreshInsights(): Promise<void>;
   readProjectManager(): Promise<ProjectManagerSnapshot>;
 }
@@ -277,21 +277,18 @@ export class InsightsSettingTab extends PluginSettingTab {
 
   async setControlValue(key: string, value: unknown): Promise<void> {
     if (key === "locale" && this.isLocale(value)) {
-      this.host.settings.locale = value;
-      await this.host.saveSettings();
+      await this.host.saveSettings((draft) => { draft.locale = value; });
       await this.host.refreshInsights();
       this.updateDefinitions();
       return;
     }
     if (key === "checkTaskDueDates" && typeof value === "boolean") {
-      this.host.settings.gateRisk.checkTaskDueDates = value;
-      await this.host.saveSettings();
+      await this.host.saveSettings((draft) => { draft.gateRisk.checkTaskDueDates = value; });
       await this.host.refreshInsights();
       return;
     }
     if (key !== "showDeliveryProgress" || typeof value !== "boolean") return;
-    this.host.settings.showDeliveryProgress = value;
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => { draft.showDeliveryProgress = value; });
     await this.host.refreshInsights();
   }
 
@@ -316,8 +313,7 @@ export class InsightsSettingTab extends PluginSettingTab {
           .addOption("zh-cn", t.chinese)
           .setValue(this.host.settings.locale)
           .onChange(async (value) => {
-            this.host.settings.locale = value as InsightSettings["locale"];
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => { draft.locale = value as InsightSettings["locale"]; });
             await this.host.refreshInsights();
             this.renderLegacySettings();
           })
@@ -333,8 +329,7 @@ export class InsightsSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).addButton((button) =>
       button.setButtonText(t.addAlias).setCta().onClick(async () => {
-        this.host.settings.aliases.push({ canonical: "", aliases: [] });
-        await this.host.saveSettings();
+        await this.host.saveSettings((draft) => { draft.aliases.push({ canonical: "", aliases: [] }); });
         this.renderLegacySettings();
       })
     );
@@ -350,8 +345,7 @@ export class InsightsSettingTab extends PluginSettingTab {
         toggle
           .setValue(this.host.settings.showDeliveryProgress)
           .onChange(async (value) => {
-            this.host.settings.showDeliveryProgress = value;
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => { draft.showDeliveryProgress = value; });
             await this.host.refreshInsights();
           })
       );
@@ -385,8 +379,7 @@ export class InsightsSettingTab extends PluginSettingTab {
         toggle
           .setValue(this.host.settings.gateRisk.checkTaskDueDates)
           .onChange(async (value) => {
-            this.host.settings.gateRisk.checkTaskDueDates = value;
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => { draft.gateRisk.checkTaskDueDates = value; });
             await this.host.refreshInsights();
           })
       );
@@ -440,21 +433,13 @@ export class InsightsSettingTab extends PluginSettingTab {
     t: Translations
   ): Promise<void> {
     const previous = this.host.settings.gateRisk[key];
-    this.host.settings.gateRisk[key] = value;
     input.setValue(String(value));
     input.setDisabled(true);
     try {
-      await this.host.saveSettings();
+      await this.host.saveSettings((draft) => { draft.gateRisk[key] = value; });
       await this.host.refreshInsights();
     } catch {
-      this.host.settings.gateRisk[key] = previous;
       input.setValue(String(previous));
-      try {
-        await this.host.saveSettings();
-        await this.host.refreshInsights();
-      } catch {
-        // Keep the original update failure as the user-facing result.
-      }
       new Notice(t.hoursPerDayUpdateFailed);
     } finally {
       input.setDisabled(false);
@@ -708,14 +693,16 @@ export class InsightsSettingTab extends PluginSettingTab {
     setting.addButton((button) => {
       button.setButtonText(t.saveProgressSettings).setCta().onClick(async () => {
         if (!this.progressSettingsValid()) return;
-        const activeStageIds = new Set(this.progressDraft.stages.map((stage) => stage.id));
-        for (const schedule of Object.values(this.host.settings.gateSchedules)) {
-          schedule.stageGates = Object.fromEntries(
-            Object.entries(schedule.stageGates).filter(([stageId]) => activeStageIds.has(stageId))
-          );
-        }
-        this.host.settings.deliveryProgress = structuredClone(this.progressDraft);
-        await this.host.saveSettings();
+        const progress = structuredClone(this.progressDraft);
+        const activeStageIds = new Set(progress.stages.map((stage) => stage.id));
+        await this.host.saveSettings((draft) => {
+          for (const schedule of Object.values(draft.gateSchedules)) {
+            schedule.stageGates = Object.fromEntries(
+              Object.entries(schedule.stageGates).filter(([stageId]) => activeStageIds.has(stageId))
+            );
+          }
+          draft.deliveryProgress = progress;
+        });
         await this.host.refreshInsights();
       });
       this.progressSaveButtonEl = button.buttonEl;
@@ -859,8 +846,10 @@ export class InsightsSettingTab extends PluginSettingTab {
               .setPlaceholder(t.canonicalName)
               .setValue(alias.canonical)
               .onChange(async (value) => {
-                alias.canonical = value;
-                await this.host.saveSettings();
+                await this.host.saveSettings((draft) => {
+                  const current = draft.aliases[index];
+                  if (current) current.canonical = value;
+                });
                 await this.host.refreshInsights();
               });
             input.inputEl.addClass("pmi-alias-canonical-input");
@@ -871,8 +860,10 @@ export class InsightsSettingTab extends PluginSettingTab {
               .setPlaceholder(t.aliasNames)
               .setValue(alias.aliases.join(", "))
               .onChange(async (value) => {
-                alias.aliases = this.parseAliases(value);
-                await this.host.saveSettings();
+                await this.host.saveSettings((draft) => {
+                  const current = draft.aliases[index];
+                  if (current) current.aliases = this.parseAliases(value);
+                });
                 await this.host.refreshInsights();
               });
             input.inputEl.addClass("pmi-alias-names-input");
@@ -889,14 +880,12 @@ export class InsightsSettingTab extends PluginSettingTab {
   }
 
   private async addAlias(): Promise<void> {
-    this.host.settings.aliases.push({ canonical: "", aliases: [] });
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => { draft.aliases.push({ canonical: "", aliases: [] }); });
     this.updateDefinitions();
   }
 
   private async deleteAlias(index: number): Promise<void> {
-    this.host.settings.aliases.splice(index, 1);
-    await this.host.saveSettings();
+    await this.host.saveSettings((draft) => { draft.aliases.splice(index, 1); });
     await this.host.refreshInsights();
     this.updateDefinitions();
   }
@@ -926,8 +915,10 @@ export class InsightsSettingTab extends PluginSettingTab {
           .setPlaceholder(t.canonicalName)
           .setValue(alias.canonical)
           .onChange(async (value) => {
-            alias.canonical = value;
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => {
+              const current = draft.aliases[index];
+              if (current) current.canonical = value;
+            });
             await this.host.refreshInsights();
           });
         input.inputEl.addClass("pmi-alias-canonical-input");
@@ -938,8 +929,10 @@ export class InsightsSettingTab extends PluginSettingTab {
           .setPlaceholder(t.aliasNames)
           .setValue(alias.aliases.join(", "))
           .onChange(async (value) => {
-            alias.aliases = this.parseAliases(value);
-            await this.host.saveSettings();
+            await this.host.saveSettings((draft) => {
+              const current = draft.aliases[index];
+              if (current) current.aliases = this.parseAliases(value);
+            });
             await this.host.refreshInsights();
           });
         input.inputEl.addClass("pmi-alias-names-input");
@@ -947,8 +940,7 @@ export class InsightsSettingTab extends PluginSettingTab {
       })
       .addExtraButton((button) =>
         button.setIcon("trash-2").setTooltip(t.removeAlias).onClick(async () => {
-          this.host.settings.aliases.splice(index, 1);
-          await this.host.saveSettings();
+          await this.host.saveSettings((draft) => { draft.aliases.splice(index, 1); });
           await this.host.refreshInsights();
           this.renderLegacySettings();
         })

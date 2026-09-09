@@ -1,3 +1,5 @@
+import { type ProjectLaunchUIOptions } from "./project-launch-ui";
+import { projectLaunchState } from "./domain/project-launch";
 import { Modal, Notice, ToggleComponent, setIcon, type App } from "obsidian";
 import type {
   GateRiskMetric,
@@ -15,6 +17,7 @@ import { deliveryStageLabel } from "./delivery-stage-label";
 
 interface GateRiskModalOptions {
   snapshot: GateRiskSnapshot;
+  launchOptions(project: ProjectRecord): ProjectLaunchUIOptions;
   checkTaskDueDates: boolean;
   priorities: PriorityRecord[];
   translations: Translations;
@@ -56,6 +59,21 @@ export class GateRiskModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("pmi-gate-risk-modal");
+    this.render();
+  }
+
+  focusAcceptance(projectId: string): void {
+    this.activeProjectId = projectId;
+    this.render();
+    const acceptance = this.contentEl.querySelector<HTMLDetailsElement>('[data-gate-id="acceptance"]');
+    if (acceptance) { acceptance.open = true; acceptance.querySelector("summary")?.focus(); }
+  }
+
+  refresh(snapshot: GateRiskSnapshot): void {
+    this.snapshot = snapshot;
+    if (!snapshot.projects.some((risk) => risk.project.id === this.activeProjectId)) {
+      this.activeProjectId = snapshot.projects[0]?.project.id ?? "";
+    }
     this.render();
   }
 
@@ -183,6 +201,9 @@ export class GateRiskModal extends Modal {
       cls: "pmi-risk-state",
       text: this.stateLabel(risk.state, t)
     });
+    if (projectLaunchState(this.options.launchOptions(risk.project).context()).date) {
+      button.createSpan({ cls: "pmi-project-launch-badge", text: t.launchBadge });
+    }
     button.addEventListener("click", () => this.activateProject(risk.project.id));
     button.addEventListener("keydown", (event) => this.handleProjectTabKey(event, index));
   }
@@ -238,9 +259,9 @@ export class GateRiskModal extends Modal {
     });
     // The launch reminder is a project-level roll-up, so keep it quiet until the
     // user asks for the full handoff picture. Stage exceptions remain expanded.
-    item.open = gate.kind !== "launch" && (
-      gate.state === "overdue" || gate.state === "high" || gate.state === "attention"
-    );
+    item.open = gate.kind === "launch"
+      ? projectLaunchState(this.options.launchOptions(project).context()).state !== "blocked"
+      : gate.state === "overdue" || gate.state === "high" || gate.state === "attention";
     const summary = item.createEl("summary");
     const node = summary.createSpan("pmi-risk-gate-node");
     setIcon(node, this.gateIcon(gate));
@@ -286,6 +307,18 @@ export class GateRiskModal extends Modal {
     setIcon(disclosure, "chevron-down");
 
     const body = item.createDiv("pmi-risk-gate-body");
+    if (gate.kind === "launch") {
+      const options = this.options.launchOptions(project);
+      const state = projectLaunchState(options.context());
+      body.createEl("p", { text: state.date ? `${t.launchBadge} · ${state.date}` : state.state === "ready" ? t.launchReady : t.launchConfirmDescription });
+      const open = body.createEl("button", {
+        text: state.date ? t.launchRecord : t.launchPanelTitle,
+        cls: "pmi-launch-open",
+        attr: { type: "button", "aria-haspopup": "dialog" }
+      });
+      open.addEventListener("click", () => { this.close(); options.showOverview(); });
+      if (state.date) return;
+    }
     if (gate.reasons.length > 0) {
       const reasons = body.createDiv("pmi-risk-reasons");
       for (const reason of gate.reasons) {
@@ -829,6 +862,8 @@ export class GateRiskModal extends Modal {
   }
 
   private gateStateLabel(gate: GateRiskMetric, t: Translations): string {
+    if (gate.kind === "launch") return gate.state === "passed" ? t.launchSuccess
+      : gate.state === "overdue" ? t.launchOverdue : t.launchPending;
     if (gate.state === "normal" && gate.progressSignal === "parallel") {
       return t.riskStateParallel;
     }
@@ -845,7 +880,7 @@ export class GateRiskModal extends Modal {
       case "task-overdue": return t.gateReasonTaskOverdue;
       case "task-after-gate": return t.gateReasonTaskAfterGate;
       case "gate-today": return t.gateReasonGateToday;
-      case "gate-overdue": return t.gateReasonGateOverdue;
+      case "gate-overdue": return gate.kind === "launch" ? t.launchOverdue : t.gateReasonGateOverdue;
       case "capacity-tight": return t.gateReasonCapacityTight(
         gate.capacity?.bottleneckAssignee ?? t.launchNoBottleneck,
         this.capacityCheckpointName(
