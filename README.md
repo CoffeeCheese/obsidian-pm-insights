@@ -470,11 +470,19 @@ A load above available capacity is high risk, while utilization of 80% or more c
 
 Each selected project displays a clickable **Not launched / Awaiting launch confirmation / Launched** status beside its name. This opens an independent launch confirmation panel. After acceptance passes and the actual deployment is verified, choose **Mark launch successful** and enter the actual date. The launch node in gate risk details opens the same panel. Delay planning only shows a dated completion notice after launch. **Correct launch date** and **Revoke launch mark** remain visible below the result card, above the collapsible history timeline.
 
+![Project cards with compact Not launched and Launched status buttons](docs/assets/pm-insights-launch-status-focused.png)
+
+*Select the status beside a project name to open its launch panel.*
+
 - Every project requires explicit launch confirmation, including projects without delay history. Acceptance completion alone leaves the project awaiting launch confirmation.
 - First confirmation requires a valid schedule, passed acceptance and prerequisite gates, and no pending delay assessment. Dates must fall between actual acceptance and today.
 - A successful save plays a single launch-stamp animation and displays the launch badge, actual date, and variance from the baseline and confirmed forecast using the project clock. Reduced motion displays the final state immediately.
 - **Correct launch date** and **Revoke launch mark** require reasons and retain history. Revocation restores the previous delay state; delay plans are read-only while launch is recorded.
 - Reopened tasks remain visible as post-launch work while the launch fact is preserved. Task status, effort, project archiving, and task notes are not automatically changed.
+
+![Successful launch panel showing the actual date, schedule variance, correction and revocation actions, and the expanded history timeline](docs/assets/pm-insights-launch-records-focused.png)
+
+*The fictional demo project shows a saved launch, the two always-visible management actions, and a timeline of confirmations, corrections, and revocations. Input controls use a thin border and a single focus indicator, including under the Pixel theme.*
 
 Launch records are stored in PM Insights settings; the action does not perform a deployment. Existing valid launch dates remain recognized after upgrading. Projects previously marked as passed solely through acceptance now await confirmation. When legacy history cannot establish a safe delay-state restoration, the plugin explains what is missing and preserves the current record.
 
