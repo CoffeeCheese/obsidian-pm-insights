@@ -12,7 +12,7 @@ import {
 } from "./domain/delivery-schedule";
 import { translations, type Translations } from "./i18n";
 import { DeliveryIssuesModal } from "./delivery-issues-modal";
-import { validateGateSchedule } from "./domain/gate-schedule";
+import { isDateOnly, validateGateSchedule } from "./domain/gate-schedule";
 import { aggregateGateRisk, gateRiskSummaryState, type GateRiskSnapshot } from "./domain/gate-risk";
 import { projectLaunchState, type LaunchContext, type LaunchCommand, type LaunchDecision } from "./domain/project-launch";
 import { GateRiskModal } from "./gate-risk-modal";
@@ -294,7 +294,15 @@ export class InsightsView extends ItemView {
         checkbox.dataset.projectId = project.id;
         checkbox.checked = this.host.settings.selectedProjectIds.includes(project.id);
         row.createSpan({ cls: "pmi-project-icon", text: project.icon });
-        row.createSpan({ text: project.title });
+        row.createSpan({ cls: "pmi-project-option-name", text: project.title });
+        const launchDate = this.host.settings.gateActuals[project.id]?.launchDate;
+        const launched = Boolean(launchDate && isDateOnly(launchDate));
+        const status = row.createSpan({
+          cls: `pmi-project-option-status${launched ? " is-launched" : ""}`,
+          attr: launched ? { title: `${t.launchBadge} · ${launchDate}` } : {}
+        });
+        setIcon(status.createSpan({ attr: { "aria-hidden": "true" } }), launched ? "check" : "circle");
+        status.createSpan({ text: launched ? t.launchBadge : t.launchNotStarted });
         checkbox.addEventListener("change", () => {
           void (async () => {
             const checked = checkbox.checked;
