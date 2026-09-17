@@ -11,6 +11,8 @@ export interface ProjectManagerDocument {
 export interface ProjectManagerSourceSnapshot {
   documents: readonly ProjectManagerDocument[];
   settings: Record<string, unknown> | null;
+  /** False means discovery is incomplete, not that the vault is empty. */
+  ready?: boolean;
 }
 
 export type ProjectManagerSourceChange =
@@ -21,6 +23,7 @@ export type ProjectManagerSourceChange =
 export interface ProjectManagerSource {
   scan(): Promise<ProjectManagerSourceSnapshot>;
   watch(listener: (change: ProjectManagerSourceChange) => void): () => void;
+  isReady?(): boolean;
 }
 
 export interface ProjectManagerSnapshot {
@@ -284,6 +287,10 @@ export class ProjectManagerCatalog {
     const previous = this.current;
     const operation = (async () => {
       const sourceSnapshot = await this.source.scan();
+      // Readiness can change while scan awaits settings or metadata I/O.
+      if (sourceSnapshot.ready === false || this.source.isReady?.() === false) {
+        return this.current ?? this.createSnapshot();
+      }
       const nextSettings = settings(sourceSnapshot.settings);
       const nextEntries = new Map<string, CatalogEntry>();
       for (const document of sourceSnapshot.documents) {
@@ -300,7 +307,7 @@ export class ProjectManagerCatalog {
       this.queuedChanges = [];
       for (const change of queued) this.apply(change, false);
 
-      if (notify && previous !== null && !this.snapshotsEqual(previous, this.current)) {
+      if (notify && (previous === null || !this.snapshotsEqual(previous, this.current))) {
         this.notify();
       }
       return this.current;

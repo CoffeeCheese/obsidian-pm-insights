@@ -22,7 +22,7 @@ interface GateRiskModalOptions {
   priorities: PriorityRecord[];
   translations: Translations;
   hasDeliveryIssues: boolean;
-  openTask(taskId: string, projectPath: string): Promise<void> | void;
+  openTask(taskId: string, projectPath: string, projectId?: string): Promise<void> | void;
   openDeliveryIssues(): void;
   configureProject(project: ProjectRecord): void;
   setTaskDueDateChecks(enabled: boolean): Promise<GateRiskSnapshot>;
@@ -715,7 +715,7 @@ export class GateRiskModal extends Modal {
       }
       setIcon(button.createSpan(), "arrow-up-right");
       button.addEventListener("click", () => {
-        void this.options.openTask(task.id, project.path);
+        void this.options.openTask(task.id, project.path, project.id);
       });
     }
   }

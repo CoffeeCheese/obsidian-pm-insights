@@ -10,12 +10,66 @@ import { ProjectManagerNavigator } from "../src/adapters/project-manager-navigat
 // Future values are synthetic: the native contract stays fixed while only the
 // manifest version changes. These cases guard against reintroducing an allowlist.
 const versions = [
-  "1.8.0", "2.1.0", "2.2.0", "2.3.0", "2.3.1", "2.4.0",
+  "1.8.0", "2.1.0", "2.2.0", "2.3.0", "2.3.1", "2.4.0", "2.4.1",
   "3.0.0", "99.0.0", "3.0.0-beta.1", "", undefined
 ];
 
 describe("ProjectManagerNavigator", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it.each([false, true])("opens the same project after migration (same-ID task elsewhere: %s)", async (hasCopy) => {
+    vi.stubGlobal("document", { querySelectorAll: vi.fn(() => []) });
+    const currentPath = "Projects/Demo/Demo.md";
+    const task = { id: "task-1", filePath: "Projects/Demo/_tasks/Task.md" };
+    const nativeOpenTask = vi.fn();
+    const view = { project: { tasks: [task] }, subview: { openTask: nativeOpenTask } };
+    const navigator = new ProjectManagerNavigator({
+      plugins: { getPlugin: () => ({
+        index: {
+          allTaskRefs: () => [
+            { id: task.id, projectPath: currentPath },
+            ...(hasCopy ? [{ id: task.id, projectPath: "Projects/Other/Other.md" }] : [])
+          ],
+          projectRefs: () => [{ id: "p1", path: currentPath }, { id: "p2", path: "Projects/Other/Other.md" }]
+        }
+      }) }
+    } as unknown as App);
+    const createView = vi.fn(async (path: string) => {
+      if (path !== currentPath) throw new Error("The pre-migration project file no longer exists");
+      return { leaf: {}, view };
+    });
+    const internals = navigator as unknown as {
+      createDetachedProjectView: typeof createView;
+      disposeDetachedProjectView: () => Promise<void>;
+      waitFor: (read: () => unknown) => Promise<unknown>;
+      waitForRemoval: () => Promise<void>;
+    };
+    internals.createDetachedProjectView = createView;
+    internals.disposeDetachedProjectView = vi.fn(async () => undefined);
+    internals.waitFor = vi.fn(async (read: () => unknown) => read() || {});
+    internals.waitForRemoval = vi.fn(async () => undefined);
+
+    await navigator.editTask({ taskId: task.id, projectPath: "Projects/Demo.md", projectId: "p1" });
+
+    expect(createView).toHaveBeenCalledWith(currentPath);
+    expect(nativeOpenTask).toHaveBeenCalledWith(task);
+    expect(internals.disposeDetachedProjectView).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a deleted task instead of opening the sole same-ID task in another project", async () => {
+    vi.stubGlobal("document", { querySelectorAll: vi.fn(() => []) });
+    const navigator = new ProjectManagerNavigator({
+      plugins: { getPlugin: () => ({ index: {
+        allTaskRefs: () => [{ id: "shared", projectPath: "Projects/B/B.md" }],
+        projectRefs: () => [{ id: "a", path: "Projects/A/A.md" }, { id: "b", path: "Projects/B/B.md" }]
+      } }) }
+    } as unknown as App);
+    const createView = vi.fn(async () => { throw new Error("Must not open another project's editor"); });
+    (navigator as unknown as { createDetachedProjectView: typeof createView }).createDetachedProjectView = createView;
+    await expect(navigator.editTask({ taskId: "shared", projectPath: "Projects/A.md", projectId: "a" }))
+      .rejects.toMatchObject({ code: "task-not-found" });
+    expect(createView).not.toHaveBeenCalled();
+  });
 
   it.each(versions)(
     "uses a Kanban bridge with Project Manager %s when the default project subview cannot open tasks",

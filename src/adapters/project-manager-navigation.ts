@@ -13,6 +13,10 @@ interface ProjectManagerRouter {
 interface ProjectManagerPlugin {
   settings?: { taskEditorSurface?: string };
   router?: ProjectManagerRouter;
+  index?: {
+    allTaskRefs?(): Array<{ id: string; projectPath?: string | null }>;
+    projectRefs?(): Array<{ id: string; path: string }>;
+  };
 }
 
 interface PluginRegistry {
@@ -103,6 +107,7 @@ export class ProjectManagerNavigationError extends Error {
 export interface ProjectManagerTaskTarget {
   projectPath: string;
   taskId: string;
+  projectId?: string;
 }
 
 export class ProjectManagerNavigator {
@@ -130,7 +135,7 @@ export class ProjectManagerNavigator {
       // Probe the editor capabilities below: a new version alone is not a failure.
       const existingModals = new Set(document.querySelectorAll(".modal-container"));
       ({ leaf: detachedLeaf, view: projectView } = await this.createDetachedProjectView(
-        target.projectPath
+        this.currentProjectPath(plugin, target)
       ));
       const task = await this.findProjectTask(projectView, target.taskId);
       if (task?.filePath && plugin.settings?.taskEditorSurface === "tab") {
@@ -159,6 +164,21 @@ export class ProjectManagerNavigator {
         this.openingTask = false;
       }
     }
+  }
+
+  private currentProjectPath(plugin: ProjectManagerPlugin, target: ProjectManagerTaskTarget): string {
+    const index = plugin.index;
+    if (!target.projectId || typeof index?.allTaskRefs !== "function"
+      || typeof index.projectRefs !== "function") return target.projectPath;
+
+    // A task ID alone cannot distinguish a migrated task from another project's copy.
+    const owners = index.projectRefs().filter((project) => project.id === target.projectId);
+    const owner = owners.find((project) => project.path === target.projectPath)
+      ?? (owners.length === 1 ? owners[0] : undefined);
+    if (!owner || !index.allTaskRefs().some((task) =>
+      task.id === target.taskId && task.projectPath === owner.path
+    )) throw new ProjectManagerNavigationError("task-not-found");
+    return owner.path;
   }
 
   private async createDetachedProjectView(

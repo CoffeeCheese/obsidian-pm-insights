@@ -47,17 +47,25 @@ function frontmatter(cache: CachedMetadata | null): Record<string, unknown> | nu
 
 export class ObsidianProjectManagerSource implements ProjectManagerSource {
   private managedFolder = DEFAULT_PROJECTS_FOLDER;
+  private hasNativeIndex = false;
 
   constructor(private readonly app: App) {}
+
+  isReady(): boolean {
+    const index = this.index();
+    return index ? index.ready !== false : !this.hasNativeIndex;
+  }
 
   async scan(): Promise<ProjectManagerSourceSnapshot> {
     const settings = await this.readSettings();
     this.managedFolder = settingsFolder(settings);
     const documents: ProjectManagerDocument[] = [];
     const index = this.index();
+    if (index?.ready === false || (!index && this.hasNativeIndex)) {
+      return { documents, settings, ready: false };
+    }
     if (index) {
       // Reuse PM's discovery (including exclusions) instead of scanning the vault.
-      if (index.ready === false) return { documents, settings };
       const projects = new Map(index.projectRefs().map((project) => [project.path, project]));
       const statuses = new Map([...projects].map(([path, project]) =>
         [path, typeof index.completeStatuses === "function" ? index.completeStatuses(project) : undefined] as const
@@ -97,7 +105,28 @@ export class ObsidianProjectManagerSource implements ProjectManagerSource {
   }
 
   watch(listener: (change: ProjectManagerSourceChange) => void): () => void {
-    const index = this.index();
+    let index = this.index();
+    let stop = this.watchSource(index, listener);
+    // Obsidian can replace the native plugin without reloading Insights. Checking
+    // identity is constant-time; scan only when the source actually changes.
+    const timer = window.setInterval(() => {
+      const current = this.index();
+      if (current === index) return;
+      stop();
+      index = current;
+      stop = this.watchSource(index, listener);
+      // Keep the snapshot while the native plugin is temporarily absent/loading.
+      if (index && index.ready !== false) listener({ kind: "reconcile" });
+    }, 1_000);
+    return () => { window.clearInterval(timer); stop(); };
+  }
+
+  private watchSource(
+    index: ProjectManagerIndex | null,
+    listener: (change: ProjectManagerSourceChange) => void
+  ): () => void {
+    // A removed native plugin is not a switch back to legacy folder discovery.
+    if (!index && this.hasNativeIndex) return () => undefined;
     if (typeof index?.onChange === "function") {
       // A project rename/config edit can change many task relationships at once.
       // Coalesce native index events and resolve a consistent snapshot after it updates.
@@ -108,7 +137,7 @@ export class ObsidianProjectManagerSource implements ProjectManagerSource {
         queued = true;
         queueMicrotask(() => {
           queued = false;
-          if (active) listener({ kind: "reconcile" });
+          if (active && index.ready !== false && this.index() === index) listener({ kind: "reconcile" });
         });
       });
       return () => { active = false; stop(); };
@@ -193,9 +222,9 @@ export class ObsidianProjectManagerSource implements ProjectManagerSource {
       plugins?: { getPlugin(id: string): { index?: ProjectManagerIndex } | null };
     }).plugins;
     const index = plugins?.getPlugin("project-manager")?.index;
-    return typeof index?.projectRefs === "function" && typeof index.allTaskRefs === "function"
-      ? index
-      : null;
+    if (typeof index?.projectRefs !== "function" || typeof index.allTaskRefs !== "function") return null;
+    this.hasNativeIndex = true;
+    return index;
   }
 
   private isManaged(path: string): boolean {

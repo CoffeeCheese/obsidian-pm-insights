@@ -21,7 +21,7 @@ interface DeliveryIssuesModalOptions {
   issues: DeliveryProgressIssue[];
   projects: ProjectRecord[];
   translations: Translations;
-  openTask(taskId: string, projectPath: string): Promise<void> | void;
+  openTask(taskId: string, projectPath: string, projectId?: string): Promise<void> | void;
 }
 
 export class DeliveryIssuesModal extends Modal {
@@ -162,7 +162,7 @@ export class DeliveryIssuesModal extends Modal {
       setIcon(arrow, "arrow-up-right");
       row.addEventListener("click", () => {
         if (!project) return;
-        void this.options.openTask(issue.task.id, project.path);
+        void this.options.openTask(issue.task.id, project.path, project.id);
       });
     }
   }

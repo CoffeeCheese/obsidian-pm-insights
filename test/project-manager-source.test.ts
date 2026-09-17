@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const obsidianMocks = vi.hoisted(() => {
   class MockTFile {
@@ -162,6 +162,168 @@ function fixture(): {
 }
 
 describe("ObsidianProjectManagerSource", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    vi.stubGlobal("window", { setInterval, clearInterval });
+  });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+  it("notifies an already open empty view when the first native index becomes ready", async () => {
+    const f = indexedFixture();
+    f.index.ready = false;
+    const catalog = new ProjectManagerCatalog(new ObsidianProjectManagerSource(f.app));
+    const updates = vi.fn();
+    const stop = catalog.subscribe(updates);
+    try {
+      expect((await catalog.snapshot()).projects).toEqual([]);
+      expect(updates).not.toHaveBeenCalled();
+      f.index.ready = true;
+      f.emitIndex();
+      await vi.advanceTimersByTimeAsync(0);
+      expect((await catalog.snapshot()).projects).toHaveLength(1);
+      expect(updates).toHaveBeenCalledOnce();
+      expect(updates).toHaveBeenCalledWith(await catalog.snapshot());
+    } finally { stop(); }
+  });
+
+  it("preserves the catalog through replacement, loading events and an asynchronous refresh until ready", async () => {
+    const f = indexedFixture();
+    const replacement = indexedFixture();
+    replacement.index.ready = false;
+    replacement.refs.pop();
+    let current = f.index;
+    const app = f.app as App & { plugins: { getPlugin: () => { index: typeof f.index } } };
+    app.plugins.getPlugin = () => ({ index: current });
+    const catalog = new ProjectManagerCatalog(new ObsidianProjectManagerSource(app));
+    const updates = vi.fn();
+    const stop = catalog.subscribe(updates);
+    const original = await catalog.snapshot();
+    try {
+      current = replacement.index;
+      await vi.advanceTimersByTimeAsync(1_100);
+      replacement.emitIndex();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await catalog.snapshot()).toBe(original);
+      expect(await catalog.reconcile()).toBe(original);
+      expect(updates).not.toHaveBeenCalled();
+
+      // A scan requested while ready may resume after settings I/O during reload.
+      current.ready = true;
+      const pending = catalog.reconcile();
+      current.ready = false;
+      expect(await pending).toBe(original);
+
+      current.ready = true;
+      replacement.emitIndex();
+      await vi.advanceTimersByTimeAsync(0);
+      expect((await catalog.snapshot()).tasks).toHaveLength(1);
+      expect(updates).toHaveBeenCalledOnce();
+      // A genuinely empty, ready index must still clear removed projects and tasks.
+      replacement.index.projectRefs = () => [];
+      replacement.refs.length = 0;
+      replacement.emitIndex();
+      await vi.advanceTimersByTimeAsync(0);
+      expect((await catalog.snapshot()).projects).toEqual([]);
+      expect((await catalog.snapshot()).tasks).toEqual([]);
+    } finally { stop(); }
+  });
+
+  it("retains the native snapshot while the plugin is absent and reconciles after re-enabling", async () => {
+    const f = indexedFixture();
+    const watchVault = vi.spyOn(f.app.vault, "on");
+    let enabled = true;
+    const app = f.app as App & { plugins: { getPlugin: () => { index: typeof f.index } | null } };
+    app.plugins.getPlugin = () => enabled ? { index: f.index } : null;
+    const catalog = new ProjectManagerCatalog(new ObsidianProjectManagerSource(app));
+    const stop = catalog.subscribe(vi.fn());
+    const original = await catalog.snapshot();
+    try {
+      enabled = false;
+      await vi.advanceTimersByTimeAsync(1_100);
+      expect(await catalog.reconcile()).toBe(original);
+      expect(watchVault).not.toHaveBeenCalled();
+      f.refs.pop();
+      enabled = true;
+      await vi.advanceTimersByTimeAsync(1_100);
+      expect((await catalog.snapshot()).tasks).toHaveLength(1);
+    } finally { stop(); }
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rechecks readiness before committing a completed asynchronous scan", async () => {
+    const f = indexedFixture();
+    const source = new ObsidianProjectManagerSource(f.app);
+    const catalog = new ProjectManagerCatalog(source);
+    const stop = catalog.subscribe(vi.fn());
+    const original = await catalog.snapshot();
+    const scan = source.scan.bind(source);
+    vi.spyOn(source, "scan").mockImplementation(async () => {
+      const result = await scan();
+      f.index.ready = false;
+      return result;
+    });
+    try {
+      f.refs.pop();
+      expect(await catalog.reconcile()).toBe(original);
+    } finally { stop(); }
+  });
+
+  it("rebinds after a native plugin reload and updates cached project paths without reloading Insights", async () => {
+    const f = indexedFixture();
+    const replacement = indexedFixture();
+    const newPath = "Elsewhere/Moved/Demo.md";
+    replacement.files.set(newPath, new obsidianMocks.MockTFile(newPath));
+    replacement.caches.set(newPath, replacement.caches.get(f.projectPath)!);
+    replacement.index.projectRefs = () => [{ path: newPath, id: "p1" }];
+    replacement.refs.forEach((ref) => { ref.projectPath = newPath; });
+    let currentIndex = f.index;
+    const app = replacement.app as App & { plugins: { getPlugin: () => { index: typeof f.index } } };
+    app.plugins.getPlugin = () => ({ index: currentIndex });
+    const catalog = new ProjectManagerCatalog(new ObsidianProjectManagerSource(app));
+    const updates = vi.fn();
+    const stop = catalog.subscribe(updates);
+    expect((await catalog.snapshot()).projects[0]?.path).toBe(f.projectPath);
+
+    currentIndex = replacement.index;
+    await vi.advanceTimersByTimeAsync(1_100);
+    expect((await catalog.snapshot()).projects[0]?.path).toBe(newPath);
+    expect(f.stopIndex).toHaveBeenCalledOnce();
+    expect(updates).toHaveBeenCalled();
+
+    updates.mockClear();
+    f.emitIndex();
+    await Promise.resolve();
+    expect(updates).not.toHaveBeenCalled();
+    replacement.refs.pop();
+    replacement.emitIndex();
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await catalog.snapshot()).tasks).toHaveLength(1);
+
+    stop();
+    expect(replacement.stopIndex).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("switches from folder discovery to the native index when Project Manager becomes available", async () => {
+    const f = indexedFixture();
+    let available = false;
+    const app = f.app as App & { plugins: { getPlugin: () => { index: typeof f.index } | null } };
+    app.plugins.getPlugin = () => available ? { index: f.index } : null;
+    const source = new ObsidianProjectManagerSource(app);
+    const listener = vi.fn();
+    const stop = source.watch(listener);
+    available = true;
+    await vi.advanceTimersByTimeAsync(1_100);
+    expect(listener).toHaveBeenCalledWith({ kind: "reconcile" });
+    listener.mockClear();
+    f.emitIndex();
+    await Promise.resolve();
+    expect(listener).toHaveBeenCalledWith({ kind: "reconcile" });
+    stop();
+    expect(f.stopIndex).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("resolves wikilinks in folder-based discovery while preserving bare and unresolved IDs", async () => {
     const f = indexedFixture();
     const plugins = f.app as App & { plugins: { getPlugin: () => null } };

@@ -60,7 +60,7 @@ export interface InsightsViewHost {
   reconcileGateActuals(): Promise<void>;
   refreshInsights(): Promise<void>;
   openSettings(): void;
-  openTask(taskId: string, projectPath: string): Promise<void>;
+  openTask(taskId: string, projectPath: string, projectId?: string): Promise<void>;
   openProject(projectPath: string): Promise<void>;
 }
 
@@ -620,7 +620,7 @@ export class InsightsView extends ItemView {
             launchOptions: (candidate) => this.launchOptions(candidate, snapshot),
             checkTaskDueDates: this.host.settings.gateRisk.checkTaskDueDates,
             priorities: snapshot.priorities, translations: t, hasDeliveryIssues: false,
-            openTask: (taskId, path) => this.host.openTask(taskId, path),
+            openTask: (taskId, path, projectId) => this.host.openTask(taskId, path, projectId),
             openDeliveryIssues: () => undefined,
             configureProject: (candidate) => this.openProjectGates(candidate, snapshot, t),
             setTaskDueDateChecks: async (enabled) => {
@@ -746,13 +746,13 @@ export class InsightsView extends ItemView {
         priorities: snapshot.priorities,
         translations: t,
         hasDeliveryIssues: delivery.quality.issues.length > 0,
-        openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath),
+        openTask: (taskId, projectPath, projectId) => this.host.openTask(taskId, projectPath, projectId),
         openDeliveryIssues: () => {
           new DeliveryIssuesModal(this.app, {
             issues: delivery.quality.issues,
             projects: snapshot.projects,
             translations: t,
-            openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath)
+            openTask: (taskId, projectPath, projectId) => this.host.openTask(taskId, projectPath, projectId)
           }).open();
         },
         configureProject: (project) => this.openProjectGates(project, snapshot, t),
@@ -871,7 +871,7 @@ export class InsightsView extends ItemView {
           issues: progress.quality.issues,
           projects,
           translations: t,
-          openTask: (taskId, projectPath) => this.host.openTask(taskId, projectPath)
+          openTask: (taskId, projectPath, projectId) => this.host.openTask(taskId, projectPath, projectId)
         }).open();
       });
     }
@@ -2915,7 +2915,7 @@ export class InsightsView extends ItemView {
       row.createSpan({ cls: "pmi-task-hours pmi-task-remaining", text: t.hours(task.remaining) });
       this.bindCellAction(title, () => {
         if (!projectRecord) return;
-        void this.host.openTask(task.id, projectRecord.path);
+        void this.host.openTask(task.id, projectRecord.path, projectRecord.id);
       });
       this.bindCellAction(project, () => {
         if (!projectRecord) return;

@@ -177,9 +177,9 @@ export default class ProjectManagerInsightsPlugin
     }, 0);
   }
 
-  async openTask(taskId: string, projectPath: string): Promise<void> {
+  async openTask(taskId: string, projectPath: string, projectId?: string): Promise<void> {
     try {
-      await this.navigator.editTask({ taskId, projectPath });
+      await this.navigator.editTask({ taskId, projectPath, ...(projectId ? { projectId } : {}) });
     } catch {
       new Notice(translations(this.settings).taskEditorUnavailable);
     }
