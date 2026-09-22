@@ -678,6 +678,8 @@ export class InsightsView extends ItemView {
           if (delay) draft.gateDelays[project.id] = delay;
           else delete draft.gateDelays[project.id];
         });
+      },
+      refresh: () => {
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
         this.refreshMemberDashboardModal();

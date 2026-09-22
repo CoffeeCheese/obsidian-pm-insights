@@ -59,6 +59,7 @@ interface ProjectGatesModalOptions {
   translations: Translations;
   launch: ProjectLaunchUIOptions;
   save(state: ProjectGatesModalState): Promise<void>;
+  refresh?(): void | Promise<void>;
 }
 
 type GateEditorTab = "baseline" | "delay";
@@ -137,6 +138,12 @@ export class ProjectGatesModal extends Modal {
   private actuals: ProjectGateActualState;
   private activeTab: GateEditorTab = "baseline";
   private baselineDirty = false;
+  private savingBaseline = false;
+  private baselineSaved = false;
+  private baselineValidationEl: HTMLElement | undefined;
+  private baselineSaveButton: ButtonComponent | undefined;
+  private baselineSaveLabel = "";
+  private baselineInputs: Array<{ input: HTMLInputElement; update(value: string): void }> = [];
   private delayDirty = false;
   private allowClose = false;
   private confirmationOpen = false;
@@ -176,12 +183,16 @@ export class ProjectGatesModal extends Modal {
   }
 
   showTab(tab: GateEditorTab): void {
+    if (this.savingBaseline) return;
     this.activeTab = tab;
     this.render();
   }
 
   refreshExternal(): void {
-    if (this.baselineDirty || this.delayDirty) return;
+    if (this.savingBaseline || this.baselineDirty || this.delayDirty) return;
+    // A date picker can emit provisional input before committing a change.
+    const focused = this.contentEl.ownerDocument.activeElement;
+    if (focused && this.contentEl.contains(focused) && focused.matches('input[type="date"]')) return;
     const context = this.options.launch.context();
     if (context.schedule) {
       this.baseline = structuredClone(context.schedule);
@@ -196,10 +207,14 @@ export class ProjectGatesModal extends Modal {
 
   onClose(): void {
     this.durationRows = [];
+    this.baselineInputs = [];
+    this.baselineValidationEl = undefined;
+    this.baselineSaveButton = undefined;
     this.contentEl.empty();
   }
 
   close(): void {
+    if (this.savingBaseline) return;
     if (!this.allowClose && (this.baselineDirty || this.delayDirty)) {
       if (this.confirmationOpen) return;
       this.confirmationOpen = true;
@@ -226,6 +241,9 @@ export class ProjectGatesModal extends Modal {
 
   private render(): void {
     this.durationRows = [];
+    this.baselineInputs = [];
+    this.baselineValidationEl = undefined;
+    this.baselineSaveButton = undefined;
     this.contentEl.empty();
     this.renderLead();
     this.renderTabs();
@@ -361,14 +379,15 @@ export class ProjectGatesModal extends Modal {
       cls: "pmi-gate-editor-validation",
       attr: { role: "status", "aria-live": "polite" }
     });
-    const result = validateGateSchedule(this.baseline, this.stageIds());
-    validation.setText(this.baselineValidationMessage(result));
+    this.baselineValidationEl = validation;
     const footer = root.createDiv("pmi-gate-editor-footer");
     new ButtonComponent(footer).setButtonText(t.cancel).onClick(() => this.close());
     const save = new ButtonComponent(footer).setButtonText(t.saveGates).setCta();
     save.buttonEl.addClass("pmi-gate-editor-save");
-    save.setDisabled(!policy.canSave || !result.valid);
+    this.baselineSaveButton = save;
+    this.baselineSaveLabel = t.saveGates;
     save.onClick(() => void this.saveBaseline());
+    this.refreshBaselineFormState();
     this.updateDurations();
   }
 
@@ -419,10 +438,14 @@ export class ProjectGatesModal extends Modal {
     if (durationFrom) {
       this.durationRows.push({ element: duration, from: durationFrom, to: () => input.value, projectDuration });
     }
+    this.baselineInputs.push({ input, update });
     input.addEventListener("change", () => {
+      if (input.disabled || this.savingBaseline) return;
       update(input.value);
       this.updateBaselineDirty();
-      this.render();
+      // Keep the native input and save button alive through change/blur/click.
+      this.updateDurations();
+      this.refreshBaselineFormState();
     });
   }
 
@@ -590,7 +613,10 @@ export class ProjectGatesModal extends Modal {
     });
     const save = new ButtonComponent(actions).setButtonText(t.gateDelayClockSave).setCta();
     save.buttonEl.addClass("pmi-delay-clock-action", "is-save");
+    this.baselineSaveButton = save;
+    this.baselineSaveLabel = t.gateDelayClockSave;
     save.onClick(() => void this.saveBaseline());
+    this.refreshBaselineFormState();
   }
 
   private renderDelayClockState(
@@ -1319,11 +1345,56 @@ export class ProjectGatesModal extends Modal {
     };
   }
 
+  private refreshBaselineFormState(): void {
+    const result = validateGateSchedule(this.baseline, this.stageIds());
+    const policy = gateBaselineEditPolicy(this.delay);
+    const t = this.options.translations;
+    this.baselineValidationEl?.setText(this.baselineValidationMessage(result));
+    this.baselineSaveButton
+      ?.setDisabled(this.savingBaseline || !policy.canSave || !result.valid || !this.baselineDirty)
+      .setButtonText(this.savingBaseline
+        ? t.gatesSaving
+        : this.baselineSaved && !this.baselineDirty
+          ? t.gatesSaved
+          : this.baselineSaveLabel);
+  }
+
   private async saveBaseline(): Promise<void> {
-    if (!await this.persist()) return;
-    this.savedBaseline = structuredClone(this.baseline);
-    this.baselineDirty = false;
-    this.render();
+    if (this.savingBaseline) return;
+    // Read the final DOM values as well as change events before validating.
+    for (const { input, update } of this.baselineInputs) {
+      if (!input.disabled) update(input.value);
+    }
+    this.updateBaselineDirty();
+    const validation = validateGateSchedule(this.baseline, this.stageIds());
+    if (!validation.valid || !gateBaselineEditPolicy(this.delay).canSave || !this.baselineDirty) {
+      this.refreshBaselineFormState();
+      return;
+    }
+
+    const submitted = structuredClone(this.baseline);
+    const controls = Array.from(this.contentEl.querySelectorAll<
+      HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("button, input, select, textarea"), (element) => ({ element, disabled: element.disabled }));
+    this.savingBaseline = true;
+    this.contentEl.setAttribute("aria-busy", "true");
+    for (const { element } of controls) element.disabled = true;
+    this.refreshBaselineFormState();
+    let saved = false;
+    try {
+      if (!await this.persist(this.options.translations.gatesSaved)) return;
+      this.savedBaseline = submitted;
+      this.updateBaselineDirty();
+      this.baselineSaved = true;
+      saved = true;
+    } finally {
+      this.savingBaseline = false;
+      this.contentEl.removeAttribute("aria-busy");
+      for (const { element, disabled } of controls) element.disabled = disabled;
+      this.refreshBaselineFormState();
+      // Calendar-rule saves from the delay tab must leave the pending-rule screen.
+      if (saved && this.activeTab === "delay" && this.contentEl.isConnected) this.render();
+    }
   }
 
   private updateBaselineDirty(): void {
@@ -1339,6 +1410,7 @@ export class ProjectGatesModal extends Modal {
       || [...stageIds].some((id) =>
         this.baseline.stageGates[id] !== this.savedBaseline.stageGates[id]
       );
+    if (this.baselineDirty) this.baselineSaved = false;
   }
 
   private async clearDelayData(): Promise<void> {
@@ -1352,22 +1424,32 @@ export class ProjectGatesModal extends Modal {
     this.render();
   }
 
-  private async persist(): Promise<boolean> {
+  private async persist(successMessage?: string): Promise<boolean> {
+    const state: ProjectGatesModalState = {
+      schedule: structuredClone(this.baseline),
+      delay: this.delay ? structuredClone(this.delay) : null,
+      actuals: structuredClone(this.actuals),
+      expectedSchedule: structuredClone(this.expectedSchedule),
+      expectedDelay: structuredClone(this.expectedDelay)
+    };
     try {
-      await this.options.save({
-        schedule: structuredClone(this.baseline),
-        delay: this.delay ? structuredClone(this.delay) : null,
-        actuals: structuredClone(this.actuals),
-        expectedSchedule: this.expectedSchedule,
-        expectedDelay: this.expectedDelay
-      });
-      this.expectedSchedule = structuredClone(this.baseline);
-      this.expectedDelay = structuredClone(this.delay);
-      return true;
+      await this.options.save(state);
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : this.options.translations.launchSaveFailed);
+      new Notice(error instanceof Error ? error.message : this.options.translations.gatesSaveFailed);
       return false;
     }
+    // Advance the concurrency snapshot only after the durable write succeeds.
+    this.expectedSchedule = structuredClone(state.schedule);
+    this.expectedDelay = structuredClone(state.delay ?? undefined);
+    // A view failure must not turn a successful write into a stale retry.
+    try {
+      await this.options.refresh?.();
+    } catch {
+      new Notice(this.options.translations.gatesRefreshFailed);
+      return true;
+    }
+    if (successMessage) new Notice(successMessage);
+    return true;
   }
 
   private gateIds(stageIds = this.stageIds()): string[] {
