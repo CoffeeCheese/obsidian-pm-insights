@@ -439,14 +439,19 @@ export class ProjectGatesModal extends Modal {
       this.durationRows.push({ element: duration, from: durationFrom, to: () => input.value, projectDuration });
     }
     this.baselineInputs.push({ input, update });
-    input.addEventListener("change", () => {
+    const syncInput = (): void => {
       if (input.disabled || this.savingBaseline) return;
       update(input.value);
       this.updateBaselineDirty();
-      // Keep the native input and save button alive through change/blur/click.
+      // Update only the draft and dependent text; never replace a native date
+      // input while typing or navigating its picker. Some hosts defer change.
       this.updateDurations();
       this.refreshBaselineFormState();
-    });
+    };
+    input.addEventListener("input", syncInput);
+    input.addEventListener("change", syncInput);
+    // Reconcile the final DOM value if a picker restores it when dismissed.
+    input.addEventListener("blur", syncInput);
   }
 
   private renderCalendarRule(root: HTMLElement, disabled: boolean): void {
@@ -1350,13 +1355,30 @@ export class ProjectGatesModal extends Modal {
     const policy = gateBaselineEditPolicy(this.delay);
     const t = this.options.translations;
     this.baselineValidationEl?.setText(this.baselineValidationMessage(result));
+    // An explicit save must remain reachable even before the focused input
+    // emits change, or when values are unchanged. Validate inside saveBaseline
+    // and explain the outcome instead of silently disabling the only action.
     this.baselineSaveButton
-      ?.setDisabled(this.savingBaseline || !policy.canSave || !result.valid || !this.baselineDirty)
+      ?.setDisabled(this.savingBaseline || !policy.canSave)
       .setButtonText(this.savingBaseline
         ? t.gatesSaving
         : this.baselineSaved && !this.baselineDirty
           ? t.gatesSaved
           : this.baselineSaveLabel);
+    this.baselineSaveButton?.buttonEl.setAttribute("title", this.savingBaseline
+      ? t.gatesSaving
+      : !result.valid
+        ? this.baselineValidationMessage(result)
+        : !this.baselineDirty
+          ? t.launchUnchanged
+          : this.baselineSaveLabel);
+    this.modalEl.dataset.gateSaveState = this.savingBaseline
+      ? "saving"
+      : !result.valid
+        ? "invalid"
+        : this.baselineDirty
+          ? "dirty"
+          : this.baselineSaved ? "saved" : "unchanged";
   }
 
   private async saveBaseline(): Promise<void> {
@@ -1367,8 +1389,24 @@ export class ProjectGatesModal extends Modal {
     }
     this.updateBaselineDirty();
     const validation = validateGateSchedule(this.baseline, this.stageIds());
-    if (!validation.valid || !gateBaselineEditPolicy(this.delay).canSave || !this.baselineDirty) {
+    const t = this.options.translations;
+    if (!validation.valid) {
       this.refreshBaselineFormState();
+      new Notice(this.baselineValidationMessage(validation));
+      this.baselineInputs.find(({ input }) =>
+        !input.disabled && !isDateOnly(input.value)
+      )?.input.focus();
+      return;
+    }
+    if (!gateBaselineEditPolicy(this.delay).canSave) {
+      this.refreshBaselineFormState();
+      new Notice(t.gateBaselineLocked);
+      return;
+    }
+    if (!this.baselineDirty) {
+      this.baselineSaved = true;
+      this.refreshBaselineFormState();
+      new Notice(t.launchUnchanged);
       return;
     }
 
