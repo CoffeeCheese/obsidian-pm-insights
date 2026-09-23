@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { aggregateInsights } from "../src/domain/aggregate";
 import { buildPersonalDashboards } from "../src/domain/personal-delivery-dashboard";
 import type { GateRiskSnapshot, ProjectGateRisk } from "../src/domain/gate-risk";
 import { DEFAULT_SETTINGS } from "../src/model";
@@ -167,7 +168,8 @@ function build(
   projects: ProjectGateRisk[],
   allTasks?: TaskInsight[],
   dashboardSettings: MemberDashboardSettings = settings,
-  today = "2026-08-31"
+  today = "2026-08-31",
+  includeArchived = false
 ) {
   return buildPersonalDashboards({
     members,
@@ -178,12 +180,257 @@ function build(
     gateRisk: riskSnapshot(projects, today),
     allTasks: allTasks ?? members.flatMap((item) => item.tasks),
     deliveryProgressSettings: DEFAULT_SETTINGS.deliveryProgress,
-    includeArchived: false,
+    includeArchived,
     highPriorityIds: new Set(["critical", "high"])
   });
 }
 
 describe("personal delivery dashboard", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("recomputes today's activity from each task snapshot and local date", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const original = task("original", {
+      completed: true,
+      completedAt: "2026-08-31T09:00:00+08:00"
+    });
+    const added = task("added", {
+      completed: true,
+      completedAt: "2026-08-31T11:00:00+08:00"
+    });
+    const first = build([member("Ada", [original])], []);
+    const refreshed = build([member("Ada", [
+      { ...original, completedAt: "2026-09-01T08:00:00+08:00" },
+      added,
+      task("reopened", { completed: false, completedAt: "2026-08-31T12:00:00+08:00" })
+    ])], [], undefined, { ...settings, windowMode: "30" });
+    const nextDay = build([member("Ada", [
+      { ...original, completedAt: "2026-09-01T08:00:00+08:00" },
+      added
+    ])], [], undefined, settings, "2026-09-01");
+    const deleted = build([member("Ada", [added])], [], undefined, settings, "2026-09-01");
+
+    expect(first.dashboards[0]?.todayCompleted).toMatchObject({
+      date: "2026-08-31", count: 1,
+      tasks: [expect.objectContaining({ taskId: "original" })]
+    });
+    expect(refreshed.dashboards[0]?.todayCompleted).toMatchObject({
+      date: "2026-08-31", count: 1,
+      tasks: [expect.objectContaining({ taskId: "added" })]
+    });
+    expect(nextDay.dashboards[0]?.todayCompleted).toMatchObject({
+      date: "2026-09-01", count: 1,
+      tasks: [expect.objectContaining({ taskId: "original" })]
+    });
+    expect(deleted.dashboards[0]?.todayCompleted).toMatchObject({
+      date: "2026-09-01", count: 0, tasks: []
+    });
+  });
+
+  it("shows today's native ISO completions in local time, newest first, once per task", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const earlier = task("earlier", {
+      title: "Review proposal",
+      completed: true,
+      completedAt: "2026-08-31T09:15:00+08:00"
+    });
+    const later = task("later", {
+      projectId: "p2",
+      projectTitle: "Project two",
+      title: "Ship release",
+      completed: true,
+      completedAt: "2026-08-31T11:45:00+08:00"
+    });
+    const yesterday = task("yesterday", {
+      completed: true,
+      completedAt: "2026-08-30T18:00:00+08:00"
+    });
+    const withoutDate = task("without-date", { completed: true });
+    const reopened = task("reopened", {
+      completed: false,
+      completedAt: "2026-08-31T12:00:00+08:00"
+    });
+    const catalog = build(
+      [member("Ada", [earlier, later, later, yesterday, withoutDate, reopened])],
+      [],
+      undefined,
+      settings,
+      "2026-08-31"
+    );
+
+    expect(catalog.dashboards[0]?.todayCompleted).toEqual({
+      date: "2026-08-31",
+      count: 2,
+      missingDateCount: 1,
+      tasks: [
+        {
+          projectId: "p2",
+          taskId: "later",
+          projectTitle: "Project two",
+          title: "Ship release",
+          completedDate: "2026-08-31",
+          time: "11:45"
+        },
+        {
+          projectId: "p1",
+          taskId: "earlier",
+          projectTitle: "Project one",
+          title: "Review proposal",
+          completedDate: "2026-08-31",
+          time: "09:15"
+        }
+      ]
+    });
+  });
+
+  it("uses the local day across ISO offsets and keeps activity outside the planning range", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const afterMidnight = task("after-midnight", {
+      completed: true,
+      completedAt: "2026-08-30T16:05:00Z"
+    });
+    const beforeMidnight = task("before-midnight", {
+      completed: true,
+      completedAt: "2026-08-30T15:59:00Z"
+    });
+    const nextDay = task("next-day", {
+      completed: true,
+      completedAt: "2026-08-31T16:00:00Z"
+    });
+    const ada = member("Ada", [afterMidnight, beforeMidnight, nextDay]);
+    const short = build([ada], [], undefined, settings);
+    const long = build([ada], [], undefined, { ...settings, windowMode: "30" });
+
+    expect(short.dashboards[0]?.todayCompleted).toEqual({
+      date: "2026-08-31",
+      count: 1,
+      missingDateCount: 0,
+      tasks: [{
+        projectId: "p1",
+        taskId: "after-midnight",
+        projectTitle: "Project one",
+        title: "after-midnight",
+        completedDate: "2026-08-31",
+        time: "00:05"
+      }]
+    });
+    expect(long.dashboards[0]?.todayCompleted).toEqual(short.dashboards[0]?.todayCompleted);
+  });
+
+  it("shows local date-times before date-only completions with stable ties", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const tasks = [
+      task("date-b", { completed: true, projectTitle: "Beta", completedAt: "2026-08-31" }),
+      task("time-b", { completed: true, title: "Beta", completedAt: "2026-08-31T09:20" }),
+      task("date-a", { completed: true, projectTitle: "Alpha", completedAt: "2026-08-31" }),
+      task("time-a", { completed: true, title: "Alpha", completedAt: "2026-08-31T09:20:00" }),
+      task("tomorrow", { completed: true, completedAt: "2026-09-01" })
+    ];
+
+    expect(build([member("Ada", tasks)], []).dashboards[0]?.todayCompleted).toEqual({
+      date: "2026-08-31",
+      count: 4,
+      missingDateCount: 0,
+      tasks: [
+        { projectId: "p1", taskId: "time-a", projectTitle: "Project one", title: "Alpha", completedDate: "2026-08-31", time: "09:20" },
+        { projectId: "p1", taskId: "time-b", projectTitle: "Project one", title: "Beta", completedDate: "2026-08-31", time: "09:20" },
+        { projectId: "p1", taskId: "date-a", projectTitle: "Alpha", title: "date-a", completedDate: "2026-08-31", time: null },
+        { projectId: "p1", taskId: "date-b", projectTitle: "Beta", title: "date-b", completedDate: "2026-08-31", time: null }
+      ]
+    });
+  });
+
+  it("counts completed tasks without a usable date outside today's total", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const tasks = [
+      task("missing", { completed: true }),
+      task("missing", { completed: true }),
+      task("blank", { completed: true, completedAt: "" }),
+      task("invalid-day", { completed: true, completedAt: "2026-02-30T08:00:00+08:00" }),
+      task("invalid-date-only", { completed: true, completedAt: "2026-02-30" }),
+      task("invalid-time", { completed: true, completedAt: "2026-03-02T25:10" }),
+      task("previous", { completed: true, completedAt: "2026-03-01" }),
+      task("reopened", { completed: false, completedAt: "2026-03-02T09:00:00+08:00" }),
+      task("cancelled", { completed: true, status: "cancelled", completedAt: null }),
+      task("archived", { completed: true, archived: true, completedAt: null })
+    ];
+
+    expect(build([member("Ada", tasks)], [], undefined, settings, "2026-03-02")
+      .dashboards[0]?.todayCompleted).toEqual({
+      date: "2026-03-02", count: 0, missingDateCount: 5, tasks: []
+    });
+  });
+
+  it("uses the member's selected task scope and honors the archive switch", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const visible = task("visible", { completed: true, completedAt: "2026-08-31T08:00:00+08:00" });
+    const archived = task("archived", {
+      completed: true,
+      archived: true,
+      completedAt: "2026-08-31T09:00:00+08:00"
+    });
+    const cancelled = task("cancelled", {
+      completed: true,
+      status: "cancelled",
+      completedAt: "2026-08-31T10:00:00+08:00"
+    });
+    const scopedMember = member("Ada", [visible, archived, cancelled]);
+    const excluded = build([scopedMember], [], undefined, settings);
+    const included = build([scopedMember], [], undefined, settings, "2026-08-31", true);
+
+    expect(excluded.dashboards[0]?.todayCompleted.tasks.map((item) => item.taskId)).toEqual(["visible"]);
+    expect(included.dashboards[0]?.todayCompleted.tasks.map((item) => item.taskId)).toEqual(["archived", "visible"]);
+    expect(build([member("Ada", [])], []).dashboards[0]?.todayCompleted).toEqual({
+      date: "2026-08-31",
+      count: 0,
+      missingDateCount: 0,
+      tasks: []
+    });
+  });
+
+  it("shows each shared task once for an aliased member within selected projects and child-task scope", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const parent = task("parent", {
+      completed: true,
+      completedAt: "2026-08-31T07:00:00+08:00",
+      assignees: ["A."]
+    });
+    const shared = task("shared", {
+      hierarchy: "subtask",
+      parentId: "parent",
+      completed: true,
+      completedAt: "2026-08-31T08:00:00+08:00",
+      assignees: ["A.", "Bob"]
+    });
+    const otherProject = task("other-project", {
+      projectId: "p2",
+      completed: true,
+      completedAt: "2026-08-31T09:00:00+08:00",
+      assignees: ["A."]
+    });
+    const projects = [
+      riskProject({ id: "p1", title: "Project one" }).project,
+      riskProject({ id: "p2", title: "Project two" }).project
+    ];
+    const scoped = aggregateInsights(projects, [parent, shared, otherProject], {
+      projectIds: new Set(["p1"]),
+      includeArchived: false,
+      countParentTasks: false,
+      aliases: [{ canonical: "Ada", aliases: ["A."] }],
+      unassignedLabel: "Unassigned"
+    });
+    const catalog = build(scoped.members, [], scoped.tasks);
+
+    expect(catalog.dashboards.map((dashboard) => ({
+      member: dashboard.member.name,
+      count: dashboard.todayCompleted.count,
+      tasks: dashboard.todayCompleted.tasks.map((item) => item.taskId)
+    }))).toEqual([
+      { member: "Ada", count: 1, tasks: ["shared"] },
+      { member: "Bob", count: 1, tasks: ["shared"] }
+    ]);
+  });
+
   it("groups project commitments that share one delivery date", () => {
     const first = task("first", {
       completed: true,

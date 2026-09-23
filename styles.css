@@ -6251,6 +6251,8 @@ body .modal-container:has(.modal.pmi-member-dashboard-modal) {
 body .modal-container .modal.pmi-member-dashboard-modal {
   --pmi-member-health-color: var(--pmi-member-normal);
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(960px, calc(100vw - 48px));
   max-width: 960px;
   height: auto;
@@ -6320,7 +6322,8 @@ body .modal-container .modal.pmi-member-dashboard-modal
 }
 
 body .modal-container .modal.pmi-member-dashboard-modal .modal-content {
-  height: 100%;
+  flex: 1 1 auto;
+  height: auto;
   min-height: 0;
   padding: 0;
   overflow-x: hidden;
@@ -8969,11 +8972,140 @@ body .modal-container .modal.pmi-project-gates-modal {
 .pmi-personal-dashboard-workspace {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 270px);
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
   margin: 18px 28px 0;
 }
+
+.pmi-personal-dashboard-main {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.pmi-personal-today-activity {
+  min-width: 0;
+  padding: 17px 16px;
+  border: 1px solid var(--pmi-brief-rule);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+}
+
+.pmi-personal-today-heading,
+.pmi-personal-today-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pmi-personal-today-heading {
+  justify-content: space-between;
+  color: var(--text-normal);
+  font-size: var(--pmi-brief-type-body);
+}
+
+.pmi-personal-today-heading > div {
+  min-width: 0;
+}
+
+.pmi-personal-today-heading strong,
+.pmi-personal-today-heading > span,
+.pmi-personal-today-note {
+  overflow-wrap: anywhere;
+}
+
+.pmi-personal-today-heading svg {
+  width: 16px;
+  height: 16px;
+  color: var(--pmi-brief-route);
+}
+
+.pmi-personal-today-heading > span,
+.pmi-personal-today-date,
+.pmi-personal-today-note {
+  color: var(--text-muted);
+  font-size: var(--pmi-brief-type-caption);
+}
+
+.pmi-personal-today-date { display: block; margin-block-start: 6px; }
+
+.pmi-personal-today-list {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  margin-block-start: 20px;
+  border-inline-start: 1px solid var(--pmi-brief-rule);
+}
+
+.pmi-personal-today-list > [role="listitem"] {
+  min-width: 0;
+}
+
+.pmi-root button.pmi-personal-today-task:not(.clickable-icon) {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  margin-inline-start: -1px;
+  padding: 10px 8px 10px 12px;
+  border: 0;
+  border-inline-start: 2px solid transparent;
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  color: var(--text-normal);
+  background: transparent;
+  box-shadow: none;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+  scroll-margin-block: 16px;
+}
+
+.pmi-root button.pmi-personal-today-task:not(.clickable-icon)::before {
+  position: absolute;
+  inset-block-start: 15px;
+  inset-inline-start: -5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pmi-brief-route);
+  content: "";
+}
+
+.pmi-root button.pmi-personal-today-task:not(.clickable-icon):is(:hover, :focus-visible) {
+  border-inline-start-color: var(--pmi-brief-route);
+  background: var(--background-modifier-hover);
+}
+
+.pmi-root button.pmi-personal-today-task:not(.clickable-icon):focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.pmi-personal-today-time {
+  color: var(--pmi-brief-route);
+  font-size: var(--pmi-brief-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.pmi-personal-today-details {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.pmi-personal-today-details strong,
+.pmi-personal-today-details small {
+  overflow-wrap: anywhere;
+}
+
+.pmi-personal-today-details strong { font-size: var(--pmi-brief-type-label); }
+.pmi-personal-today-details small { color: var(--text-muted); }
+.pmi-personal-today-empty { margin-block: 24px; color: var(--text-muted); }
+.pmi-personal-today-note { margin: 15px 0 0; }
 
 .pmi-personal-windows {
   display: grid;
@@ -9840,7 +9972,7 @@ body .modal-container .modal.pmi-member-dashboard-modal .modal-content.pmi-root
 @container pmi-member-brief (max-width: 720px) {
   .pmi-personal-dashboard-workspace {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     align-items: stretch;
   }
 

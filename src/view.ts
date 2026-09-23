@@ -81,6 +81,9 @@ interface MemberDashboardModalOptions {
 }
 
 class MemberDashboardModal extends Modal {
+  private midnightTimer: number | null = null;
+  private isOpen = false;
+
   constructor(
     app: App,
     private readonly options: MemberDashboardModalOptions
@@ -89,11 +92,13 @@ class MemberDashboardModal extends Modal {
   }
 
   onOpen(): void {
+    this.isOpen = true;
     this.modalEl.addClass("pmi-member-dashboard-modal", "pmi-form-scope");
     this.modalEl.setAttribute("aria-label", this.options.ariaLabel);
     this.contentEl.addClass("pmi-root");
     this.contentEl.addClass("pmi-member-dashboard-modal-content");
     this.refresh();
+    this.scheduleMidnightRefresh();
   }
 
   refresh(): void {
@@ -106,8 +111,23 @@ class MemberDashboardModal extends Modal {
   }
 
   onClose(): void {
+    this.isOpen = false;
+    if (this.midnightTimer !== null) window.clearTimeout(this.midnightTimer);
+    this.midnightTimer = null;
     this.contentEl.empty();
     this.options.onClose();
+  }
+
+  private scheduleMidnightRefresh(): void {
+    if (!this.isOpen) return;
+    const now = new Date();
+    const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    this.midnightTimer = window.setTimeout(() => {
+      this.midnightTimer = null;
+      if (!this.isOpen) return;
+      this.refresh();
+      this.scheduleMidnightRefresh();
+    }, Math.max(1, nextDay.getTime() - now.getTime() + 1));
   }
 }
 
@@ -206,6 +226,7 @@ export class InsightsView extends ItemView {
 
     if (snapshot.projects.length === 0) {
       this.renderEmpty(root, t.noDataTitle, t.noDataBody, "folder-search-2");
+      this.refreshMemberDashboardModal();
       return;
     }
 
@@ -520,6 +541,7 @@ export class InsightsView extends ItemView {
     const selectedIds = new Set(this.host.settings.selectedProjectIds);
     if (selectedIds.size === 0) {
       this.renderEmpty(dashboard, t.noProjectsTitle, t.noProjectsBody, "list-filter");
+      this.refreshMemberDashboardModal();
       return;
     }
 
@@ -537,21 +559,7 @@ export class InsightsView extends ItemView {
       settings: this.host.settings.deliveryProgress
     });
     const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
-    const buildMemberDashboard = (
-      currentGateRisk = this.calculateGateRisk(snapshot, selectedIds)
-    ): PersonalDashboardCatalog => buildPersonalDashboards({
-      members: insights.members,
-      today: this.todayDate(),
-      settings: this.host.settings.memberDashboard,
-      workdayHours: this.host.settings.gateRisk.workdayHours,
-      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
-      gateRisk: currentGateRisk,
-      allTasks: snapshot.tasks,
-      deliveryProgressSettings: this.host.settings.deliveryProgress,
-      includeArchived: this.host.settings.includeArchived,
-      highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
-    });
-    const memberDashboard = buildMemberDashboard(gateRisk);
+    const memberDashboard = this.buildMemberDashboard(snapshot, insights.members, gateRisk);
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -601,7 +609,27 @@ export class InsightsView extends ItemView {
 
     this.renderMemberList(master, insights.members, visibleMembers, snapshot, t);
     const selected = insights.members.find((member) => member.key === this.selectedMemberKey);
-    this.renderTaskDetail(detail, selected, snapshot, memberDashboard, buildMemberDashboard, t);
+    this.renderTaskDetail(detail, selected, snapshot, memberDashboard, t);
+    this.refreshMemberDashboardModal();
+  }
+
+  private buildMemberDashboard(
+    snapshot: ProjectManagerSnapshot,
+    members: MemberInsight[],
+    gateRisk: GateRiskSnapshot
+  ): PersonalDashboardCatalog {
+    return buildPersonalDashboards({
+      members,
+      today: this.todayDate(),
+      settings: this.host.settings.memberDashboard,
+      workdayHours: this.host.settings.gateRisk.workdayHours,
+      calendarDayHours: this.host.settings.gateRisk.calendarDayHours,
+      gateRisk,
+      allTasks: snapshot.tasks,
+      deliveryProgressSettings: this.host.settings.deliveryProgress,
+      includeArchived: this.host.settings.includeArchived,
+      highPriorityIds: new Set(snapshot.priorities.slice(0, 2).map((priority) => priority.id))
+    });
   }
 
   private launchOptions(project: ProjectRecord, snapshot: ProjectManagerSnapshot): ProjectLaunchUIOptions {
@@ -680,7 +708,6 @@ export class InsightsView extends ItemView {
         });
         this.updateProjectScope(snapshot, t);
         this.renderDashboard(snapshot, t);
-        this.refreshMemberDashboardModal();
       }
     });
     this.gateEditor.open();
@@ -1291,7 +1318,6 @@ export class InsightsView extends ItemView {
     member: MemberInsight | undefined,
     snapshot: ProjectManagerSnapshot,
     dashboard: PersonalDashboardCatalog,
-    buildMemberDashboard: () => PersonalDashboardCatalog,
     t: Translations
   ): void {
     const projects = snapshot.projects;
@@ -1333,7 +1359,7 @@ export class InsightsView extends ItemView {
           this.memberDashboardModal.close();
           return;
         }
-        this.openMemberDashboard(member, snapshot, buildMemberDashboard, t);
+        this.openMemberDashboard(member);
       });
     }
 
@@ -1523,29 +1549,41 @@ export class InsightsView extends ItemView {
       this.dashboardFilterId = null;
       this.dashboardFilterLabel = "";
       root.empty();
-      this.renderTaskDetail(root, member, snapshot, dashboard, buildMemberDashboard, t);
+      this.renderTaskDetail(root, member, snapshot, dashboard, t);
     });
     renderRows();
   }
 
-  private openMemberDashboard(
-    member: MemberInsight,
-    snapshot: ProjectManagerSnapshot,
-    buildMemberDashboard: () => PersonalDashboardCatalog,
-    t: Translations
-  ): void {
+  private openMemberDashboard(member: MemberInsight): void {
     this.memberDashboardModal?.close();
+    const t = translations(this.host.settings);
     let dialog: MemberDashboardModal;
     dialog = new MemberDashboardModal(this.app, {
       ariaLabel: t.openMemberDashboard(member.name),
       render: (root) => {
-        const dashboard = buildMemberDashboard();
-        const metric = dashboard.dashboards.find((candidate) => candidate.member.key === member.key);
-        if (!metric) {
-          root.createDiv({ cls: "pmi-list-empty", text: t.noTasks });
+        const snapshot = this.currentSnapshot;
+        const currentTranslations = translations(this.host.settings);
+        if (!snapshot) {
+          root.createDiv({ cls: "pmi-list-empty", text: currentTranslations.noTasks });
           return "normal";
         }
-        this.renderMemberDashboard(root, metric, dashboard, snapshot, t);
+        const selectedIds = new Set(this.host.settings.selectedProjectIds);
+        const members = aggregateInsights(snapshot.projects, snapshot.tasks, {
+          projectIds: selectedIds,
+          includeArchived: this.host.settings.includeArchived,
+          countParentTasks: this.host.settings.countParentTasks,
+          aliases: this.host.settings.aliases,
+          unassignedLabel: currentTranslations.unassigned
+        }).members;
+        const dashboard = this.buildMemberDashboard(
+          snapshot, members, this.calculateGateRisk(snapshot, selectedIds)
+        );
+        const metric = dashboard.dashboards.find((candidate) => candidate.member.key === member.key);
+        if (!metric) {
+          root.createDiv({ cls: "pmi-list-empty", text: currentTranslations.noTasks });
+          return "normal";
+        }
+        this.renderMemberDashboard(root, metric, dashboard, snapshot, currentTranslations);
         return metric.state;
       },
       onClose: () => {
@@ -1572,13 +1610,15 @@ export class InsightsView extends ItemView {
     dialog.open();
   }
 
-  private refreshMemberDashboardModal(focusSelector?: string): void {
+  private refreshMemberDashboardModal(): void {
+    this.memberDashboardModal?.refresh();
+  }
+
+  private focusMemberDashboardModal(selector: string): void {
     const dialog = this.memberDashboardModal;
     if (!dialog) return;
-    dialog.refresh();
-    if (!focusSelector) return;
     window.setTimeout(() => {
-      dialog.contentEl.querySelector<HTMLElement>(focusSelector)?.focus();
+      dialog.contentEl.querySelector<HTMLElement>(selector)?.focus();
     }, 0);
   }
 
@@ -1635,8 +1675,10 @@ export class InsightsView extends ItemView {
     this.renderMemberDashboardControls(toolbar, dashboard, snapshot, t);
 
     const workspace = section.createDiv("pmi-personal-dashboard-workspace");
-    this.renderPersonalDeliveryWindows(workspace, metric, snapshot, t);
-    this.renderPersonalSummary(workspace, metric, dashboard, snapshot, t);
+    const main = workspace.createDiv("pmi-personal-dashboard-main");
+    this.renderPersonalDeliveryWindows(main, metric, snapshot, t);
+    this.renderPersonalSummary(main, metric, dashboard, snapshot, t);
+    this.renderTodayCompletedActivity(workspace, metric, snapshot, t);
 
     if (metric.confidence.blindTaskCount > 0) {
       const label = t.personalConfidencePartial(
@@ -1663,6 +1705,69 @@ export class InsightsView extends ItemView {
           snapshot,
           t
         );
+      });
+    }
+  }
+
+  private renderTodayCompletedActivity(
+    root: HTMLElement,
+    metric: PersonalDeliveryDashboard,
+    snapshot: ProjectManagerSnapshot,
+    t: Translations
+  ): void {
+    const activity = metric.todayCompleted;
+    const aside = root.createEl("aside", {
+      cls: "pmi-personal-today-activity",
+      attr: { "aria-label": t.todayCompleted }
+    });
+    const heading = aside.createDiv("pmi-personal-today-heading");
+    const title = heading.createDiv();
+    setIcon(title.createSpan(), "list-checks");
+    title.createEl("strong", { text: t.todayCompleted });
+    heading.createSpan({ text: t.todayCompletedCount(activity.count) });
+    aside.createEl("time", {
+      cls: "pmi-personal-today-date",
+      text: activity.date,
+      attr: { datetime: activity.date }
+    });
+
+    if (activity.tasks.length === 0) {
+      aside.createEl("p", {
+        cls: "pmi-personal-today-empty",
+        text: t.noTodayCompleted
+      });
+      if (activity.missingDateCount > 0) {
+        aside.createEl("p", {
+          cls: "pmi-personal-today-note",
+          text: t.todayCompletedMissingDates(activity.missingDateCount)
+        });
+      }
+    } else {
+      const list = aside.createDiv({ cls: "pmi-personal-today-list", attr: { role: "list" } });
+      for (const task of activity.tasks) {
+        const item = list.createDiv({ attr: { role: "listitem" } });
+        const button = item.createEl("button", {
+          cls: "pmi-personal-today-task",
+          attr: {
+            type: "button",
+            "aria-label": `${t.openTask}: ${task.title} · ${task.projectTitle} · ${task.time ?? t.todayCompletedDateOnly}`
+          }
+        });
+        button.createSpan({
+          cls: "pmi-personal-today-time",
+          text: task.time ?? t.todayCompletedDateOnly
+        });
+        const details = button.createSpan("pmi-personal-today-details");
+        details.createEl("strong", { text: task.title });
+        details.createEl("small", { text: task.projectTitle });
+        button.addEventListener("click", () => {
+          const project = snapshot.projects.find((candidate) => candidate.id === task.projectId);
+          if (project) void this.host.openTask(task.taskId, project.path, project.id);
+        });
+      }
+      aside.createEl("p", {
+        cls: "pmi-personal-today-note",
+        text: t.todayCompletedNote
       });
     }
   }
@@ -2144,7 +2249,7 @@ export class InsightsView extends ItemView {
         this.clearDashboardTaskFilter();
         await this.host.saveSettings((draft) => { draft.memberDashboard.includeWeekends = checked; });
         this.renderDashboard(snapshot, t);
-        this.refreshMemberDashboardModal(".pmi-member-weekend-toggle input");
+        this.focusMemberDashboardModal(".pmi-member-weekend-toggle input");
       })();
     });
   }
@@ -2161,7 +2266,7 @@ export class InsightsView extends ItemView {
       if (mode === "custom" && customEndDate) draft.memberDashboard.customEndDate = customEndDate;
     });
     this.renderDashboard(snapshot, t);
-    this.refreshMemberDashboardModal(`[data-window-mode="${mode}"]`);
+    this.focusMemberDashboardModal(`[data-window-mode="${mode}"]`);
   }
 
   private renderMemberRunway(

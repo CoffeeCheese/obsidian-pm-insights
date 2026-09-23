@@ -132,6 +132,22 @@ export interface PersonalDashboardConfidence {
   taskKeys: string[];
 }
 
+export interface TodayCompletedTask {
+  projectId: string;
+  taskId: string;
+  projectTitle: string;
+  title: string;
+  completedDate: string;
+  time: string | null;
+}
+
+export interface TodayCompletedActivity {
+  date: string;
+  count: number;
+  missingDateCount: number;
+  tasks: TodayCompletedTask[];
+}
+
 export interface PersonalDeliveryDashboard {
   member: { key: string; name: string };
   state: MemberDashboardHealth;
@@ -139,6 +155,7 @@ export interface PersonalDeliveryDashboard {
   workload: PersonalWorkload;
   capacity: PersonalDeliveryCapacity;
   confidence: PersonalDashboardConfidence;
+  todayCompleted: TodayCompletedActivity;
 }
 
 export interface PersonalDashboardCatalog {
@@ -177,6 +194,88 @@ function round(value: number): number {
 
 function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
+}
+
+function localDate(value: Date): string {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
+function completionDate(value: string | null | undefined): { date: string; time: string | null; instant: number | null } | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})?)?$/i.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, , zone] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12 || day < 1 || day > (daysInMonth[month - 1] ?? 0)) return null;
+  const date = `${yearText}-${monthText}-${dayText}`;
+  if (hourText === undefined) return { date, time: null, instant: null };
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText ?? "0");
+  if (hour > 23 || minute > 59 || second > 59) return null;
+  if (zone && zone.toUpperCase() !== "Z") {
+    const zoneHour = Number(zone.slice(1, 3));
+    const zoneMinute = Number(zone.slice(4, 6));
+    if (zoneHour > 23 || zoneMinute > 59) return null;
+  }
+  const instant = Date.parse(value);
+  if (!Number.isFinite(instant)) return null;
+  const local = new Date(instant);
+  if (!zone && (localDate(local) !== date || local.getHours() !== hour
+    || local.getMinutes() !== minute || local.getSeconds() !== second)) return null;
+  return {
+    date: localDate(local),
+    time: `${String(local.getHours()).padStart(2, "0")}:${String(local.getMinutes()).padStart(2, "0")}`,
+    instant
+  };
+}
+
+function todayCompletedActivity(
+  member: MemberInsight,
+  today: string,
+  includeArchived: boolean
+): TodayCompletedActivity {
+  const items = new Map<string, { task: TodayCompletedTask; instant: number | null }>();
+  const missingDates = new Set<string>();
+  for (const task of member.tasks) {
+    if (!task.completed || (!includeArchived && task.archived)
+        || /^(cancelled|canceled)$/i.test(task.status.trim())) continue;
+    const key = `${task.projectId}\u0000${task.id}`;
+    const completed = completionDate(task.completedAt);
+    if (!completed) {
+      missingDates.add(key);
+      continue;
+    }
+    if (completed.date !== today) continue;
+    items.set(key, {
+      instant: completed.instant,
+      task: {
+        projectId: task.projectId,
+        taskId: task.id,
+        projectTitle: task.projectTitle,
+        title: task.title,
+        completedDate: completed.date,
+        time: completed.time
+      }
+    });
+  }
+  const tasks = [...items.values()]
+    .sort((left, right) => {
+      const timeOrder = left.instant === null
+        ? (right.instant === null ? 0 : 1)
+        : (right.instant === null ? -1 : right.instant - left.instant);
+      return timeOrder
+        || left.task.projectTitle.localeCompare(right.task.projectTitle)
+        || left.task.title.localeCompare(right.task.title)
+        || left.task.projectId.localeCompare(right.task.projectId)
+        || left.task.taskId.localeCompare(right.task.taskId);
+    })
+    .map((item) => item.task);
+  return { date: today, count: tasks.length, missingDateCount: missingDates.size, tasks };
 }
 
 function percentage(numerator: number, denominator: number): number | null {
@@ -583,6 +682,11 @@ export function buildPersonalDashboards(input: PersonalDashboardInput): Personal
       deliveryWindows,
       workload,
       capacity,
+      todayCompleted: todayCompletedActivity(
+        people.find((member) => member.key === metric.memberKey)!,
+        input.today,
+        input.includeArchived
+      ),
       confidence: {
         level: blindKeys.length > 0 ? "partial" : "complete",
         blindTaskCount: blindKeys.length,

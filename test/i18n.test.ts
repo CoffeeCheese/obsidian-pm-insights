@@ -47,3 +47,19 @@ describe("personal delivery ledger copy", () => {
     expect(visibleCopy).not.toMatch(/median|中位|n=/iu);
   });
 });
+
+describe("today completed copy", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([
+    ["en", "Date only", "3 completed tasks have no usable completion date, so we can't confirm whether they were completed today."],
+    ["zh-cn", "仅日期", "3 项已完成任务缺少可用完成日期，无法确认是否今天完成。"]
+  ] as const)("explains date precision and missing dates in the %s locale", (locale, dateOnly, missing) => {
+    vi.stubGlobal("document", { documentElement: { lang: "en" } });
+    vi.stubGlobal("navigator", { language: "en" });
+    const copy = translations({ ...structuredClone(DEFAULT_SETTINGS), locale });
+
+    expect([copy.todayCompletedDateOnly, copy.todayCompletedMissingDates(3)])
+      .toEqual([dateOnly, missing]);
+  });
+});
