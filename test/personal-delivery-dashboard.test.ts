@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { aggregateInsights } from "../src/domain/aggregate";
+import { aggregateInsights, emptyMemberInsight } from "../src/domain/aggregate";
 import { buildPersonalDashboards } from "../src/domain/personal-delivery-dashboard";
 import type { GateRiskSnapshot, ProjectGateRisk } from "../src/domain/gate-risk";
 import { DEFAULT_SETTINGS } from "../src/model";
@@ -225,6 +225,66 @@ describe("personal delivery dashboard", () => {
     expect(deleted.dashboards[0]?.todayCompleted).toMatchObject({
       date: "2026-09-01", count: 0, tasks: []
     });
+  });
+
+  it("rebuilds a retained member's dashboard as zero activity after the last scoped task disappears", () => {
+    vi.stubEnv("TZ", "Asia/Shanghai");
+    const completed = task("completed", {
+      completed: true,
+      completedAt: "2026-08-31T09:00:00+08:00"
+    });
+    const missingDate = task("missing-date", { completed: true });
+    const open = task("open");
+    const previous = build([member("Ada", [completed, missingDate, open])], []);
+    const deleted = build([emptyMemberInsight("ada", "Ada")], [], [], settings, "2026-08-31");
+    const moved = { ...completed, projectId: "p2", projectTitle: "Project two" };
+    const beaTask = task("bea-open", {
+      assignees: ["Bea"], resolvedAssignees: ["Bea"]
+    });
+    const scoped = aggregateInsights(
+      [riskProject({ id: "p1", title: "Project one" }).project,
+        riskProject({ id: "p2", title: "Project two" }).project],
+      [moved, beaTask],
+      {
+        projectIds: new Set(["p1"]),
+        includeArchived: false,
+        countParentTasks: true,
+        aliases: [],
+        unassignedLabel: "Unassigned"
+      }
+    );
+    const outsideScope = build(scoped.members, [], [moved, beaTask], settings, "2026-09-01");
+    const retained = build(
+      [emptyMemberInsight("ada", "Ada")], [], [moved, beaTask], settings, "2026-09-01"
+    );
+
+    expect(previous.dashboards[0]?.todayCompleted).toMatchObject({
+      count: 1, missingDateCount: 1
+    });
+    expect(previous.dashboards[0]?.workload.openTaskCount).toBe(1);
+    expect(scoped.members.map((candidate) => candidate.key)).toEqual(["bea"]);
+    expect(outsideScope.dashboards).toHaveLength(1);
+    expect(outsideScope.dashboards[0]?.member).toEqual({ key: "bea", name: "Bea" });
+    expect(outsideScope.dashboards[0]?.workload.openTaskCount).toBe(1);
+    for (const [catalog, date] of [
+      [deleted, "2026-08-31"],
+      [retained, "2026-09-01"]
+    ] as const) {
+      expect(catalog.dashboards).toHaveLength(1);
+      const dashboard = catalog.dashboards[0];
+      expect(dashboard?.member).toEqual({ key: "ada", name: "Ada" });
+      expect(dashboard?.state).toBe("normal");
+      expect(dashboard?.todayCompleted).toEqual({
+        date, count: 0, missingDateCount: 0, tasks: []
+      });
+      expect(dashboard?.deliveryWindows).toEqual([]);
+      expect(dashboard?.workload).toMatchObject({
+        totalRemainingHours: 0, openTaskCount: 0, projects: [], taskKeys: []
+      });
+      expect(dashboard?.confidence).toMatchObject({
+        level: "complete", blindTaskCount: 0, taskKeys: []
+      });
+    }
   });
 
   it("shows today's native ISO completions in local time, newest first, once per task", () => {

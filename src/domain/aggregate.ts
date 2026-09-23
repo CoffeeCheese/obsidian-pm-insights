@@ -25,6 +25,22 @@ export function emptyMetrics(): WorkMetrics {
   };
 }
 
+export function emptyMemberInsight(
+  key: string,
+  name: string,
+  kind: MemberInsight["kind"] = "member"
+): MemberInsight {
+  return {
+    key,
+    name,
+    kind,
+    personal: emptyMetrics(),
+    shared: emptyMetrics(),
+    ratios: memberRatios([]),
+    tasks: []
+  };
+}
+
 function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -172,15 +188,11 @@ export function aggregateInsights(
     const key = unassigned ? UNASSIGNED_KEY : normalizeIdentity(name);
     let member = members.get(key);
     if (!member) {
-      member = {
+      member = emptyMemberInsight(
         key,
-        name: unassigned ? options.unassignedLabel : name,
-        kind: unassigned ? "unassigned" : "member",
-        personal: emptyMetrics(),
-        shared: emptyMetrics(),
-        ratios: memberRatios([]),
-        tasks: []
-      };
+        unassigned ? options.unassignedLabel : name,
+        unassigned ? "unassigned" : "member"
+      );
       members.set(key, member);
     }
     return member;

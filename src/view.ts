@@ -1,5 +1,5 @@
 import { ItemView, Modal, setIcon, type App, type WorkspaceLeaf } from "obsidian";
-import { aggregateInsights } from "./domain/aggregate";
+import { aggregateInsights, emptyMemberInsight } from "./domain/aggregate";
 import {
   aggregateDeliveryProgress,
   type DeliveryProgressSnapshot,
@@ -545,21 +545,12 @@ export class InsightsView extends ItemView {
       return;
     }
 
-    const insights = aggregateInsights(snapshot.projects, snapshot.tasks, {
-      projectIds: selectedIds,
-      includeArchived: this.host.settings.includeArchived,
-      countParentTasks: this.host.settings.countParentTasks,
-      aliases: this.host.settings.aliases,
-      unassignedLabel: t.unassigned
-    });
-
+    const { insights, gateRisk, memberDashboard } = this.buildDashboardScope(snapshot, selectedIds, t);
     const deliveryProgress = aggregateDeliveryProgress(snapshot.tasks, {
       projectIds: selectedIds,
       includeArchived: this.host.settings.includeArchived,
       settings: this.host.settings.deliveryProgress
     });
-    const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
-    const memberDashboard = this.buildMemberDashboard(snapshot, insights.members, gateRisk);
     this.renderGateRiskSummary(dashboard, gateRisk, deliveryProgress, snapshot, t);
     this.renderTeamStrip(dashboard, insights.team, t);
     if (this.host.settings.showDeliveryProgress) {
@@ -611,6 +602,27 @@ export class InsightsView extends ItemView {
     const selected = insights.members.find((member) => member.key === this.selectedMemberKey);
     this.renderTaskDetail(detail, selected, snapshot, memberDashboard, t);
     this.refreshMemberDashboardModal();
+  }
+
+  private buildDashboardScope(
+    snapshot: ProjectManagerSnapshot,
+    selectedIds: Set<string>,
+    t: Translations
+  ): {
+    insights: ReturnType<typeof aggregateInsights>;
+    gateRisk: GateRiskSnapshot;
+    memberDashboard: PersonalDashboardCatalog;
+  } {
+    const insights = aggregateInsights(snapshot.projects, snapshot.tasks, {
+      projectIds: selectedIds,
+      includeArchived: this.host.settings.includeArchived,
+      countParentTasks: this.host.settings.countParentTasks,
+      aliases: this.host.settings.aliases,
+      unassignedLabel: t.unassigned
+    });
+    const gateRisk = this.calculateGateRisk(snapshot, selectedIds);
+    const memberDashboard = this.buildMemberDashboard(snapshot, insights.members, gateRisk);
+    return { insights, gateRisk, memberDashboard };
   }
 
   private buildMemberDashboard(
@@ -1568,23 +1580,24 @@ export class InsightsView extends ItemView {
           return "normal";
         }
         const selectedIds = new Set(this.host.settings.selectedProjectIds);
-        const members = aggregateInsights(snapshot.projects, snapshot.tasks, {
-          projectIds: selectedIds,
-          includeArchived: this.host.settings.includeArchived,
-          countParentTasks: this.host.settings.countParentTasks,
-          aliases: this.host.settings.aliases,
-          unassignedLabel: currentTranslations.unassigned
-        }).members;
-        const dashboard = this.buildMemberDashboard(
-          snapshot, members, this.calculateGateRisk(snapshot, selectedIds)
+        const { gateRisk, memberDashboard } = this.buildDashboardScope(
+          snapshot, selectedIds, currentTranslations
         );
-        const metric = dashboard.dashboards.find((candidate) => candidate.member.key === member.key);
-        if (!metric) {
+        const metric = memberDashboard.dashboards.find((candidate) => candidate.member.key === member.key);
+        const dashboard = metric ? memberDashboard : this.buildMemberDashboard(
+          snapshot,
+          [emptyMemberInsight(member.key, member.name, member.kind)],
+          gateRisk
+        );
+        const displayedMetric = metric ?? dashboard.dashboards.find((candidate) =>
+          candidate.member.key === member.key
+        );
+        if (!displayedMetric) {
           root.createDiv({ cls: "pmi-list-empty", text: currentTranslations.noTasks });
           return "normal";
         }
-        this.renderMemberDashboard(root, metric, dashboard, snapshot, currentTranslations);
-        return metric.state;
+        this.renderMemberDashboard(root, displayedMetric, dashboard, snapshot, currentTranslations);
+        return displayedMetric.state;
       },
       onClose: () => {
         if (this.memberDashboardModal !== dialog) return;
