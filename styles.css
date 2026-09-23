@@ -9047,11 +9047,13 @@ body .modal-container .modal.pmi-project-gates-modal {
   display: grid;
   width: 100%;
   min-width: 0;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 9px;
-  align-items: start;
+  height: auto;
+  min-height: 44px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-content: start;
   margin-inline-start: -1px;
-  padding: 10px 8px 10px 12px;
+  padding: 10px 8px 10px 14px;
   border: 0;
   border-inline-start: 2px solid transparent;
   border-radius: 0 var(--radius-s) var(--radius-s) 0;
@@ -9088,18 +9090,24 @@ body .modal-container .modal.pmi-project-gates-modal {
 .pmi-personal-today-time {
   color: var(--pmi-brief-route);
   font-size: var(--pmi-brief-type-caption);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .pmi-personal-today-details {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
 }
 
 .pmi-personal-today-details strong,
 .pmi-personal-today-details small {
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .pmi-personal-today-details strong { font-size: var(--pmi-brief-type-label); }
