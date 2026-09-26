@@ -210,6 +210,7 @@ After selecting a member, use the gauge button beside their name to open a cente
 | View | What it explains |
 | --- | --- |
 | **Delivery windows** | Shows the stage-derived delivery dates inside the selected planning range. Projects and stages sharing a date are grouped into one window with task progress, closed and remaining hours, cumulative load versus stage-window capacity, and concrete risk signals. |
+| **Completed today** | Lists this member's tasks with a native completion date on the device's current local day, newest first when a time is recorded. Each entry shows the task and project and opens the source task in Project Manager. Date-only records are marked as such; status-only completions cannot be assigned to a day. |
 | **Project workload** | Summarizes all valid unfinished work assigned to the member across the current project scope, independent of the 7-, 14-, or 30-day range. Each project shows remaining hours, personal share, task count, delivery stage, and derived delivery date. |
 | **Delivery capacity** | Orders projects by their derived delivery dates, then compares cumulative remaining workload with the capacity between the previous stage gate and each delivery checkpoint. Earlier commitments consume capacity before later ones, making buffer, tight windows, shortfalls, and overdue delivery dates immediately visible. |
 
