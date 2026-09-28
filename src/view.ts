@@ -2056,17 +2056,16 @@ export class InsightsView extends ItemView {
           }
         });
         const checkpointHead = item.createDiv("pmi-personal-capacity-checkpoint-head");
-        const checkpointDate = checkpointHead.createDiv();
-        checkpointDate.createEl("strong", { text: this.shortDate(checkpoint.date) });
-        checkpointDate.createSpan({
+        checkpointHead.createEl("strong", { text: this.shortDate(checkpoint.date) });
+        checkpointHead.createEl("em", {
+          text: this.personalCapacityOutcome(checkpoint, checkpoint.state, t)
+        });
+        checkpointHead.createSpan({
           text: t.personalCapacityCheckpointMeta(
             checkpoint.windowDays,
             checkpoint.projectIds.length,
             dashboard.window.includeWeekends
           )
-        });
-        checkpointHead.createEl("em", {
-          text: this.personalCapacityOutcome(checkpoint, checkpoint.state, t)
         });
         item.createSpan({
           cls: "pmi-personal-capacity-projects",

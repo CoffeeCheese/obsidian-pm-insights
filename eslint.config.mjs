@@ -5,6 +5,7 @@ import obsidianmd from "eslint-plugin-obsidianmd";
 export default defineConfig([
   {
     ignores: [
+      ".scratch/**",
       "esbuild.config.mjs",
       "eslint.config.mjs",
       "main.js",

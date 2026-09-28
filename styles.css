@@ -9815,20 +9815,26 @@ body .modal-container .modal.pmi-project-gates-modal {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pmi-capacity-state) 46%, transparent);
 }
 
-.pmi-personal-capacity-checkpoint-head,
-.pmi-personal-capacity-checkpoint-foot {
-  display: flex;
+.pmi-personal-capacity-checkpoint-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 9px;
+  column-gap: 9px;
+  row-gap: 2px;
 }
 
-.pmi-personal-capacity-checkpoint-head > div {
-  display: flex;
+.pmi-personal-capacity-checkpoint-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
   align-items: baseline;
-  gap: 7px;
+  column-gap: 9px;
+}
+
+.pmi-personal-capacity-checkpoint-head > span {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .pmi-personal-capacity-checkpoint-head strong {
@@ -9847,6 +9853,7 @@ body .modal-container .modal.pmi-project-gates-modal {
 }
 
 .pmi-personal-capacity-checkpoint-head em {
+  justify-self: end;
   color: var(--pmi-capacity-state);
   font-family: var(--font-monospace);
   font-size: var(--pmi-brief-type-label);
@@ -9905,6 +9912,11 @@ body .modal-container .modal.pmi-project-gates-modal {
 .pmi-personal-capacity-checkpoint-foot {
   font-family: var(--font-monospace);
   font-variant-numeric: tabular-nums;
+}
+
+.pmi-personal-capacity-checkpoint-foot > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pmi-personal-capacity-checkpoint-foot > span:last-child {
