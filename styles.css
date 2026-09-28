@@ -7886,8 +7886,8 @@ body .pmi-root button.pmi-runway-checkpoint:not(.clickable-icon):not(:disabled):
 }
 
 .pmi-task-table {
-  --pmi-task-grid-min-width: 900px;
-  --pmi-task-grid-columns: minmax(260px, 1fr) 160px 92px 100px 66px 66px 74px;
+  --pmi-task-grid-min-width: 1060px;
+  --pmi-task-grid-columns: minmax(260px, 1fr) 160px 92px 100px 142px 66px 66px 74px;
   --pmi-task-header-clearance: 12px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -8231,6 +8231,20 @@ body .pmi-root button.pmi-runway-checkpoint:not(.clickable-icon):not(:disabled):
   font-family: var(--font-monospace);
   font-size: var(--font-ui-smaller);
   font-variant-numeric: tabular-nums;
+}
+
+.pmi-task-completed-at {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmi-task-completed-at.is-empty {
+  color: var(--text-faint);
 }
 
 .pmi-task-remaining {

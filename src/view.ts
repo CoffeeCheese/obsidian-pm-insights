@@ -20,6 +20,7 @@ import { ProjectLaunchOverviewModal, type ProjectLaunchUIOptions } from "./proje
 import { ProjectGatesModal } from "./project-gates-modal";
 import { deliveryStageLabel } from "./delivery-stage-label";
 import { scheduleDaysBetween } from "./domain/schedule-calendar";
+import { completionDate } from "./domain/task-completion";
 import {
   memberDashboardTaskKey,
   type MemberDashboardComparison,
@@ -67,7 +68,7 @@ export interface InsightsViewHost {
 type TaskPrioritySort = "none" | "high-to-low" | "low-to-high";
 
 const TASK_PRIORITY_NONE = "";
-const TASK_COLUMN_MIN_WIDTHS = [180, 120, 92, 80, 64, 64, 72] as const;
+const TASK_COLUMN_MIN_WIDTHS = [180, 120, 92, 80, 116, 64, 64, 72] as const;
 const TASK_COLUMN_GAP = 10;
 const TASK_TABLE_INLINE_PADDING = 22;
 const TASK_COLUMN_KEYBOARD_STEP = 12;
@@ -2922,6 +2923,7 @@ export class InsightsView extends ItemView {
       t.project,
       t.priority,
       t.status,
+      t.completionTime,
       t.planned,
       t.logged,
       t.remaining
@@ -3028,6 +3030,23 @@ export class InsightsView extends ItemView {
         text: priorityDefinition?.label ?? task.priority ?? t.noPriority
       });
       row.createSpan({ cls: "pmi-task-status", text: task.status });
+      const completed = task.completed ? completionDate(task.completedAt) : null;
+      const completedLabel = completed
+        ? `${completed.date}${completed.time ? ` ${completed.time}` : ""}`
+        : null;
+      if (completed && completedLabel) {
+        row.createEl("time", {
+          cls: "pmi-task-completed-at",
+          text: completedLabel,
+          attr: { datetime: task.completedAt ?? completed.date, title: completedLabel }
+        });
+      } else {
+        row.createSpan({
+          cls: "pmi-task-completed-at is-empty",
+          text: "—",
+          attr: { title: t.completionTimeUnavailable, "aria-label": t.completionTimeUnavailable }
+        });
+      }
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.estimate) });
       row.createSpan({ cls: "pmi-task-hours", text: t.hours(task.logged) });
       row.createSpan({ cls: "pmi-task-hours pmi-task-remaining", text: t.hours(task.remaining) });
