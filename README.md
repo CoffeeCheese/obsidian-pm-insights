@@ -532,6 +532,7 @@ The member task list is an investigation surface rather than a static report:
 
 - search by task title;
 - combine multi-select project, status, and priority filters;
+- read the native completion date and local time in the **Completed at** column; date-only values remain dates, and unavailable values show a dash;
 - reset every filter in one action;
 - drag a divider to resize columns, use arrow keys for precise adjustment, or double-click to restore the default layout;
 - keep the task-title column fixed on narrow screens while the remaining fields scroll horizontally.
